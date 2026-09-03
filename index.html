@@ -45,7 +45,7 @@
   .title-main{margin:0;color:#9a3412;font-size:1.2rem;font-weight:800;line-height:1.3;letter-spacing:-.3px;}
   .title-security-badge{background:#dcfce7;color:#166534;font-size:.76rem;padding:4px 8px;border-radius:4px;font-weight:600;}
 
-  .top-col-guide{flex:1 1 auto;display:flex;min-width:0;}
+  .top-col-guide{flex:1 1 0%;display:flex;min-width:0;}
   .top-col-guide .security-banner{width:100%;margin-bottom:0;}
   .top-col-detail{flex:0 0 50%;display:flex;min-width:0;}
   .top-col-detail .card{width:100%;margin:0;}
@@ -219,6 +219,11 @@
   .lookup-actions .btn.primary{background:#4338ca;border-color:#4338ca;}
   .lookup-actions .btn.primary:hover{background:#3730a3;}
   .lookup-status{font-size:.78rem;color:var(--muted);}
+  .lookup-header-toggle{display:flex;align-items:center;gap:5px;font-size:.79rem;color:var(--text);
+    cursor:pointer;white-space:nowrap;}
+  .lookup-header-toggle input{cursor:pointer;}
+  tr.lookup-header-tr td{background:#eef2ff !important;}
+  tr.lookup-header-tr input.lookup-cell{font-weight:700;color:#4338ca;}
   .lookup-preview-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:320px;}
   table.lookup-grid{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
   table.lookup-grid th.lookup-colnum{background:#4338ca;color:#fff;font-weight:700;
@@ -332,12 +337,13 @@
       · <strong>XLOOKUP</strong>: 기준 열 번호로 지정한 열에서 기준이 되는 값과 일치하는 행을 찾아, 결과 열 번호로 지정한 열 값을 반환(기준 열이 어디에 있든 상관없음)<br>
       · <strong>COUNTIF/COUNTIFS</strong>: 조건에 맞는 행의 개수를 셈<br>
       · <strong>SUMIF/SUMIFS</strong>: 조건에 맞는 행들의 특정 열 값을 합산<br>
-      COUNTIFS·SUMIFS의 조건 목록은 <strong>'열번호:조건값'</strong>을 쉼표로 이어서 입력하며(예: 1:부여읍,4:&gt;=5), 조건값 앞에 &gt;, &lt;, &gt;=, &lt;=, &lt;&gt; 를 붙이면 비교 조건으로도 쓸 수 있습니다.
+      열 번호 대신 <strong>아래 "1행은 제목행" 체크</strong>를 켜면 1행에 붙여넣은 열 이름(예: 부서, 금액)을 그대로 조건·기준 열에 쓸 수 있습니다. COUNTIFS·SUMIFS의 조건 목록은 <strong>'열번호:조건값'</strong> 또는 <strong>'열이름:조건값'</strong>을 쉼표로 이어서 입력하며(예: 1:부여읍,4:&gt;=5 또는 부서:부여읍,금액:&gt;=5), 조건값 앞에 &gt;, &lt;, &gt;=, &lt;=, &lt;&gt; 를 붙이면 비교 조건으로도 쓸 수 있습니다.
     </p>
     <div class="lookup-actions">
       <span class="row-add-group"><input type="number" id="lookupAddRowCount" min="1" max="200" value="10"></span>
       <button class="btn primary" id="lookupAddRows">+ 행 추가</button>
       <button class="btn" id="lookupAddCol">+ 열 추가</button>
+      <label class="lookup-header-toggle"><input type="checkbox" id="lookupHasHeader"> 1행은 제목행(열 이름)</label>
       <button class="btn ghost" id="clearLookup">참조표 지우기</button>
       <span class="lookup-status" id="lookupStatus"></span>
     </div>
@@ -404,14 +410,27 @@ function matchCondition(cellValue, condStr){
     default: return cellStr === val;
   }
 }
-// "1:부여읍,4:>=5" 같은 문자열을 [{colNum:1,cond:"부여읍"},{colNum:4,cond:">=5"}]로 변환
+// 열 번호("3") 또는 제목행 기반 열 이름("부서")을 모두 받아 실제 열 번호(1부터)로 변환
+function resolveColumnRef(ref){
+  const trimmed = (ref||"").trim();
+  if(trimmed === "") throw "열(번호 또는 이름)을 입력하세요";
+  if(/^\d+$/.test(trimmed)){
+    const n = parseInt(trimmed,10);
+    if(n<1) throw "열 번호는 1 이상 숫자로 입력하세요";
+    return n;
+  }
+  const map = getLookupHeaderMap();
+  if(map[trimmed] !== undefined) return map[trimmed];
+  throw `'${trimmed}' 열을 찾을 수 없습니다 (참조표 1행을 '제목행'으로 체크했는지, 이름 철자가 맞는지 확인하세요)`;
+}
+// "1:부여읍,4:>=5" 또는 "부서:부여읍,금액:>=5" 같은 문자열을 [{colNum,cond}] 배열로 변환
 function parseConditionList(str){
   return str.split(",").map(seg=>{
     const idx = seg.indexOf(":");
-    if(idx===-1) throw `조건 형식이 올바르지 않습니다: "${seg.trim()}" (예: 1:부여읍)`;
-    const colNum = parseInt(seg.slice(0,idx).trim(),10);
+    if(idx===-1) throw `조건 형식이 올바르지 않습니다: "${seg.trim()}" (예: 1:부여읍 또는 부서:부여읍)`;
+    const colRef = seg.slice(0,idx).trim();
     const cond = seg.slice(idx+1).trim();
-    if(isNaN(colNum) || colNum<1) throw "조건의 열 번호를 확인하세요";
+    const colNum = resolveColumnRef(colRef);
     if(!cond) throw "조건값을 입력하세요";
     return { colNum, cond };
   });
@@ -446,6 +465,22 @@ const WEEKDAY = ["일","월","화","수","목","금","토"];
 // params: 필요한 입력값 항목명(순서대로 입력값1/입력값2/입력값3 열에 대응). fn(values)는 항상 params.length 만큼의 배열을 받음.
 // XLOOKUP 참조표 데이터 (아래 파싱 함수에서 채워짐, 조회 함수 fn()에서 참조)
 let lookupTable = [];
+let lookupHasHeader = false;
+
+// 제목행이 켜져 있으면 1행을 제외한 실제 데이터 행만 반환
+function getLookupDataRows(){
+  return lookupHasHeader ? lookupTable.slice(1) : lookupTable;
+}
+// 제목행이 켜져 있으면 {열이름: 열번호(1부터)} 매핑을 반환
+function getLookupHeaderMap(){
+  if(!lookupHasHeader || lookupTable.length === 0) return {};
+  const map = {};
+  lookupTable[0].forEach((name, idx)=>{
+    const key = (name||"").trim();
+    if(key) map[key] = idx+1;
+  });
+  return map;
+}
 
 const CATEGORIES = [
   { name:"텍스트 편집", functions:[
@@ -486,16 +521,6 @@ const CATEGORIES = [
       fn:([v])=> v.replace(/[^0-9a-zA-Z가-힣\s]/g,"") },
     { key:"공백제거", label:"공백 제거", example:"' 부여군  ' → '부여군'", note:"앞뒤 공백은 물론 단어 사이 중복 공백도 1칸으로 정리됩니다. 엑셀에서 복사할 때 섞여 들어오는 보이지 않는 공백을 없앨 때 유용합니다.", params:["값"],
       fn:([v])=> v.trim().replace(/\s+/g," ") },
-    { key:"줄바꿈제거", label:"줄바꿈 제거", example:"여러 줄 → 한 줄", note:"여러 줄로 나뉜 셀 내용을 한 줄로 이어붙일 때 씁니다. 메모나 주소가 줄바꿈 상태로 저장된 경우에 유용합니다.", params:["값"],
-      fn:([v])=> v.replace(/[\r\n]+/g," ").trim() },
-    { key:"대문자변환", label:"영문 대문자 변환", example:"buyeo → BUYEO", note:"영문 코드나 약어의 표기를 대문자로 통일할 때 씁니다.", params:["값"],
-      fn:([v])=> v.toUpperCase() },
-    { key:"소문자변환", label:"영문 소문자 변환", example:"BUYEO → buyeo", note:"이메일 주소처럼 대소문자를 구분하지 않아야 하는 값을 통일할 때 씁니다.", params:["값"],
-      fn:([v])=> v.toLowerCase() },
-    { key:"첫글자대문자", label:"첫 글자만 대문자(영문)", example:"buyeo gun → Buyeo Gun", note:"영문 이름이나 주소를 정식 표기(Title Case)로 정리할 때 씁니다.", params:["값"],
-      fn:([v])=> v.toLowerCase().replace(/(^|\s)\S/g, c=>c.toUpperCase()) },
-    { key:"문자열뒤집기", label:"문자열 뒤집기", example:"부여군 → 군여부", note:"문자 순서를 거꾸로 뒤집습니다. 특정 패턴 검사나 코드 생성 작업에 종종 쓰입니다.", params:["값"],
-      fn:([v])=> v.split("").reverse().join("") },
     { key:"문자열길이", label:"문자열 길이 세기", example:"부여군 → 3", note:"글자 수 제한이 있는 서식(예: 20자 이내)에 맞는지 확인할 때 유용합니다.", params:["값"],
       fn:([v])=> String(v.length) },
   ]},
@@ -526,12 +551,8 @@ const CATEGORIES = [
         return `${f(parts[0])}~${f(parts[1])}`; } },
     { key:"요일표시", label:"요일 표시", example:"2024-03-05 → 화요일", note:"날짜만 있고 요일이 없는 자료에서 요일을 자동으로 채울 때 씁니다.", params:["날짜"],
       fn:([v])=>{ const {dt}=parseDateFlexible(v); return WEEKDAY[dt.getDay()]+"요일"; } },
-    { key:"분기계산", label:"분기 계산", example:"2024-07-01 → 3분기", note:"월별 자료를 분기별로 집계해야 할 때, 날짜만 넣으면 자동으로 분기를 판정합니다.", params:["날짜"],
-      fn:([v])=>{ const {m}=parseDateFlexible(v); return `${Math.floor((m-1)/3)+1}분기`; } },
     { key:"연도추출", label:"연도만 추출", example:"2024-03-05 → 2024", note:"여러 형식의 날짜에서 연도만 뽑아 연도별 통계를 낼 때 씁니다.", params:["날짜"],
       fn:([v])=>{ const {y}=parseDateFlexible(v); return String(y); } },
-    { key:"월추출", label:"월만 추출", example:"2024-03-05 → 3", note:"여러 형식의 날짜에서 월만 뽑아 월별 통계를 낼 때 씁니다.", params:["날짜"],
-      fn:([v])=>{ const {m}=parseDateFlexible(v); return String(m); } },
     { key:"날짜차이", label:"날짜 차이 계산(일수)", example:"2024-01-01 / 2024-03-05 → 64일", note:"두 날짜 사이의 총 일수를 계산합니다. 사업기간·계약기간의 총 일수를 구할 때 유용합니다.", params:["시작일","종료일"],
       fn:([a,b])=>{ const d1=parseDateFlexible(a).dt, d2=parseDateFlexible(b).dt;
         return `${Math.round((d2-d1)/86400000)}일`; } },
@@ -583,16 +604,8 @@ const CATEGORIES = [
         const factor=Math.pow(10,digits); let scaled=Math.round(num*factor*1e6)/1e6;
         const result=Math.ceil(scaled)/factor;
         return commify(digits>0 ? result.toFixed(digits) : String(result)); } },
-    { key:"천단위콤마", label:"천단위 콤마", example:"1234567 → 1,234,567", note:"숫자에 쉼표를 넣어 금액을 읽기 쉽게 만듭니다. 보고서나 품의서에 금액을 표기할 때 기본으로 쓰입니다.", params:["값"],
-      fn:([v])=>{ const s=v.trim().replace(/,/g,""); if(isNaN(Number(s))) throw "숫자가 아닙니다";
-        return Number(s).toLocaleString("ko-KR"); } },
-    { key:"콤마제거", label:"콤마 제거", example:"1,234,567 → 1234567", note:"쉼표가 섞인 금액 텍스트를 다시 순수 숫자로 되돌려 계산 가능한 값으로 만듭니다.", params:["값"],
-      fn:([v])=> v.replace(/,/g,"").trim() },
     { key:"일원단위절사", label:"1원 단위 절사(소수점 절사)", example:"1234567.67 → 1,234,567", note:"소수점 이하 원 단위를 그냥 잘라냅니다(반올림 아님). 정산 시 원 단위 절사가 원칙인 경우에 씁니다.", params:["값"],
       fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return commify(String(Math.floor(num))); } },
-    { key:"퍼센트변환", label:"퍼센트 변환", example:"12.573 → 1,257.3%", note:"소수로 된 비율을 보기 쉬운 퍼센트 표기로 바꿔줍니다. 값이 커도 천단위 쉼표가 함께 붙어 읽기 편합니다.", params:["값"],
-      fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다";
-        return commify((num*100).toFixed(1).replace(/\.0$/,""))+"%"; } },
   ]},
   { name:"개인정보 마스킹", functions:[
     { key:"이름마스킹", label:"이름 가운데 마스킹", example:"홍길동 / * → 홍*동", note:"이름 가운데 글자만 가려 개인정보를 보호하면서도 누구인지는 알아볼 수 있게 합니다. 공개 문서·게시물에 이름을 실을 때 씁니다.", params:["값","마스킹문자"],
@@ -639,54 +652,55 @@ const CATEGORIES = [
   { name:"조회 (XLOOKUP)", functions:[
     { key:"엑스룩업", label:"XLOOKUP (값 찾기)",
       example:"부서명 생활복지과 입력 / 기준 열 번호 3 / 결과 열 번호 1 → 3열(부서명)에서 '생활복지과'를 찾아 1열(사번) 값 반환",
-      note:"VLOOKUP과 달리 기준이 되는 값이 반드시 맨 왼쪽(1열)에 있지 않아도 됩니다. 기준 열 번호에 기준이 되는 값이 들어있는 열을, 결과 열 번호에 가져올 값이 들어있는 열을 각각 지정하면 되며, 결과 열이 기준 열보다 왼쪽에 있어도(예: 부서명으로 사번을 거꾸로 찾기) 정상적으로 동작합니다.",
+      note:"VLOOKUP과 달리 기준이 되는 값이 반드시 맨 왼쪽(1열)에 있지 않아도 됩니다. 기준 열 번호에 기준이 되는 값이 들어있는 열을, 결과 열 번호에 가져올 값이 들어있는 열을 각각 지정하면 되며, 결과 열이 기준 열보다 왼쪽에 있어도(예: 부서명으로 사번을 거꾸로 찾기) 정상적으로 동작합니다. 참조표 1행을 '제목행'으로 체크했다면 열 번호 대신 '부서'처럼 열 이름을 그대로 입력해도 됩니다.",
       usesLookupTable:true,
       params:["기준이 되는 값","기준 열 번호","결과 열 번호"],
       fn:([val, keyColStr, resultColStr])=>{
-        const keyCol = parseInt(keyColStr,10), resultCol = parseInt(resultColStr,10);
-        if(isNaN(keyCol) || keyCol<1) throw "기준 열 번호는 1 이상 숫자로 입력하세요";
-        if(isNaN(resultCol) || resultCol<1) throw "결과 열 번호는 1 이상 숫자로 입력하세요";
-        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
-        const match = lookupTable.find(row => (row[keyCol-1]||"").trim() === val.trim());
+        const keyCol = resolveColumnRef(keyColStr);
+        const resultCol = resolveColumnRef(resultColStr);
+        const rows = getLookupDataRows();
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const match = rows.find(row => (row[keyCol-1]||"").trim() === val.trim());
         if(!match) throw "참조표에서 값을 찾을 수 없습니다";
         if(match[resultCol-1] === undefined || match[resultCol-1] === "") throw "해당 열 번호에 데이터가 없습니다";
         return match[resultCol-1];
       } },
     { key:"카운트이프", label:"COUNTIF (조건 개수 세기)",
       example:"조건값 부여읍 / 조건 열 번호 3 → 참조표 3열이 '부여읍'인 행 개수",
-      note:"아래 'XLOOKUP 참조표'에서 지정한 열의 값이 조건에 맞는 행이 몇 개인지 셉니다. 조건값에 '부여읍'처럼 그냥 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <> 를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100). 참조표를 먼저 붙여넣어야 사용할 수 있습니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호(입력값2)는 1행에만 입력한 뒤 '입력값2 채우기' 버튼으로 나머지 행에 채우면 편리합니다.",
+      note:"아래 'XLOOKUP 참조표'에서 지정한 열의 값이 조건에 맞는 행이 몇 개인지 셉니다. 조건값에 '부여읍'처럼 그냥 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <> 를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100). 참조표를 먼저 붙여넣어야 사용할 수 있습니다. 참조표 1행을 '제목행'으로 체크했다면 조건 열 번호에 '부서'처럼 열 이름을 그대로 입력해도 됩니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호(입력값2)는 1행에만 입력한 뒤 '입력값2 채우기' 버튼으로 나머지 행에 채우면 편리합니다.",
       usesLookupTable:true,
       params:["조건값","조건 열 번호"],
       fn:([condStr, colNumStr])=>{
-        const colNum = parseInt(colNumStr,10);
-        if(isNaN(colNum) || colNum<1) throw "조건 열 번호는 1 이상 숫자로 입력하세요";
-        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
-        const count = lookupTable.filter(row => matchCondition(row[colNum-1]||"", condStr)).length;
+        const colNum = resolveColumnRef(colNumStr);
+        const rows = getLookupDataRows();
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const count = rows.filter(row => matchCondition(row[colNum-1]||"", condStr)).length;
         return commify(String(count));
       } },
     { key:"카운트이프스", label:"COUNTIFS (여러 조건 개수 세기)",
       example:"조건 목록 1:부여읍,4:>=5 → 1열이 '부여읍'이면서 4열이 5 이상인 행 개수",
-      note:"COUNTIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록 칸에 '열번호:조건값'을 쉼표로 이어서 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 동시에 4열이 5 이상인 행만 셉니다. 조건값 앞에 >, <, >=, <=, <> 를 붙이면 비교 조건도 쓸 수 있습니다. 조건 목록 자체가 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣을 수 있습니다.",
+      note:"COUNTIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록 칸에 '열번호:조건값'을 쉼표로 이어서 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 동시에 4열이 5 이상인 행만 셉니다. 참조표 1행을 '제목행'으로 체크했다면 '부서:부여읍,금액:>=5'처럼 열 번호 대신 열 이름으로 써도 됩니다. 조건값 앞에 >, <, >=, <=, <> 를 붙이면 비교 조건도 쓸 수 있습니다. 조건 목록 자체가 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣을 수 있습니다.",
       usesLookupTable:true,
       params:["조건 목록"],
       fn:([condListStr])=>{
-        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const rows = getLookupDataRows();
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
         const conditions = parseConditionList(condListStr);
-        const count = lookupTable.filter(row => conditions.every(c => matchCondition(row[c.colNum-1]||"", c.cond))).length;
+        const count = rows.filter(row => conditions.every(c => matchCondition(row[c.colNum-1]||"", c.cond))).length;
         return commify(String(count));
       } },
     { key:"섬이프", label:"SUMIF (조건에 맞는 값 합계)",
       example:"조건값 부여읍 / 조건 열 번호 3 / 합계 열 번호 5 → 3열이 '부여읍'인 행들의 5열 값 합계",
-      note:"아래 'XLOOKUP 참조표'에서 조건에 맞는 행들만 찾아, 그 행들의 다른 열(합계 열 번호) 값을 모두 더합니다. 예를 들어 3열이 '부여읍'인 행들의 5열(집행금액) 합계를 구하고 싶으면 조건값에 부여읍, 조건 열 번호에 3, 합계 열 번호에 5를 넣으면 됩니다. 조건값에는 COUNTIF와 같은 비교연산자(>, <, >=, <=, <>)도 쓸 수 있습니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호·합계 열 번호(입력값2·입력값3)는 1행에만 입력한 뒤 채우기 버튼으로 나머지 행에 채우면 편리합니다.",
+      note:"아래 'XLOOKUP 참조표'에서 조건에 맞는 행들만 찾아, 그 행들의 다른 열(합계 열 번호) 값을 모두 더합니다. 예를 들어 3열이 '부여읍'인 행들의 5열(집행금액) 합계를 구하고 싶으면 조건값에 부여읍, 조건 열 번호에 3, 합계 열 번호에 5를 넣으면 됩니다. 참조표 1행을 '제목행'으로 체크했다면 열 번호 대신 '부서', '집행금액' 같은 열 이름을 그대로 써도 됩니다. 조건값에는 COUNTIF와 같은 비교연산자(>, <, >=, <=, <>)도 쓸 수 있습니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호·합계 열 번호(입력값2·입력값3)는 1행에만 입력한 뒤 채우기 버튼으로 나머지 행에 채우면 편리합니다.",
       usesLookupTable:true,
       params:["조건값","조건 열 번호","합계 열 번호"],
       fn:([condStr, colNumStr, sumColStr])=>{
-        const colNum = parseInt(colNumStr,10), sumCol = parseInt(sumColStr,10);
-        if(isNaN(colNum) || colNum<1) throw "조건 열 번호는 1 이상 숫자로 입력하세요";
-        if(isNaN(sumCol) || sumCol<1) throw "합계 열 번호는 1 이상 숫자로 입력하세요";
-        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const colNum = resolveColumnRef(colNumStr);
+        const sumCol = resolveColumnRef(sumColStr);
+        const rows = getLookupDataRows();
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
         let sum = 0;
-        lookupTable.forEach(row=>{
+        rows.forEach(row=>{
           if(matchCondition(row[colNum-1]||"", condStr)){
             const v = Number(String(row[sumCol-1]||"0").replace(/,/g,""));
             if(!isNaN(v)) sum += v;
@@ -696,16 +710,16 @@ const CATEGORIES = [
       } },
     { key:"섬이프스", label:"SUMIFS (여러 조건에 맞는 값 합계)",
       example:"조건 목록 1:부여읍,4:>=5 / 합계 열 번호 5 → 조건을 모두 만족하는 행들의 5열 값 합계",
-      note:"SUMIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록에는 COUNTIFS와 같은 방식으로 '열번호:조건값'을 쉼표로 이어서 입력하고, 합계 열 번호에는 더할 값이 있는 열을 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 4열이 5 이상인 행들만 골라 그 행들의 합계 열 값을 더합니다. 조건 목록(입력값1)이 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 합계 열 번호(입력값2)는 1행에만 입력한 뒤 '입력값2 채우기' 버튼으로 나머지 행에 채우면 편리합니다.",
+      note:"SUMIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록에는 COUNTIFS와 같은 방식으로 '열번호:조건값'을 쉼표로 이어서 입력하고, 합계 열 번호에는 더할 값이 있는 열을 입력하세요. 참조표 1행을 '제목행'으로 체크했다면 '부서:부여읍,금액:>=5'처럼 열 이름으로 조건을 쓰고, 합계 열 번호에도 '집행금액'처럼 이름을 그대로 입력할 수 있습니다. 조건 목록(입력값1)이 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 합계 열 번호(입력값2)는 1행에만 입력한 뒤 '입력값2 채우기' 버튼으로 나머지 행에 채우면 편리합니다.",
       usesLookupTable:true,
       params:["조건 목록","합계 열 번호"],
       fn:([condListStr, sumColStr])=>{
-        const sumCol = parseInt(sumColStr,10);
-        if(isNaN(sumCol) || sumCol<1) throw "합계 열 번호는 1 이상 숫자로 입력하세요";
-        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const sumCol = resolveColumnRef(sumColStr);
+        const rows = getLookupDataRows();
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
         const conditions = parseConditionList(condListStr);
         let sum = 0;
-        lookupTable.forEach(row=>{
+        rows.forEach(row=>{
           if(conditions.every(c => matchCondition(row[c.colNum-1]||"", c.cond))){
             const v = Number(String(row[sumCol-1]||"0").replace(/,/g,""));
             if(!isNaN(v)) sum += v;
@@ -1196,11 +1210,39 @@ function syncLookupTableFromGrid(){
     if(rowVals.some(v => v.trim() !== "")) table.push(rowVals);
   });
   lookupTable = table;
+  refreshLookupColumnLabels();
+  refreshLookupHeaderRowStyle();
   const status = document.getElementById("lookupStatus");
-  status.textContent = lookupTable.length ? `데이터 있는 행 ${lookupTable.length}개 · 전체 ${lookupCols}열` : "";
+  const dataCount = getLookupDataRows().length;
+  status.textContent = lookupTable.length
+    ? (lookupHasHeader ? `제목행 1개 + 데이터 ${dataCount}행 · 전체 ${lookupCols}열` : `데이터 있는 행 ${lookupTable.length}개 · 전체 ${lookupCols}열`)
+    : "";
   recomputeAllRows();
   updateLookupCardVisibility();
 }
+
+// 제목행 체크 여부에 따라 "1열", "1열 (부서)" 형태로 열 헤더 텍스트 갱신
+function refreshLookupColumnLabels(){
+  const heads = [...document.getElementById("lookupGridHeadRow").children];
+  const headerRow = lookupHasHeader ? lookupTable[0] : null;
+  heads.forEach((th, i)=>{
+    const name = headerRow && headerRow[i] ? headerRow[i].trim() : "";
+    th.textContent = name ? `${i+1}열 (${name})` : `${i+1}열`;
+  });
+}
+
+// 제목행 체크 시 그리드 1행을 시각적으로 구분해서 보여줌
+function refreshLookupHeaderRowStyle(){
+  const body = document.getElementById("lookupGridBody");
+  [...body.children].forEach((tr,i)=>{
+    tr.classList.toggle("lookup-header-tr", lookupHasHeader && i===0);
+  });
+}
+
+document.getElementById("lookupHasHeader").addEventListener("change", (e)=>{
+  lookupHasHeader = e.target.checked;
+  syncLookupTableFromGrid();
+});
 
 document.getElementById("lookupAddRows").addEventListener("click", ()=>{
   const input = document.getElementById("lookupAddRowCount");
@@ -1214,6 +1256,8 @@ document.getElementById("lookupAddCol").addEventListener("click", ()=> addLookup
 
 document.getElementById("clearLookup").addEventListener("click", ()=>{
   if(confirm("참조표 내용을 모두 지울까요?")){
+    document.getElementById("lookupHasHeader").checked = false;
+    lookupHasHeader = false;
     initLookupGrid();
   }
 });
