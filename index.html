@@ -239,6 +239,17 @@
     opacity:0;pointer-events:none;transition:opacity .18s, transform .18s;z-index:999;
     box-shadow:0 6px 18px rgba(0,0,0,.18);}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .copy-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;
+    display:flex;align-items:center;justify-content:center;padding:20px;}
+  .copy-modal{background:#fff;border-radius:12px;padding:22px;max-width:480px;width:100%;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);}
+  .copy-modal h3{margin:0 0 8px;font-size:1.05rem;color:var(--title);}
+  .copy-modal p{margin:0 0 12px;font-size:.85rem;color:var(--muted);line-height:1.6;}
+  .copy-modal textarea{width:100%;height:160px;border:1.5px solid var(--line);border-radius:8px;
+    padding:10px;font-size:12.5px;font-family:inherit;color:var(--text);resize:vertical;box-sizing:border-box;}
+  .copy-modal textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg);}
+  .copy-modal-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;}
 </style>
 </head>
 <body>
@@ -352,6 +363,19 @@
         <thead><tr id="lookupGridHeadRow"></tr></thead>
         <tbody id="lookupGridBody"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="copy-modal-overlay" id="copyFallbackModal" style="display:none;">
+  <div class="copy-modal">
+    <h3>📋 결과값 복사</h3>
+    <p>브라우저 자동 복사가 막혀 있어요. 아래 상자를 클릭하면 전체가 선택됩니다 — <strong>Ctrl+C</strong>(Mac은 ⌘+C)로 복사한 뒤, 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.</p>
+    <textarea id="copyFallbackText" readonly></textarea>
+    <div class="copy-modal-actions">
+      <button class="btn primary" id="copyFallbackSelectBtn">전체 선택</button>
+      <button class="btn ghost" id="copyFallbackCloseBtn">닫기</button>
     </div>
   </div>
 </div>
@@ -1074,22 +1098,43 @@ async function copyAllResults(){
   const text = rows.map(r=> r.querySelector(".fresult").value || "").join("\n");
   if(!text.trim()){ alert("복사할 결과값이 없습니다."); return; }
   try{
+    if(!navigator.clipboard) throw new Error("clipboard API 없음");
     await navigator.clipboard.writeText(text);
     showToast("결과값이 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
   }catch(err){
     const ta = document.createElement("textarea");
     ta.value = text; ta.style.position="fixed"; ta.style.left="-9999px";
     document.body.appendChild(ta); ta.select();
-    try{
-      document.execCommand("copy");
-      showToast("결과값이 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
-    }catch(e2){
-      alert("자동 복사에 실패했습니다. 결과값 열을 직접 드래그해 Ctrl+C로 복사해주세요.");
-    }
+    let execOk = false;
+    try{ execOk = document.execCommand("copy"); }catch(e2){ execOk = false; }
     document.body.removeChild(ta);
+    if(execOk){
+      showToast("결과값이 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+    } else {
+      showCopyFallbackModal(text);
+    }
   }
 }
 document.getElementById("copyResults").addEventListener("click", copyAllResults);
+
+function showCopyFallbackModal(text){
+  const modal = document.getElementById("copyFallbackModal");
+  const ta = document.getElementById("copyFallbackText");
+  ta.value = text;
+  modal.style.display = "flex";
+  ta.focus();
+  ta.select();
+}
+document.getElementById("copyFallbackSelectBtn").addEventListener("click", ()=>{
+  const ta = document.getElementById("copyFallbackText");
+  ta.focus(); ta.select();
+});
+document.getElementById("copyFallbackCloseBtn").addEventListener("click", ()=>{
+  document.getElementById("copyFallbackModal").style.display = "none";
+});
+document.getElementById("copyFallbackModal").addEventListener("click", (e)=>{
+  if(e.target.id === "copyFallbackModal") document.getElementById("copyFallbackModal").style.display = "none";
+});
 
 // ---------- 툴바 이벤트 ----------
 document.getElementById("addRow").addEventListener("click", ()=>{
