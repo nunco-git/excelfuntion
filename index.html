@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스마트 엑셀함수 변환기</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0; --text:#334155; --title:#0f172a; --muted:#64748b;
+    --accent:#2563eb; --accent-bg:#eff6ff; --danger:#ef4444;
+    --green-bg:#f0fdf4; --green-border:#bbf7d0; --green-text:#166534; --green-strong:#15803d;
+    --green-btn:#10b981;
+    --detail-bg:#fdf4ff; --detail-border:#f0abfc; --detail-text:#a21caf; --detail-strong:#86198f;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
+    background:var(--bg);color:var(--text);padding:24px;}
+
+  .app-container{max-width:1400px;margin:0 auto;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.05);padding:32px;}
+
+  .top-section{display:flex;gap:14px;align-items:stretch;margin:0 0 20px;flex-wrap:wrap;}
+
+  .top-col-title{flex:0 0 240px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;text-align:center;background:linear-gradient(160deg,#fff7ed 0%,#ffedd5 100%);
+    border:1px solid #fed7aa;border-radius:12px;padding:14px 10px;box-shadow:0 1px 3px rgba(194,65,12,.06);}
+  .title-icon{font-size:2rem;line-height:1;filter:drop-shadow(0 1px 1px rgba(194,65,12,.15));}
+  .title-main{margin:0;color:#9a3412;font-size:1.2rem;font-weight:800;line-height:1.3;letter-spacing:-.3px;}
+  .title-security-badge{background:#dcfce7;color:#166534;font-size:.76rem;padding:4px 8px;border-radius:4px;font-weight:600;}
+
+  .top-col-guide{flex:1 1 420px;display:flex;min-width:0;}
+  .top-col-guide .security-banner{width:100%;margin-bottom:0;}
+
+  h1{margin:0;color:var(--title);font-size:1.5rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:4px 0 0;line-height:1.6;}
+
+  .security-banner{background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);border:1px solid var(--green-border);
+    border-radius:14px;padding:14px 16px;color:var(--green-text);font-size:.88rem;font-weight:700;
+    line-height:1.5;box-shadow:0 1px 3px rgba(16,24,40,.04),0 1px 2px rgba(16,24,40,.03);
+    display:flex;flex-direction:column;justify-content:center;}
+  .security-banner-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .security-banner strong.head{font-size:.95rem;color:var(--green-strong);letter-spacing:-.2px;}
+  .security-features{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
+  .security-features li{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.55);
+    border:1px solid rgba(187,247,208,.7);border-radius:9px;padding:6px 10px;font-size:.79rem;}
+  .security-features .feat-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#16a34a;
+    color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;
+    box-shadow:0 2px 4px rgba(22,163,74,.25);}
+  .security-features strong{font-size:.79rem;color:#14532d;}
+  .security-features .feat-desc{color:#15803d;font-weight:700;}
+
+  .layout{display:grid;grid-template-columns:1fr 270px;gap:16px;align-items:start;}
+  @media (max-width:960px){.layout{grid-template-columns:1fr;} .top-section{flex-direction:column;} .top-col-title{flex:1 1 auto;}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    padding:12px 14px;border-bottom:1px solid var(--line);background:#f8fafc;}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--text);
+    padding:6px 13px;border-radius:8px;font-size:12.5px;cursor:pointer;white-space:nowrap;
+    transition:background .12s,border-color .12s;}
+  .btn:hover{background:#f1f5f9;}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn.primary:hover{background:#1d4ed8;}
+  .btn.ghost{color:var(--muted);}
+  .btn.success{background:var(--green-btn);border-color:var(--green-btn);color:#fff;font-weight:600;}
+  .btn.success:hover{background:#0ea371;}
+  .row-add-group{display:flex;align-items:center;gap:0;border:1px solid var(--line);
+    border-radius:8px;background:#fff;overflow:hidden;}
+  #addRowCount{width:50px;border:none;outline:none;font-size:12.5px;font-family:inherit;
+    padding:6px 6px 6px 10px;color:var(--text);background:transparent;}
+  .row-add-group .btn{border:none;border-left:1px solid var(--line);border-radius:0;
+    padding:6px 10px;background:#f8fafc;}
+  .row-add-group .btn:hover{background:#eef2f6;}
+  .divider{width:1px;height:18px;background:var(--line);margin:0 2px;}
+
+  .table-scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1240px;}
+  colgroup col.idx{width:36px;}
+  colgroup col.cat{width:11%;}
+  colgroup col.fn{width:16%;}
+  colgroup col.val-main{width:13%;}
+  colgroup col.val-sub{width:8%;}
+  colgroup col.result{width:27%;}
+  colgroup col.del{width:36px;}
+
+  thead th{background:#f8fafc;color:var(--muted);font-size:12px;font-weight:600;
+    padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);}
+  thead th.idx{text-align:center;}
+  thead th.result{color:var(--accent);}
+
+  tbody td{border:1px solid var(--line);padding:0;vertical-align:middle;font-size:13px;background:#fff;}
+  tbody td.idx{text-align:center;color:var(--muted);background:#f8fafc;font-size:12px;}
+  tbody tr:nth-child(even) td:not(.idx){background:#fafbfc;}
+
+  tbody td.fillable{position:relative;}
+  .fill-handle{position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;
+    background:var(--accent);border:1.5px solid #fff;border-radius:1px;
+    cursor:ns-resize;opacity:0;transition:opacity .12s;z-index:5;}
+  tbody td.fillable:hover .fill-handle{opacity:1;}
+  tbody td.fillable.fill-source .fill-handle{opacity:1;}
+  tbody td.fill-preview{background:var(--accent-bg) !important;outline:1.5px dashed var(--accent);outline-offset:-1.5px;}
+  body.dragging-fill{user-select:none;-webkit-user-select:none;cursor:ns-resize;}
+
+  select.cell, input.cell{width:100%;border:none;outline:none;background:transparent;
+    padding:8px 9px;font-size:12.5px;font-family:inherit;color:var(--text);
+    appearance:none;-webkit-appearance:none;}
+  select.cell{background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat:no-repeat;background-position:right 6px center;background-size:13px;
+    padding-right:22px;cursor:pointer;}
+  select.cell:disabled{color:#cbd5e1;cursor:not-allowed;}
+  .cell:focus{background-color:var(--accent-bg);box-shadow:inset 0 0 0 1.5px var(--accent);}
+
+  td.valCell{vertical-align:top;}
+  .param-label{font-size:10px;color:var(--accent);font-weight:600;padding:5px 9px 0;}
+  td.valCell.na .param-label{color:#cbd5e1;}
+  input.pval:disabled{background:#f8fafc;color:#cbd5e1;}
+  input.pval{padding-top:2px;}
+
+  td.result-cell{background:var(--accent-bg);}
+  td.result-cell .cell{color:#1d4ed8;font-weight:600;background:transparent;pointer-events:none;}
+  td.result-cell.err .cell{color:var(--danger);font-weight:500;}
+  td.result-cell.empty .cell{color:#cbd5e1;font-weight:400;}
+
+  td.del{text-align:center;}
+  .del-btn{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:14px;width:100%;padding:8px 0;}
+  .del-btn:hover{color:var(--danger);}
+
+  .side h2{font-size:13px;margin:0 0 10px;color:var(--muted);font-weight:600;padding:14px 14px 0;}
+  .side .card{padding-bottom:8px;}
+  details{border-top:1px solid var(--line);}
+  details:first-of-type{border-top:none;}
+  summary{padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--text);
+    list-style:none;display:flex;justify-content:space-between;align-items:center;}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:"+";color:var(--muted);font-weight:400;}
+  details[open] summary::after{content:"–";}
+  .fn-item{padding:6px 14px 6px 22px;font-size:12px;}
+  .fn-name{font-weight:600;color:var(--text);display:block;}
+  .fn-ex{color:var(--muted);font-size:11px;margin-top:1px;}
+  .fn-params{color:var(--accent);font-size:10.5px;margin-top:2px;}
+  .side-note{margin:10px 14px 14px;padding-top:10px;border-top:1px solid var(--line);
+    font-size:11.5px;color:var(--muted);line-height:1.6;}
+
+  .fn-detail-card{background:var(--detail-bg);border:1.5px solid var(--detail-border);}
+  .fn-detail-card h2{color:var(--detail-strong);}
+  #fnDetail{padding:0 14px 14px;}
+  .fn-detail-empty{font-size:12px;color:#a21caf;line-height:1.6;padding:2px 0 4px;opacity:.75;}
+  .fn-detail-cat{display:inline-block;font-size:10.5px;font-weight:600;color:#fff;
+    background:var(--detail-strong);padding:2px 8px;border-radius:10px;margin-bottom:8px;}
+  .fn-detail-name{font-size:14px;font-weight:700;color:var(--detail-strong);margin-bottom:6px;}
+  .fn-detail-example{font-size:12px;color:var(--detail-text);line-height:1.6;margin-bottom:10px;
+    background:#fff;border:1px solid var(--detail-border);border-radius:6px;padding:8px 10px;}
+  .fn-detail-params{list-style:none;margin:0;padding:0;}
+  .fn-detail-params li{font-size:12px;color:var(--text);padding:5px 0;border-top:1px solid var(--detail-border);}
+  .fn-detail-params li:first-child{border-top:none;}
+  .fn-detail-params strong{color:var(--detail-text);font-weight:700;margin-right:6px;}
+
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);
+    background:#0f172a;color:#fff;font-size:13px;padding:10px 18px;border-radius:8px;
+    opacity:0;pointer-events:none;transition:opacity .18s, transform .18s;z-index:999;
+    box-shadow:0 6px 18px rgba(0,0,0,.18);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="app-container">
+  <div class="top-section">
+    <div class="top-col-title">
+      <div class="title-icon">🧮</div>
+      <h1 class="title-main">스마트 엑셀함수<br>변환기</h1>
+      <span class="title-security-badge">🔒 100% 브라우저 내 처리</span>
+    </div>
+    <div class="top-col-guide">
+      <div class="security-banner">
+        <div class="security-banner-header">
+          <strong class="head">🔒 입력값 보안 100% 보장</strong>
+        </div>
+        <ul class="security-features">
+          <li><span class="feat-icon">🌐</span><span><strong>외부 서버 전송 ZERO</strong> <span class="feat-desc">: 입력값과 계산 결과가 브라우저 안에서만 처리</span></span></li>
+          <li><span class="feat-icon">⚡</span><span><strong>실시간 자동 계산</strong> <span class="feat-desc">: 값 입력 즉시 결과 표시, 별도 실행 버튼 불필요</span></span></li>
+          <li><span class="feat-icon">📋</span><span><strong>엑셀과 그대로 연동</strong> <span class="feat-desc">: 여러 셀 복사·붙여넣기, 결과값도 엑셀로 바로 복사</span></span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <div class="toolbar">
+        <button class="btn primary" id="addRow">+ 행 추가</button>
+        <span class="row-add-group">
+          <input type="number" id="addRowCount" min="1" max="500" value="10">
+          <button class="btn" id="addRowsBulk">행 추가</button>
+        </span>
+        <button class="btn ghost" id="clearAll">전체 지우기</button>
+        <span class="divider"></span>
+        <button class="btn" id="fillCatAll">① 구분 채우기</button>
+        <button class="btn" id="fillFnAll">② 세부기능 채우기</button>
+        <button class="btn" id="fillVal1All">④ 입력값1 채우기</button>
+        <button class="btn" id="fillVal2All">⑤ 입력값2 채우기</button>
+        <span style="flex:1"></span>
+        <button class="btn" id="copyResults">⑥ 결과값 복사</button>
+        <button class="btn success" id="downloadXlsx">엑셀로 다운로드</button>
+      </div>
+      <div class="table-scroll">
+      <table>
+        <colgroup>
+          <col class="idx"><col class="cat"><col class="fn">
+          <col class="val-main"><col class="val-sub"><col class="val-sub">
+          <col class="result"><col class="del">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th>① 구분</th>
+            <th>② 세부 기능</th>
+            <th class="val">③ 입력값</th>
+            <th class="val">④ 입력값1</th>
+            <th class="val">⑤ 입력값2</th>
+            <th class="result">⑥ 결과값</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="grid"></tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card fn-detail-card">
+        <h2>선택한 기능 설명</h2>
+        <div id="fnDetail">
+          <div class="fn-detail-empty">표에서 구분·세부기능을 선택하면 여기에 설명이 표시됩니다.</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h2>사용 가능한 기능</h2>
+        <div id="fnList"></div>
+        <div class="side-note">
+          입력값이 2개 이상 필요한 기능은 입력값1·입력값2 열까지 함께 입력해야 결과가 계산됩니다.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- 유틸 ----------
+function parseDateFlexible(s){
+  s = (s||"").trim();
+  if(!s) throw "값을 입력하세요";
+  const digits = s.replace(/[^0-9]/g,"");
+  let y,m,d;
+  if(digits.length === 8){
+    y = digits.slice(0,4); m = digits.slice(4,6); d = digits.slice(6,8);
+  } else if(digits.length === 6){
+    const yy = parseInt(digits.slice(0,2),10);
+    y = String(yy < 50 ? 2000+yy : 1900+yy); m = digits.slice(2,4); d = digits.slice(4,6);
+  } else {
+    const parts = s.split(/[.\-\/년월일\s]+/).filter(Boolean);
+    if(parts.length < 3) throw "날짜 형식 인식 불가";
+    [y,m,d] = parts;
+    if(y.length !== 4) throw "연도는 4자리로 입력";
+  }
+  m = String(parseInt(m,10)).padStart(2,"0");
+  d = String(parseInt(d,10)).padStart(2,"0");
+  const dt = new Date(`${y}-${m}-${d}T00:00:00`);
+  if(isNaN(dt.getTime())) throw "유효하지 않은 날짜";
+  return {y:parseInt(y,10), m:parseInt(m,10), d:parseInt(d,10), dt};
+}
+
+function numberToKorean(n){
+  const nums = ["","일","이","삼","사","오","육","칠","팔","구"];
+  const units = ["","십","백","천"];
+  const bigUnits = ["","만","억","조","경"];
+  if(n === 0) return "영";
+  let result = ""; let groupIndex = 0;
+  while(n > 0){
+    let group = n % 10000;
+    if(group > 0){
+      let groupStr = ""; let g = group;
+      for(let i=0;i<4;i++){
+        let digit = g % 10;
+        if(digit > 0){
+          groupStr = ((digit===1 && i>0) ? "" : nums[digit]) + units[i] + groupStr;
+        }
+        g = Math.floor(g/10);
+      }
+      result = groupStr + bigUnits[groupIndex] + result;
+    }
+    n = Math.floor(n/10000); groupIndex++;
+  }
+  return result;
+}
+const WEEKDAY = ["일","월","화","수","목","금","토"];
+
+// ---------- 기능 정의 ----------
+// params: 필요한 입력값 항목명(순서대로 입력값/입력값1/입력값2 열에 대응). fn(values)는 항상 params.length 만큼의 배열을 받음.
+const CATEGORIES = [
+  { name:"텍스트 편집", functions:[
+    { key:"왼쪽N글자", label:"왼쪽 N글자 추출", example:"홍길동 / 1 → 홍", params:["값","글자수"],
+      fn:([s,n])=>{ const num=parseInt(n,10); if(isNaN(num)||num<1) throw "글자수는 1 이상 숫자";
+        return s.slice(0,num); } },
+    { key:"오른쪽N글자", label:"오른쪽 N글자 추출", example:"홍길동 / 1 → 동", params:["값","글자수"],
+      fn:([s,n])=>{ const num=parseInt(n,10); if(isNaN(num)||num<1) throw "글자수는 1 이상 숫자";
+        return s.slice(-num); } },
+    { key:"중간N글자", label:"중간 N글자 추출(MID)", example:"부여군청 / 2 / 2 → 여군", params:["값","시작위치","글자수"],
+      fn:([s,startS,lenS])=>{ const start=parseInt(startS,10), len=parseInt(lenS,10);
+        if(isNaN(start)||start<1) throw "시작위치는 1 이상 숫자";
+        if(isNaN(len)||len<1) throw "글자수는 1 이상 숫자";
+        return s.slice(start-1, start-1+len); } },
+    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(FIND+LEFT)", example:"부여군-농업정책과 / - → 부여군", params:["값","구분자"],
+      fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
+        if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(0,idx); } },
+    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(FIND+RIGHT)", example:"부여군-농업정책과 / - → 농업정책과", params:["값","구분자"],
+      fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
+        if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(idx+sep.length); } },
+    { key:"두구분자사이추출", label:"두 구분자 사이 추출(FIND+MID)", example:"가격(1,000원)입니다 / ( / ) → 1,000원", params:["값","시작구분자","종료구분자"],
+      fn:([s,start,end])=>{ if(!start||!end) throw "시작·종료 구분자를 모두 입력하세요";
+        const i1=s.indexOf(start); if(i1===-1) throw "시작 구분자를 찾을 수 없습니다";
+        const from=i1+start.length; const i2=s.indexOf(end, from);
+        if(i2===-1) throw "종료 구분자를 찾을 수 없습니다";
+        return s.slice(from, i2); } },
+    { key:"특정문자치환", label:"특정 문자 치환", example:"부여군청 / 군청 / 군 → 부여군", params:["값","찾을문자","바꿀문자"],
+      fn:([s,find,rep])=>{ if(!find) throw "찾을 문자를 입력하세요"; return s.split(find).join(rep||""); } },
+    { key:"특수문자제거", label:"특수문자 제거", example:"부여-군#청! → 부여군청", params:["값"],
+      fn:([v])=> v.replace(/[^0-9a-zA-Z가-힣\s]/g,"") },
+    { key:"공백제거", label:"공백 제거", example:"' 부여군  ' → '부여군'", params:["값"],
+      fn:([v])=> v.trim().replace(/\s+/g," ") },
+    { key:"줄바꿈제거", label:"줄바꿈 제거", example:"여러 줄 → 한 줄", params:["값"],
+      fn:([v])=> v.replace(/[\r\n]+/g," ").trim() },
+    { key:"대문자변환", label:"영문 대문자 변환", example:"buyeo → BUYEO", params:["값"],
+      fn:([v])=> v.toUpperCase() },
+    { key:"소문자변환", label:"영문 소문자 변환", example:"BUYEO → buyeo", params:["값"],
+      fn:([v])=> v.toLowerCase() },
+    { key:"첫글자대문자", label:"첫 글자만 대문자(영문)", example:"buyeo gun → Buyeo Gun", params:["값"],
+      fn:([v])=> v.toLowerCase().replace(/(^|\s)\S/g, c=>c.toUpperCase()) },
+    { key:"문자열뒤집기", label:"문자열 뒤집기", example:"부여군 → 군여부", params:["값"],
+      fn:([v])=> v.split("").reverse().join("") },
+    { key:"문자열길이", label:"문자열 길이 세기", example:"부여군 → 3", params:["값"],
+      fn:([v])=> String(v.length) },
+  ]},
+  { name:"날짜 / 시간", functions:[
+    { key:"날짜형식변환", label:"날짜 형식 변환 (YYYY-MM-DD)", example:"20240305 → 2024-03-05", params:["날짜"],
+      fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; } },
+    { key:"날짜형식변환한글", label:"날짜 형식 변환 (한글)", example:"20240305 → 2024년 03월 05일", params:["날짜"],
+      fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}년 ${String(m).padStart(2,"0")}월 ${String(d).padStart(2,"0")}일`; } },
+    { key:"날짜형식변환행정", label:"날짜 형식 변환 (행정문서용, 2005. 6. 20.)", example:"20050620 → 2005. 6. 20.", params:["날짜"],
+      fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}. ${m}. ${d}.`; } },
+    { key:"날짜형식변환점표기", label:"날짜 형식 변환 (점표기, 2005.06.20)", example:"20050620 → 2005.06.20", params:["날짜"],
+      fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}.${String(m).padStart(2,"0")}.${String(d).padStart(2,"0")}`; } },
+    { key:"기간형식변환", label:"기간 형식 변환 (YYYY-MM-DD)", example:"20240101~20240305 → 2024-01-01~2024-03-05", params:["기간(시작~종료)"],
+      fn:([v])=>{ const parts=v.split("~"); if(parts.length!==2) throw "'시작일~종료일' 형식으로 입력하세요";
+        const f=(s)=>{ const {y,m,d}=parseDateFlexible(s); return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; };
+        return `${f(parts[0])}~${f(parts[1])}`; } },
+    { key:"기간형식변환한글", label:"기간 형식 변환 (한글)", example:"20240101~20240305 → 2024년 01월 01일~2024년 03월 05일", params:["기간(시작~종료)"],
+      fn:([v])=>{ const parts=v.split("~"); if(parts.length!==2) throw "'시작일~종료일' 형식으로 입력하세요";
+        const f=(s)=>{ const {y,m,d}=parseDateFlexible(s); return `${y}년 ${String(m).padStart(2,"0")}월 ${String(d).padStart(2,"0")}일`; };
+        return `${f(parts[0])}~${f(parts[1])}`; } },
+    { key:"기간형식변환행정", label:"기간 형식 변환 (행정문서용, 2005. 6. 20.)", example:"20240101~20240305 → 2024. 1. 1.~2024. 3. 5.", params:["기간(시작~종료)"],
+      fn:([v])=>{ const parts=v.split("~"); if(parts.length!==2) throw "'시작일~종료일' 형식으로 입력하세요";
+        const f=(s)=>{ const {y,m,d}=parseDateFlexible(s); return `${y}. ${m}. ${d}.`; };
+        return `${f(parts[0])}~${f(parts[1])}`; } },
+    { key:"기간형식변환점표기", label:"기간 형식 변환 (점표기, 2005.06.20)", example:"20240101~20240305 → 2024.01.01~2024.03.05", params:["기간(시작~종료)"],
+      fn:([v])=>{ const parts=v.split("~"); if(parts.length!==2) throw "'시작일~종료일' 형식으로 입력하세요";
+        const f=(s)=>{ const {y,m,d}=parseDateFlexible(s); return `${y}.${String(m).padStart(2,"0")}.${String(d).padStart(2,"0")}`; };
+        return `${f(parts[0])}~${f(parts[1])}`; } },
+    { key:"요일표시", label:"요일 표시", example:"2024-03-05 → 화요일", params:["날짜"],
+      fn:([v])=>{ const {dt}=parseDateFlexible(v); return WEEKDAY[dt.getDay()]+"요일"; } },
+    { key:"분기계산", label:"분기 계산", example:"2024-07-01 → 3분기", params:["날짜"],
+      fn:([v])=>{ const {m}=parseDateFlexible(v); return `${Math.floor((m-1)/3)+1}분기`; } },
+    { key:"연도추출", label:"연도만 추출", example:"2024-03-05 → 2024", params:["날짜"],
+      fn:([v])=>{ const {y}=parseDateFlexible(v); return String(y); } },
+    { key:"월추출", label:"월만 추출", example:"2024-03-05 → 3", params:["날짜"],
+      fn:([v])=>{ const {m}=parseDateFlexible(v); return String(m); } },
+    { key:"날짜차이", label:"날짜 차이 계산(일수)", example:"2024-01-01 / 2024-03-05 → 64일", params:["시작일","종료일"],
+      fn:([a,b])=>{ const d1=parseDateFlexible(a).dt, d2=parseDateFlexible(b).dt;
+        return `${Math.round((d2-d1)/86400000)}일`; } },
+    { key:"기간계산", label:"두 날짜 기간 계산(년/월/일)", example:"2020-01-01 / 2023-06-15 → 3년 5개월 14일", params:["시작일","종료일"],
+      fn:([a,b])=>{ const d1=parseDateFlexible(a).dt, d2=parseDateFlexible(b).dt;
+        if(d2 < d1) throw "종료일이 시작일보다 빠릅니다";
+        let y = d2.getFullYear() - d1.getFullYear();
+        let m = d2.getMonth() - d1.getMonth();
+        let d = d2.getDate() - d1.getDate();
+        if(d < 0){ m -= 1; d += new Date(d2.getFullYear(), d2.getMonth(), 0).getDate(); }
+        if(m < 0){ y -= 1; m += 12; }
+        const parts = [];
+        if(y>0) parts.push(`${y}년`);
+        if(m>0) parts.push(`${m}개월`);
+        parts.push(`${d}일`);
+        return parts.join(" "); } },
+    { key:"만나이계산", label:"만 나이 계산", example:"1990-05-20 → 만 34세", params:["생년월일"],
+      fn:([v])=>{ const {dt}=parseDateFlexible(v); const today=new Date();
+        let age = today.getFullYear() - dt.getFullYear();
+        const beforeBday = (today.getMonth()<dt.getMonth()) || (today.getMonth()===dt.getMonth() && today.getDate()<dt.getDate());
+        if(beforeBday) age--;
+        if(age<0) throw "미래 날짜입니다";
+        return `만 ${age}세`; } },
+  ]},
+  { name:"숫자 / 금액", functions:[
+    { key:"한글금액변환", label:"한글 금액 변환", example:"1234000 → 일백이십삼만사천원정", params:["값"],
+      fn:([v])=>{ const s=v.trim().replace(/,/g,""); const num=parseInt(s,10);
+        if(isNaN(num)||num<0) throw "0 이상 숫자 입력";
+        if(num===0) return "영원정";
+        return numberToKorean(num)+"원정"; } },
+    { key:"반올림", label:"반올림", example:"3.14159 / 2 → 3.14", params:["값","자리수"],
+      fn:([s,n])=>{ const num=Number(s), digit=parseInt(n,10); if(isNaN(num)||isNaN(digit)) throw "숫자 확인 필요";
+        return num.toFixed(digit); } },
+    { key:"내림", label:"내림(자리 지정)", example:"12345 / -3 → 12000  (자리수: 0=정수, -1=십, -2=백, -3=천단위)", params:["값","자리수"],
+      fn:([v,d])=>{ const num=Number(v.trim()); const digits=parseInt(d,10);
+        if(isNaN(num)) throw "숫자가 아닙니다"; if(isNaN(digits)) throw "자리수를 숫자로 입력하세요";
+        const factor=Math.pow(10,digits); let scaled=Math.round(num*factor*1e6)/1e6;
+        const result=Math.floor(scaled)/factor;
+        return digits>0 ? result.toFixed(digits) : String(result); } },
+    { key:"올림", label:"올림(자리 지정)", example:"12345 / -3 → 13000  (자리수: 0=정수, -1=십, -2=백, -3=천단위)", params:["값","자리수"],
+      fn:([v,d])=>{ const num=Number(v.trim()); const digits=parseInt(d,10);
+        if(isNaN(num)) throw "숫자가 아닙니다"; if(isNaN(digits)) throw "자리수를 숫자로 입력하세요";
+        const factor=Math.pow(10,digits); let scaled=Math.round(num*factor*1e6)/1e6;
+        const result=Math.ceil(scaled)/factor;
+        return digits>0 ? result.toFixed(digits) : String(result); } },
+    { key:"천단위콤마", label:"천단위 콤마", example:"1234567 → 1,234,567", params:["값"],
+      fn:([v])=>{ const s=v.trim().replace(/,/g,""); if(isNaN(Number(s))) throw "숫자가 아닙니다";
+        return Number(s).toLocaleString("ko-KR"); } },
+    { key:"콤마제거", label:"콤마 제거", example:"1,234,567 → 1234567", params:["값"],
+      fn:([v])=> v.replace(/,/g,"").trim() },
+    { key:"일원단위절사", label:"1원 단위 절사(소수점 절사)", example:"12345.67 → 12345", params:["값"],
+      fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return String(Math.floor(num)); } },
+    { key:"퍼센트변환", label:"퍼센트 변환", example:"0.257 → 25.7%", params:["값"],
+      fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다";
+        return (num*100).toFixed(1).replace(/\.0$/,"")+"%"; } },
+  ]},
+  { name:"개인정보 마스킹", functions:[
+    { key:"이름마스킹", label:"이름 가운데 마스킹", example:"홍길동 / * → 홍*동", params:["값","마스킹문자"],
+      fn:([v,mask])=>{ const s=v.trim(); if(s.length<2) throw "2자 이상 입력";
+        if(s.length===2) return s[0]+mask; return s[0]+mask.repeat(s.length-2)+s[s.length-1]; } },
+    { key:"주민번호마스킹", label:"주민등록번호 마스킹", example:"9001011234567 / * → 900101-1******", params:["값","마스킹문자"],
+      fn:([v,mask])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "13자리 필요";
+        return `${digits.slice(0,6)}-${digits.slice(6,7)}${mask.repeat(6)}`; } },
+    { key:"전화번호마스킹", label:"전화번호 마스킹", example:"01012345678 / * → 010-****-5678", params:["값","마스킹문자"],
+      fn:([v,mask])=>{ const digits=v.replace(/[^0-9]/g,"");
+        if(digits.length===11) return `${digits.slice(0,3)}-${mask.repeat(4)}-${digits.slice(7)}`;
+        if(digits.length===10) return `${digits.slice(0,3)}-${mask.repeat(3)}-${digits.slice(6)}`;
+        throw "자릿수 확인 필요"; } },
+    { key:"이메일마스킹", label:"이메일 마스킹", example:"hong123@naver.com / * → hon****@naver.com", params:["값","마스킹문자"],
+      fn:([v,mask])=>{ const s=v.trim(); const at=s.indexOf("@"); if(at<1) throw "이메일 형식이 아닙니다";
+        const local=s.slice(0,at), domain=s.slice(at);
+        const visible=Math.min(3, local.length-1||1);
+        return local.slice(0,visible)+mask.repeat(Math.max(local.length-visible,1))+domain; } },
+    { key:"계좌번호마스킹", label:"계좌번호 마스킹", example:"110123456789 / * → 110****6789", params:["값","마스킹문자"],
+      fn:([v,mask])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length<6) throw "자릿수가 너무 짧습니다";
+        const head=digits.slice(0,3), tail=digits.slice(-4);
+        const midLen=digits.length-head.length-tail.length;
+        return head+mask.repeat(Math.max(midLen,2))+tail; } },
+  ]},
+  { name:"서식 변환", functions:[
+    { key:"전화번호형식", label:"전화번호 형식(-추가)", example:"01012345678 → 010-1234-5678", params:["값"],
+      fn:([v])=>{ const digits=v.replace(/[^0-9]/g,"");
+        if(digits.length===11) return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+        if(digits.length===10){
+          if(digits.startsWith("02")) return `${digits.slice(0,2)}-${digits.slice(2,6)}-${digits.slice(6)}`;
+          return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+        }
+        if(digits.length===9 && digits.startsWith("02")) return `${digits.slice(0,2)}-${digits.slice(2,5)}-${digits.slice(5)}`;
+        throw "자릿수 확인 필요"; } },
+    { key:"주민번호형식", label:"주민등록번호 형식(-추가)", example:"9001011234567 → 900101-1234567", params:["값"],
+      fn:([v])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "13자리 필요";
+        return `${digits.slice(0,6)}-${digits.slice(6)}`; } },
+    { key:"사업자번호형식", label:"사업자등록번호 형식(-추가)", example:"1234567890 → 123-45-67890", params:["값"],
+      fn:([v])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==10) throw "10자리 필요";
+        return `${digits.slice(0,3)}-${digits.slice(3,5)}-${digits.slice(5)}`; } },
+    { key:"숫자만추출", label:"숫자만 추출(하이픈 제거)", example:"010-1234-5678 → 01012345678", params:["값"],
+      fn:([v])=>{ const digits=v.replace(/[^0-9]/g,""); if(!digits) throw "숫자가 없습니다"; return digits; } },
+  ]},
+];
+const MAX_PARAMS = Math.max(...CATEGORIES.flatMap(c=>c.functions.map(f=>f.params.length))); // 3
+
+// ---------- 사이드 목록 렌더 ----------
+const fnListEl = document.getElementById("fnList");
+CATEGORIES.forEach((cat,ci)=>{
+  const det = document.createElement("details");
+  if(ci===0) det.open = true;
+  const sum = document.createElement("summary");
+  sum.textContent = cat.name;
+  det.appendChild(sum);
+  cat.functions.forEach(f=>{
+    const div = document.createElement("div");
+    div.className = "fn-item";
+    const paramsStr = f.params.length>1 ? `필요 입력: ${f.params.join(" · ")}` : "";
+    div.innerHTML = `<span class="fn-name">${f.label}</span><span class="fn-ex">${f.example}</span>` +
+      (paramsStr ? `<span class="fn-params">${paramsStr}</span>` : "");
+    det.appendChild(div);
+  });
+  fnListEl.appendChild(det);
+});
+
+// ---------- 선택한 기능 설명 패널 ----------
+const fnDetailEl = document.getElementById("fnDetail");
+function showFnDetail(fnDef, catName){
+  if(!fnDef){
+    fnDetailEl.innerHTML = `<div class="fn-detail-empty">표에서 구분·세부기능을 선택하면 여기에 설명이 표시됩니다.</div>`;
+    return;
+  }
+  const paramItems = fnDef.params.map((p,i)=>{
+    const colName = i===0 ? "입력값" : `입력값${i}`;
+    return `<li><strong>${colName}</strong>${p}</li>`;
+  }).join("");
+  fnDetailEl.innerHTML = `
+    <div class="fn-detail-cat">${catName}</div>
+    <div class="fn-detail-name">${fnDef.label}</div>
+    <div class="fn-detail-example">${fnDef.example}</div>
+    <ul class="fn-detail-params">${paramItems}</ul>
+  `;
+}
+
+// ---------- 그리드 로직 ----------
+const grid = document.getElementById("grid");
+let rowCount = 0;
+
+function rowsInGrid(){ return [...grid.children]; }
+
+function addRow(){
+  rowCount++;
+  const tr = document.createElement("tr");
+  const valCellsHtml = Array.from({length:MAX_PARAMS}, (_,i)=>`
+    <td class="valCell na" data-idx="${i}">
+      <div class="param-label">-</div>
+      <input class="cell pval" data-idx="${i}" disabled>
+    </td>`).join("");
+  tr.innerHTML = `
+    <td class="idx">${rowCount}</td>
+    <td class="fillable catCell">
+      <select class="cell catSel">
+        <option value="">구분 선택</option>
+        ${CATEGORIES.map((c,i)=>`<option value="${i}">${c.name}</option>`).join("")}
+      </select>
+      <div class="fill-handle" data-fill="cat"></div>
+    </td>
+    <td class="fillable fnCell">
+      <select class="cell fnSel" disabled><option value="">-</option></select>
+      <div class="fill-handle" data-fill="fn"></div>
+    </td>
+    ${valCellsHtml}
+    <td class="result-cell empty"><input class="cell fresult" readonly></td>
+    <td class="del"><button class="del-btn" title="행 삭제">✕</button></td>
+  `;
+  grid.appendChild(tr);
+
+  const catSel = tr.querySelector(".catSel");
+  const fnSel = tr.querySelector(".fnSel");
+  const valCells = [...tr.querySelectorAll(".valCell")];
+  const pvals = valCells.map(c=>c.querySelector(".pval"));
+  const resultCell = tr.querySelector(".result-cell");
+  const resultInput = tr.querySelector(".fresult");
+  const delBtn = tr.querySelector(".del-btn");
+
+  function currentFn(){
+    if(catSel.value === "" || fnSel.value === "") return null;
+    return CATEGORIES[catSel.value].functions[fnSel.value];
+  }
+
+  function recompute(){
+    const fnDef = currentFn();
+    resultCell.classList.remove("err","empty");
+    if(!fnDef){ resultInput.value=""; resultCell.classList.add("empty"); return; }
+    const values = pvals.slice(0, fnDef.params.length).map(inp=>inp.value);
+    if(values.some(v=>v==="")){ resultInput.value=""; resultCell.classList.add("empty"); return; }
+    try{
+      let result = fnDef.fn(values);
+      if(CATEGORIES[catSel.value].name === "텍스트 편집" && typeof result === "string"){
+        result = result.trim();
+      }
+      resultInput.value = result;
+    }catch(e){
+      resultInput.value = typeof e === "string" ? "⚠ "+e : "⚠ 변환 오류";
+      resultCell.classList.add("err");
+    }
+  }
+
+  function applyParamCells(fnDef){
+    for(let i=0;i<MAX_PARAMS;i++){
+      const cell = valCells[i];
+      const label = cell.querySelector(".param-label");
+      const input = pvals[i];
+      if(fnDef && i < fnDef.params.length){
+        label.textContent = fnDef.params[i];
+        cell.classList.remove("na");
+        input.disabled = false;
+        input.placeholder = fnDef.params[i];
+      } else {
+        label.textContent = "-";
+        cell.classList.add("na");
+        input.disabled = true;
+        input.value = "";
+        input.placeholder = "";
+      }
+    }
+  }
+
+  catSel.addEventListener("change", ()=>{
+    fnSel.innerHTML = "";
+    if(catSel.value === ""){
+      fnSel.innerHTML = `<option value="">-</option>`;
+      fnSel.disabled = true;
+    } else {
+      const funcs = CATEGORIES[catSel.value].functions;
+      fnSel.innerHTML = `<option value="">기능 선택</option>` +
+        funcs.map((f,i)=>`<option value="${i}">${f.label}</option>`).join("");
+      fnSel.disabled = false;
+    }
+    applyParamCells(null);
+    recompute();
+    showFnDetail(null);
+  });
+
+  fnSel.addEventListener("change", ()=>{
+    applyParamCells(currentFn());
+    recompute();
+    const fnDef = currentFn();
+    showFnDetail(fnDef, fnDef ? CATEGORIES[catSel.value].name : null);
+  });
+
+  pvals.forEach((input, idx)=>{
+    input.addEventListener("input", recompute);
+    input.addEventListener("paste", (e)=>{
+      if(catSel.value === "" || fnSel.value === "") return;
+      const clipData = (e.clipboardData || window.clipboardData);
+      if(!clipData) return;
+      const raw = clipData.getData("text");
+      if(!raw) return;
+      let lines = raw.split(/\r\n|\n|\r/);
+      if(lines.length > 1 && lines[lines.length-1] === "") lines = lines.slice(0,-1);
+      if(lines.length <= 1) return;
+      e.preventDefault();
+      const rows = rowsInGrid();
+      const startIdx = rows.indexOf(tr);
+      const srcCat = catSel.value, srcFn = fnSel.value;
+      lines.forEach((line, offset)=>{
+        const rIdx = startIdx + offset;
+        let targetRow;
+        if(rIdx < rows.length){ targetRow = rows[rIdx]; }
+        else { addRow(); const now = rowsInGrid(); targetRow = now[now.length-1]; }
+        const tCat = targetRow.querySelector(".catSel");
+        const tFn = targetRow.querySelector(".fnSel");
+        if(tCat.value === ""){ tCat.value = srcCat; tCat.dispatchEvent(new Event("change")); }
+        if(tFn.value === ""){ tFn.value = srcFn; tFn.dispatchEvent(new Event("change")); }
+        const tInput = targetRow.querySelectorAll(".pval")[idx];
+        tInput.disabled = false;
+        tInput.value = line.split("\t")[0];
+        tInput.dispatchEvent(new Event("input"));
+      });
+      showToast(`${lines.length}개 값을 붙여넣었습니다.`);
+    });
+  });
+
+  delBtn.addEventListener("click", ()=>{ tr.remove(); renumber(); });
+
+  tr.querySelectorAll(".fill-handle").forEach(handle=>{
+    handle.addEventListener("mousedown", (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      startFillDrag(tr, handle.dataset.fill);
+    });
+  });
+}
+
+function renumber(){
+  rowsInGrid().forEach((tr,i)=>{ tr.querySelector(".idx").textContent = i+1; });
+  rowCount = grid.children.length;
+}
+
+// ---------- 끌어서 채우기 ----------
+let fillState = null;
+function startFillDrag(sourceRow, type){
+  const catSel = sourceRow.querySelector(".catSel");
+  const fnSel = sourceRow.querySelector(".fnSel");
+  if(type === "cat" && catSel.value === "") return;
+  if(type === "fn" && fnSel.value === "") return;
+  fillState = { type, sourceRow, catValue: catSel.value, fnValue: fnSel.value };
+  sourceRow.querySelector(type==="cat" ? ".catCell" : ".fnCell").classList.add("fill-source");
+  document.body.classList.add("dragging-fill");
+}
+function clearPreview(){ document.querySelectorAll(".fill-preview").forEach(td=>td.classList.remove("fill-preview")); }
+document.addEventListener("mousemove", (e)=>{
+  if(!fillState) return;
+  clearPreview();
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const targetRow = el ? el.closest("tr") : null;
+  if(!targetRow || targetRow.parentElement !== grid) return;
+  const rows = rowsInGrid();
+  const srcIdx = rows.indexOf(fillState.sourceRow);
+  const tgtIdx = rows.indexOf(targetRow);
+  if(srcIdx === -1 || tgtIdx === -1) return;
+  const [from, to] = srcIdx < tgtIdx ? [srcIdx, tgtIdx] : [tgtIdx, srcIdx];
+  const cellClass = fillState.type === "cat" ? ".catCell" : ".fnCell";
+  for(let i=from;i<=to;i++) rows[i].querySelector(cellClass).classList.add("fill-preview");
+});
+document.addEventListener("mouseup", (e)=>{
+  if(!fillState) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const targetRow = el ? el.closest("tr") : null;
+  const rows = rowsInGrid();
+  const srcIdx = rows.indexOf(fillState.sourceRow);
+  let tgtIdx = targetRow && targetRow.parentElement === grid ? rows.indexOf(targetRow) : srcIdx;
+  if(srcIdx !== -1 && tgtIdx !== -1 && tgtIdx !== srcIdx){
+    const [from, to] = srcIdx < tgtIdx ? [srcIdx, tgtIdx] : [tgtIdx, srcIdx];
+    for(let i=from;i<=to;i++){
+      if(i === srcIdx) continue;
+      const row = rows[i];
+      const catSel = row.querySelector(".catSel");
+      const fnSel = row.querySelector(".fnSel");
+      if(fillState.type === "cat"){
+        catSel.value = fillState.catValue;
+        catSel.dispatchEvent(new Event("change"));
+      } else {
+        if(catSel.value !== fillState.catValue){
+          catSel.value = fillState.catValue;
+          catSel.dispatchEvent(new Event("change"));
+        }
+        fnSel.value = fillState.fnValue;
+        fnSel.dispatchEvent(new Event("change"));
+      }
+    }
+  }
+  clearPreview();
+  document.querySelectorAll(".fill-source").forEach(td=>td.classList.remove("fill-source"));
+  document.body.classList.remove("dragging-fill");
+  fillState = null;
+});
+
+// ---------- 첫 행 기준 전체 채우기 버튼 ----------
+function fillAllFromFirst(type){
+  const rows = rowsInGrid();
+  if(rows.length < 2) return;
+  const firstRow = rows[0];
+  const firstCat = firstRow.querySelector(".catSel");
+  const firstFn = firstRow.querySelector(".fnSel");
+  if(type === "cat" && firstCat.value === ""){ alert("첫 번째 행에서 ① 구분을 먼저 선택하세요."); return; }
+  if(type === "fn" && firstFn.value === ""){ alert("첫 번째 행에서 ② 세부기능을 먼저 선택하세요."); return; }
+  for(let i=1;i<rows.length;i++){
+    const row = rows[i];
+    const catSel = row.querySelector(".catSel");
+    const fnSel = row.querySelector(".fnSel");
+    if(type === "cat"){
+      catSel.value = firstCat.value;
+      catSel.dispatchEvent(new Event("change"));
+    } else {
+      if(catSel.value !== firstCat.value){
+        catSel.value = firstCat.value;
+        catSel.dispatchEvent(new Event("change"));
+      }
+      fnSel.value = firstFn.value;
+      fnSel.dispatchEvent(new Event("change"));
+    }
+  }
+}
+document.getElementById("fillCatAll").addEventListener("click", ()=> fillAllFromFirst("cat"));
+document.getElementById("fillFnAll").addEventListener("click", ()=> fillAllFromFirst("fn"));
+
+// ---------- 첫 행 기준 입력값1/입력값2 전체 채우기 ----------
+function fillValueAllFromFirst(colIdx){
+  const rows = rowsInGrid();
+  if(rows.length < 2) return;
+  const firstInput = rows[0].querySelectorAll(".pval")[colIdx];
+  if(!firstInput || firstInput.disabled || firstInput.value === ""){
+    alert(`첫 번째 행에서 입력값${colIdx===0?"":colIdx} 값을 먼저 입력하세요.`);
+    return;
+  }
+  const val = firstInput.value;
+  let filled = 0;
+  for(let i=1;i<rows.length;i++){
+    const input = rows[i].querySelectorAll(".pval")[colIdx];
+    if(input && !input.disabled){
+      input.value = val;
+      input.dispatchEvent(new Event("input"));
+      filled++;
+    }
+  }
+  if(filled === 0){
+    showToast("해당 열을 사용하는 행이 없어 채울 곳이 없습니다.");
+  } else {
+    showToast(`입력값${colIdx===0?"":colIdx} 값을 ${filled}개 행에 채웠습니다.`);
+  }
+}
+document.getElementById("fillVal1All").addEventListener("click", ()=> fillValueAllFromFirst(1));
+document.getElementById("fillVal2All").addEventListener("click", ()=> fillValueAllFromFirst(2));
+
+// ---------- 토스트 ----------
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove("show"), 2200);
+}
+
+// ---------- 결과값 전체 복사 ----------
+async function copyAllResults(){
+  const rows = rowsInGrid();
+  const text = rows.map(r=> r.querySelector(".fresult").value || "").join("\n");
+  if(!text.trim()){ alert("복사할 결과값이 없습니다."); return; }
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast("결과값이 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+  }catch(err){
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position="fixed"; ta.style.left="-9999px";
+    document.body.appendChild(ta); ta.select();
+    try{
+      document.execCommand("copy");
+      showToast("결과값이 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+    }catch(e2){
+      alert("자동 복사에 실패했습니다. 결과값 열을 직접 드래그해 Ctrl+C로 복사해주세요.");
+    }
+    document.body.removeChild(ta);
+  }
+}
+document.getElementById("copyResults").addEventListener("click", copyAllResults);
+
+// ---------- 툴바 이벤트 ----------
+document.getElementById("addRow").addEventListener("click", addRow);
+document.getElementById("addRowsBulk").addEventListener("click", ()=>{
+  const input = document.getElementById("addRowCount");
+  let n = parseInt(input.value, 10);
+  if(isNaN(n) || n < 1){ alert("추가할 행 개수를 1 이상으로 입력하세요."); return; }
+  if(n > 500) n = 500;
+  for(let i=0;i<n;i++) addRow();
+});
+document.getElementById("clearAll").addEventListener("click", ()=>{
+  if(confirm("모든 행을 삭제할까요?")){ grid.innerHTML=""; rowCount=0; addRow(); }
+});
+document.getElementById("downloadXlsx").addEventListener("click", ()=>{
+  const rows = [["기능구분","세부기능","입력값","입력값1","입력값2","결과값"]];
+  rowsInGrid().forEach(tr=>{
+    const catSel = tr.querySelector(".catSel");
+    const fnSel = tr.querySelector(".fnSel");
+    const catName = catSel.value !== "" ? CATEGORIES[catSel.value].name : "";
+    const fnName = (catSel.value !== "" && fnSel.value !== "") ? CATEGORIES[catSel.value].functions[fnSel.value].label : "";
+    const pvals = [...tr.querySelectorAll(".pval")].map(i=>i.value);
+    rows.push([catName, fnName, pvals[0]||"", pvals[1]||"", pvals[2]||"", tr.querySelector(".fresult").value]);
+  });
+  if(typeof XLSX === "undefined"){
+    alert("엑셀 다운로드 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.");
+    return;
+  }
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{wch:12},{wch:22},{wch:16},{wch:12},{wch:12},{wch:22}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "함수변환결과");
+  XLSX.writeFile(wb, "함수변환결과.xlsx");
+});
+
+for(let i=0;i<8;i++) addRow();
+</script>
+</body>
+</html>
