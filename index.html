@@ -20,7 +20,7 @@
   body{margin:0;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
     background:var(--bg);color:var(--text);padding:24px;}
 
-  .app-container{max-width:1400px;margin:0 auto;background:var(--card);border:1px solid var(--line);
+  .app-container{max-width:1900px;margin:0 auto;background:var(--card);border:1px solid var(--line);
     border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.05);padding:32px;}
 
   .top-section{display:flex;gap:14px;align-items:stretch;margin:0 0 20px;flex-wrap:wrap;}
@@ -59,7 +59,8 @@
   .security-features strong{font-size:.79rem;font-weight:700;color:#14532d;}
   .security-features .feat-desc{color:#166534;font-weight:400;}
 
-  .layout{display:grid;grid-template-columns:1fr 270px;gap:16px;align-items:start;}
+  .layout{display:grid;grid-template-columns:1fr 270px;gap:16px;align-items:stretch;}
+  .side{display:flex;flex-direction:column;min-height:0;}
   @media (max-width:960px){.layout{grid-template-columns:1fr;} .top-section{flex-direction:column;} .top-col-title{flex:1 1 auto;}}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
@@ -151,7 +152,8 @@
   .del-btn:hover{color:var(--danger);}
 
   .side h2{font-size:13px;margin:0 0 10px;color:var(--muted);font-weight:600;padding:14px 14px 0;}
-  .side .card{padding-bottom:8px;}
+  .side .card{padding-bottom:8px;display:flex;flex-direction:column;height:100%;min-height:0;}
+  #fnList{flex:1 1 auto;overflow-y:auto;min-height:0;}
   details{border-top:1px solid var(--line);}
   details:first-of-type{border-top:none;}
   summary{padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--text);
@@ -182,6 +184,28 @@
   .fn-detail-params strong{color:var(--detail-text);font-weight:700;margin-right:6px;}
   .fn-detail-note{font-size:.76rem;color:var(--detail-strong);line-height:1.6;margin-top:10px;
     background:rgba(240,171,252,.18);border:1px dashed var(--detail-border);border-radius:6px;padding:8px 10px;}
+
+  .lookup-card{margin-top:16px;padding:18px 20px;}
+  .lookup-header h2{font-size:.95rem;font-weight:800;color:#4338ca;margin:0 0 6px;
+    display:flex;align-items:center;gap:6px;}
+  .lookup-desc{font-size:.79rem;color:var(--text);line-height:1.65;margin:0 0 12px;
+    background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 12px;}
+  .lookup-textarea{width:100%;min-height:70px;border:1.5px solid var(--line);border-radius:8px;
+    padding:10px 12px;font-size:12.5px;font-family:inherit;color:var(--text);resize:vertical;
+    box-sizing:border-box;}
+  .lookup-textarea:focus{outline:none;border-color:#4338ca;box-shadow:0 0 0 2px #e0e7ff;}
+  .lookup-actions{display:flex;align-items:center;gap:10px;margin:10px 0;}
+  .lookup-actions .btn.primary{background:#4338ca;border-color:#4338ca;}
+  .lookup-actions .btn.primary:hover{background:#3730a3;}
+  .lookup-status{font-size:.78rem;color:var(--muted);}
+  .lookup-preview-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;max-height:260px;
+    overflow-y:auto;}
+  table.lookup-preview{width:100%;border-collapse:collapse;font-size:12px;}
+  table.lookup-preview th.lookup-colnum{background:#4338ca;color:#fff;font-weight:700;
+    padding:6px 10px;text-align:left;white-space:nowrap;position:sticky;top:0;}
+  table.lookup-preview td{padding:6px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+    white-space:nowrap;}
+  table.lookup-preview .lookup-empty{padding:16px;color:var(--muted);text-align:center;font-size:12.5px;}
 
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);
     background:#0f172a;color:#fff;font-size:13px;padding:10px 18px;border-radius:8px;
@@ -270,6 +294,26 @@
       </div>
     </div>
   </div>
+
+  <div class="card lookup-card" id="lookupCard" style="display:none;">
+    <div class="lookup-header"><h2>🔍 조회 참조표 (XLOOKUP·COUNTIF·SUMIF 공용 데이터)</h2></div>
+    <p class="lookup-desc">
+      엑셀에서 원하는 데이터 범위를 복사해서(Ctrl+C) 아래 칸에 붙여넣으면(Ctrl+V) <strong>버튼을 누르지 않아도 자동으로</strong> 표가 만들어지고, 각 열 맨 위에 <strong>1열, 2열, 3열…</strong> 번호가 표시됩니다. <strong>XLOOKUP은 VLOOKUP과 달리 찾을 값이 있는 열(기준 열)이 꼭 맨 왼쪽일 필요가 없으므로</strong>, 필요한 열들을 포함해서 자유롭게 범위를 복사하면 됩니다. 예를 들어 [사번, 이름, 부서]를 복사했다면 이름으로 사번을 찾고 싶을 때는 기준 열 번호에 2, 결과 열 번호에 1을 넣으면 됩니다. 이 참조표는 "조회(XLOOKUP)" 구분의 5개 기능(XLOOKUP, COUNTIF, COUNTIFS, SUMIF, SUMIFS)이 함께 사용합니다.<br>
+      · <strong>XLOOKUP</strong>: 기준 열 번호로 지정한 열에서 찾을 값과 일치하는 행을 찾아, 결과 열 번호로 지정한 열 값을 반환(기준 열이 어디에 있든 상관없음)<br>
+      · <strong>COUNTIF/COUNTIFS</strong>: 조건에 맞는 행의 개수를 셈<br>
+      · <strong>SUMIF/SUMIFS</strong>: 조건에 맞는 행들의 특정 열 값을 합산<br>
+      COUNTIFS·SUMIFS의 조건 목록은 <strong>'열번호:조건값'</strong>을 쉼표로 이어서 입력하며(예: 1:부여읍,4:&gt;=5), 조건값 앞에 &gt;, &lt;, &gt;=, &lt;=, &lt;&gt; 를 붙이면 비교 조건으로도 쓸 수 있습니다.
+    </p>
+    <textarea id="lookupPaste" class="lookup-textarea" placeholder="여기에 엑셀에서 복사한 표를 붙여넣으면(Ctrl+V) 자동으로 아래 표가 만들어집니다 (예: 1001[Tab]홍길동[Tab]생활복지과[Tab]주무관[Tab]1200000)"></textarea>
+    <div class="lookup-actions">
+      <button class="btn primary" id="applyLookup">표 다시 적용</button>
+      <button class="btn ghost" id="clearLookup">참조표 지우기</button>
+      <span class="lookup-status" id="lookupStatus"></span>
+    </div>
+    <div class="lookup-preview-wrap">
+      <table class="lookup-preview" id="lookupPreview"></table>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -295,6 +339,48 @@ function parseDateFlexible(s){
   const dt = new Date(`${y}-${m}-${d}T00:00:00`);
   if(isNaN(dt.getTime())) throw "유효하지 않은 날짜";
   return {y:parseInt(y,10), m:parseInt(m,10), d:parseInt(d,10), dt};
+}
+
+function commify(numStr){
+  const neg = numStr.startsWith("-");
+  const s = neg ? numStr.slice(1) : numStr;
+  const parts = s.split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return (neg?"-":"") + parts.join(".");
+}
+
+// COUNTIF/COUNTIFS/SUMIF/SUMIFS 조건 파싱 및 매칭
+function parseConditionOp(condStr){
+  const s = condStr.trim();
+  const m = s.match(/^(<>|>=|<=|>|<|=)?(.*)$/);
+  return { op: m[1] || "=", val: m[2].trim() };
+}
+function matchCondition(cellValue, condStr){
+  const { op, val } = parseConditionOp(condStr);
+  const cellNum = Number(String(cellValue).replace(/,/g,""));
+  const condNum = Number(val);
+  const bothNumeric = val !== "" && !isNaN(cellNum) && !isNaN(condNum);
+  const cellStr = String(cellValue).trim();
+  switch(op){
+    case ">": return bothNumeric ? cellNum > condNum : cellStr > val;
+    case "<": return bothNumeric ? cellNum < condNum : cellStr < val;
+    case ">=": return bothNumeric ? cellNum >= condNum : cellStr >= val;
+    case "<=": return bothNumeric ? cellNum <= condNum : cellStr <= val;
+    case "<>": return cellStr !== val;
+    default: return cellStr === val;
+  }
+}
+// "1:부여읍,4:>=5" 같은 문자열을 [{colNum:1,cond:"부여읍"},{colNum:4,cond:">=5"}]로 변환
+function parseConditionList(str){
+  return str.split(",").map(seg=>{
+    const idx = seg.indexOf(":");
+    if(idx===-1) throw `조건 형식이 올바르지 않습니다: "${seg.trim()}" (예: 1:부여읍)`;
+    const colNum = parseInt(seg.slice(0,idx).trim(),10);
+    const cond = seg.slice(idx+1).trim();
+    if(isNaN(colNum) || colNum<1) throw "조건의 열 번호를 확인하세요";
+    if(!cond) throw "조건값을 입력하세요";
+    return { colNum, cond };
+  });
 }
 
 function numberToKorean(n){
@@ -324,15 +410,18 @@ const WEEKDAY = ["일","월","화","수","목","금","토"];
 
 // ---------- 기능 정의 ----------
 // params: 필요한 입력값 항목명(순서대로 입력값1/입력값2/입력값3 열에 대응). fn(values)는 항상 params.length 만큼의 배열을 받음.
+// XLOOKUP 참조표 데이터 (아래 파싱 함수에서 채워짐, 조회 함수 fn()에서 참조)
+let lookupTable = [];
+
 const CATEGORIES = [
   { name:"텍스트 편집", functions:[
-    { key:"왼쪽N글자", label:"왼쪽 N글자 추출", example:"홍길동 / 1 → 홍", params:["값","글자수"],
+    { key:"왼쪽N글자", label:"왼쪽 N글자 추출", example:"홍길동 / 1 → 홍", note:"값의 길이가 항상 같을 때는 편리하지만, 길이가 들쭉날쭉한 데이터에는 LEFT+FIND 조합을 쓰는 것이 더 안전합니다.", params:["값","글자수"],
       fn:([s,n])=>{ const num=parseInt(n,10); if(isNaN(num)||num<1) throw "글자수는 1 이상 숫자";
         return s.slice(0,num); } },
-    { key:"오른쪽N글자", label:"오른쪽 N글자 추출", example:"홍길동 / 1 → 동", params:["값","글자수"],
+    { key:"오른쪽N글자", label:"오른쪽 N글자 추출", example:"홍길동 / 1 → 동", note:"고정된 자릿수만 뒤에서 떼어낼 때 유용합니다. 구분자 위치가 데이터마다 다르면 RIGHT+FIND를 사용하세요.", params:["값","글자수"],
       fn:([s,n])=>{ const num=parseInt(n,10); if(isNaN(num)||num<1) throw "글자수는 1 이상 숫자";
         return s.slice(-num); } },
-    { key:"중간N글자", label:"중간 N글자 추출(MID)", example:"부여군청 / 2 / 2 → 여군", params:["값","시작위치","글자수"],
+    { key:"중간N글자", label:"중간 N글자 추출(MID)", example:"부여군청 / 2 / 2 → 여군", note:"시작 위치와 길이를 정확히 알고 있을 때(예: 주민번호 뒤 7자리 중 성별 1자리) 유용합니다. 위치가 매번 달라지면 MID+FIND를 사용하세요.", params:["값","시작위치","글자수"],
       fn:([s,startS,lenS])=>{ const start=parseInt(startS,10), len=parseInt(lenS,10);
         if(isNaN(start)||start<1) throw "시작위치는 1 이상 숫자";
         if(isNaN(len)||len<1) throw "글자수는 1 이상 숫자";
@@ -341,73 +430,79 @@ const CATEGORIES = [
       note:"도로명 길이가 주소마다 다르면 고정 글자수로 자르는 단순 LEFT로는 안 되지만, FIND로 괄호 위치를 찾아 자르면 길이에 상관없이 정확합니다.", params:["값","구분자"],
       fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
         if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(0,idx); } },
-    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(RIGHT+FIND)", example:"사비로 33 (부여읍) / (공백) → 33 (부여읍)<br>성왕로32번길 12 (부여읍) / (공백) → 12 (부여읍)",
-      note:"첫 공백이 오는 위치가 주소마다 다르므로 고정 위치로 자르는 단순 RIGHT로는 대응이 안 되고, FIND로 공백을 찾아야 매번 정확히 잘립니다.", params:["값","구분자"],
+    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(RIGHT+FIND)", example:"생활복지과-2024년도 예산집행내역 / - → 2024년도 예산집행내역<br>동남권산업단지조성사업추진단-신규사업 추진계획 / - → 신규사업 추진계획",
+      note:"단순 RIGHT는 뒤에서 몇 글자를 가져올지 미리 알아야 하는데, 뒤에 오는 내용의 길이가 매번 다르면 몇 글자인지 알 수 없어 아예 쓸 수 없습니다. RIGHT+FIND는 구분자 위치만 찾으면 되므로 뒷부분 길이가 제각각이어도 정확히 잘립니다.", params:["값","구분자"],
       fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
         if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(idx+sep.length); } },
-    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"사비로 33 (부여읍) / ( / ) → 부여읍<br>성왕로32번길 12 (부여읍) / ( / ) → 부여읍",
-      note:"괄호가 시작되는 위치가 주소마다 달라도 항상 정확히 그 안의 내용만 추출됩니다. 단순 MID는 시작 위치를 고정 숫자로 넣어야 해서 이런 가변 길이 데이터에는 쓸 수 없습니다.", params:["값","시작구분자","종료구분자"],
+    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"[생활복지과] 2024년도 예산집행계획 / [ / ] → 생활복지과<br>[동남권산업단지조성사업추진단] 신규사업 추진계획 / [ / ] → 동남권산업단지조성사업추진단",
+      note:"단순 MID는 시작 위치와 '가져올 글자수'를 미리 알아야 하는데, 대괄호 안 부서명처럼 추출할 내용 자체의 길이를 모르면 애초에 글자수를 정할 수 없습니다. MID+FIND는 여는·닫는 괄호 위치만 찾으면 되므로 안의 내용이 몇 글자든 정확히 추출됩니다.", params:["값","시작구분자","종료구분자"],
       fn:([s,start,end])=>{ if(!start||!end) throw "시작·종료 구분자를 모두 입력하세요";
         const i1=s.indexOf(start); if(i1===-1) throw "시작 구분자를 찾을 수 없습니다";
         const from=i1+start.length; const i2=s.indexOf(end, from);
         if(i2===-1) throw "종료 구분자를 찾을 수 없습니다";
         return s.slice(from, i2); } },
-    { key:"특정문자치환", label:"특정 문자 치환", example:"부여군청 / 군청 / 군 → 부여군", params:["값","찾을문자","바꿀문자"],
+    { key:"특정문자치환", label:"특정 문자 치환", example:"부여군청 / 군청 / 군 → 부여군", note:"찾는 문자가 값 안에 여러 번 나와도 전부 한 번에 바뀝니다. 예를 들어 '부여군청'에서 '군'을 지우면 '부여청'이 됩니다.", params:["값","찾을문자","바꿀문자"],
       fn:([s,find,rep])=>{ if(!find) throw "찾을 문자를 입력하세요"; return s.split(find).join(rep||""); } },
-    { key:"특수문자제거", label:"특수문자 제거", example:"부여-군#청! → 부여군청", params:["값"],
+    { key:"특수문자제거", label:"특수문자 제거", example:"부여-군#청! → 부여군청", note:"한글·영문·숫자·공백만 남기고 -, #, ! 같은 특수기호를 모두 지웁니다. 문서번호·전화번호에서 구분기호만 없앨 때 유용합니다.", params:["값"],
       fn:([v])=> v.replace(/[^0-9a-zA-Z가-힣\s]/g,"") },
-    { key:"공백제거", label:"공백 제거", example:"' 부여군  ' → '부여군'", params:["값"],
+    { key:"공백제거", label:"공백 제거", example:"' 부여군  ' → '부여군'", note:"앞뒤 공백은 물론 단어 사이 중복 공백도 1칸으로 정리됩니다. 엑셀에서 복사할 때 섞여 들어오는 보이지 않는 공백을 없앨 때 유용합니다.", params:["값"],
       fn:([v])=> v.trim().replace(/\s+/g," ") },
-    { key:"줄바꿈제거", label:"줄바꿈 제거", example:"여러 줄 → 한 줄", params:["값"],
+    { key:"줄바꿈제거", label:"줄바꿈 제거", example:"여러 줄 → 한 줄", note:"여러 줄로 나뉜 셀 내용을 한 줄로 이어붙일 때 씁니다. 메모나 주소가 줄바꿈 상태로 저장된 경우에 유용합니다.", params:["값"],
       fn:([v])=> v.replace(/[\r\n]+/g," ").trim() },
-    { key:"대문자변환", label:"영문 대문자 변환", example:"buyeo → BUYEO", params:["값"],
+    { key:"대문자변환", label:"영문 대문자 변환", example:"buyeo → BUYEO", note:"영문 코드나 약어의 표기를 대문자로 통일할 때 씁니다.", params:["값"],
       fn:([v])=> v.toUpperCase() },
-    { key:"소문자변환", label:"영문 소문자 변환", example:"BUYEO → buyeo", params:["값"],
+    { key:"소문자변환", label:"영문 소문자 변환", example:"BUYEO → buyeo", note:"이메일 주소처럼 대소문자를 구분하지 않아야 하는 값을 통일할 때 씁니다.", params:["값"],
       fn:([v])=> v.toLowerCase() },
-    { key:"첫글자대문자", label:"첫 글자만 대문자(영문)", example:"buyeo gun → Buyeo Gun", params:["값"],
+    { key:"첫글자대문자", label:"첫 글자만 대문자(영문)", example:"buyeo gun → Buyeo Gun", note:"영문 이름이나 주소를 정식 표기(Title Case)로 정리할 때 씁니다.", params:["값"],
       fn:([v])=> v.toLowerCase().replace(/(^|\s)\S/g, c=>c.toUpperCase()) },
-    { key:"문자열뒤집기", label:"문자열 뒤집기", example:"부여군 → 군여부", params:["값"],
+    { key:"문자열뒤집기", label:"문자열 뒤집기", example:"부여군 → 군여부", note:"문자 순서를 거꾸로 뒤집습니다. 특정 패턴 검사나 코드 생성 작업에 종종 쓰입니다.", params:["값"],
       fn:([v])=> v.split("").reverse().join("") },
-    { key:"문자열길이", label:"문자열 길이 세기", example:"부여군 → 3", params:["값"],
+    { key:"문자열길이", label:"문자열 길이 세기", example:"부여군 → 3", note:"글자 수 제한이 있는 서식(예: 20자 이내)에 맞는지 확인할 때 유용합니다.", params:["값"],
       fn:([v])=> String(v.length) },
   ]},
   { name:"날짜 / 시간", functions:[
-    { key:"날짜형식변환", label:"날짜 형식 변환 (YYYY-MM-DD)", example:"20240305 → 2024-03-05", params:["날짜"],
+    { key:"날짜형식변환", label:"날짜 형식 변환 (YYYY-MM-DD)", example:"20240305 → 2024-03-05", note:"8자리 숫자(20240305)나 점·슬래시로 구분된 날짜를 표준 형식(YYYY-MM-DD)으로 한 번에 통일할 때 씁니다.", params:["날짜"],
       fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; } },
-    { key:"날짜형식변환한글", label:"날짜 형식 변환 (한글)", example:"20240305 → 2024년 03월 05일", params:["날짜"],
+    { key:"날짜형식변환한글", label:"날짜 형식 변환 (한글)", example:"20240305 → 2024년 03월 05일", note:"공문서에 자주 쓰이는 'YYYY년 MM월 DD일' 표기로 바꿔줍니다.", params:["날짜"],
       fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}년 ${String(m).padStart(2,"0")}월 ${String(d).padStart(2,"0")}일`; } },
-    { key:"날짜형식변환행정", label:"날짜 형식 변환 (행정문서용, 2005. 6. 20.)", example:"20050620 → 2005. 6. 20.", params:["날짜"],
+    { key:"날짜형식변환행정", label:"날짜 형식 변환 (행정문서용, 2005. 6. 20.)", example:"20050620 → 2005. 6. 20.", note:"관공서 문서에서 흔히 쓰는 'YYYY. M. D.' 표기(0 없이 마침표로 구분)로 바꿔줍니다.", params:["날짜"],
       fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}. ${m}. ${d}.`; } },
-    { key:"날짜형식변환점표기", label:"날짜 형식 변환 (점표기, 2005.06.20)", example:"20050620 → 2005.06.20", params:["날짜"],
+    { key:"날짜형식변환점표기", label:"날짜 형식 변환 (점표기, 2005.06.20)", example:"20050620 → 2005.06.20", note:"'YYYY.MM.DD' 형식으로, 자릿수를 0으로 채워 정렬했을 때도 깔끔하게 보이도록 바꿔줍니다.", params:["날짜"],
       fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}.${String(m).padStart(2,"0")}.${String(d).padStart(2,"0")}`; } },
-    { key:"기간형식변환", label:"기간 형식 변환 (YYYY-MM-DD)", example:"20240101~20240305 → 2024-01-01~2024-03-05", params:["기간(시작~종료)"],
+    { key:"기간형식변환", label:"기간 형식 변환 (YYYY-MM-DD)", example:"20240101~20240305 → 2024-01-01~2024-03-05", note:"'시작일~종료일' 형태로 입력된 기간값을 한 번에 표준 날짜 형식으로 바꿔줍니다. 날짜 두 개를 따로 입력할 필요가 없습니다.", params:["기간(시작~종료)"],
       fn:([v])=>{ const parts=v.split("~"); if(parts.length!==2) throw "'시작일~종료일' 형식으로 입력하세요";
         const f=(s)=>{ const {y,m,d}=parseDateFlexible(s); return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; };
         return `${f(parts[0])}~${f(parts[1])}`; } },
-    { key:"기간형식변환한글", label:"기간 형식 변환 (한글)", example:"20240101~20240305 → 2024년 01월 01일~2024년 03월 05일", params:["기간(시작~종료)"],
+    { key:"기간형식변환한글", label:"기간 형식 변환 (한글)", example:"20240101~20240305 → 2024년 01월 01일~2024년 03월 05일", note:"공문서용 기간 표기(예: 2024년 01월 01일~2024년 03월 05일)로 한 번에 바꿔줍니다.", params:["기간(시작~종료)"],
       fn:([v])=>{ const parts=v.split("~"); if(parts.length!==2) throw "'시작일~종료일' 형식으로 입력하세요";
         const f=(s)=>{ const {y,m,d}=parseDateFlexible(s); return `${y}년 ${String(m).padStart(2,"0")}월 ${String(d).padStart(2,"0")}일`; };
         return `${f(parts[0])}~${f(parts[1])}`; } },
-    { key:"기간형식변환행정", label:"기간 형식 변환 (행정문서용, 2005. 6. 20.)", example:"20240101~20240305 → 2024. 1. 1.~2024. 3. 5.", params:["기간(시작~종료)"],
+    { key:"기간형식변환행정", label:"기간 형식 변환 (행정문서용, 2005. 6. 20.)", example:"20240101~20240305 → 2024. 1. 1.~2024. 3. 5.", note:"관공서 문서에서 쓰는 기간 표기(예: 2024. 1. 1.~2024. 3. 5.)로 바꿔줍니다.", params:["기간(시작~종료)"],
       fn:([v])=>{ const parts=v.split("~"); if(parts.length!==2) throw "'시작일~종료일' 형식으로 입력하세요";
         const f=(s)=>{ const {y,m,d}=parseDateFlexible(s); return `${y}. ${m}. ${d}.`; };
         return `${f(parts[0])}~${f(parts[1])}`; } },
-    { key:"기간형식변환점표기", label:"기간 형식 변환 (점표기, 2005.06.20)", example:"20240101~20240305 → 2024.01.01~2024.03.05", params:["기간(시작~종료)"],
+    { key:"기간형식변환점표기", label:"기간 형식 변환 (점표기, 2005.06.20)", example:"20240101~20240305 → 2024.01.01~2024.03.05", note:"점 표기 기간(예: 2024.01.01~2024.03.05)으로 바꿔줍니다.", params:["기간(시작~종료)"],
       fn:([v])=>{ const parts=v.split("~"); if(parts.length!==2) throw "'시작일~종료일' 형식으로 입력하세요";
         const f=(s)=>{ const {y,m,d}=parseDateFlexible(s); return `${y}.${String(m).padStart(2,"0")}.${String(d).padStart(2,"0")}`; };
         return `${f(parts[0])}~${f(parts[1])}`; } },
-    { key:"요일표시", label:"요일 표시", example:"2024-03-05 → 화요일", params:["날짜"],
+    { key:"요일표시", label:"요일 표시", example:"2024-03-05 → 화요일", note:"날짜만 있고 요일이 없는 자료에서 요일을 자동으로 채울 때 씁니다.", params:["날짜"],
       fn:([v])=>{ const {dt}=parseDateFlexible(v); return WEEKDAY[dt.getDay()]+"요일"; } },
-    { key:"분기계산", label:"분기 계산", example:"2024-07-01 → 3분기", params:["날짜"],
+    { key:"분기계산", label:"분기 계산", example:"2024-07-01 → 3분기", note:"월별 자료를 분기별로 집계해야 할 때, 날짜만 넣으면 자동으로 분기를 판정합니다.", params:["날짜"],
       fn:([v])=>{ const {m}=parseDateFlexible(v); return `${Math.floor((m-1)/3)+1}분기`; } },
-    { key:"연도추출", label:"연도만 추출", example:"2024-03-05 → 2024", params:["날짜"],
+    { key:"연도추출", label:"연도만 추출", example:"2024-03-05 → 2024", note:"여러 형식의 날짜에서 연도만 뽑아 연도별 통계를 낼 때 씁니다.", params:["날짜"],
       fn:([v])=>{ const {y}=parseDateFlexible(v); return String(y); } },
-    { key:"월추출", label:"월만 추출", example:"2024-03-05 → 3", params:["날짜"],
+    { key:"월추출", label:"월만 추출", example:"2024-03-05 → 3", note:"여러 형식의 날짜에서 월만 뽑아 월별 통계를 낼 때 씁니다.", params:["날짜"],
       fn:([v])=>{ const {m}=parseDateFlexible(v); return String(m); } },
-    { key:"날짜차이", label:"날짜 차이 계산(일수)", example:"2024-01-01 / 2024-03-05 → 64일", params:["시작일","종료일"],
+    { key:"날짜차이", label:"날짜 차이 계산(일수)", example:"2024-01-01 / 2024-03-05 → 64일", note:"두 날짜 사이의 총 일수를 계산합니다. 사업기간·계약기간의 총 일수를 구할 때 유용합니다.", params:["시작일","종료일"],
       fn:([a,b])=>{ const d1=parseDateFlexible(a).dt, d2=parseDateFlexible(b).dt;
         return `${Math.round((d2-d1)/86400000)}일`; } },
-    { key:"기간계산", label:"두 날짜 기간 계산(년/월/일)", example:"2020-01-01 / 2023-06-15 → 3년 5개월 14일", params:["시작일","종료일"],
+    { key:"날짜더하기", label:"N일 이후 날짜 계산", example:"2024-03-05 / 30 → 2024-04-04", note:"공사기간·계약만료일처럼 특정 날짜로부터 며칠 뒤(또는 며칠 전)의 날짜를 구할 때 유용합니다. 일수에 음수를 넣으면 그만큼 이전 날짜가 계산됩니다.", params:["기준일","일수"],
+      fn:([v,n])=>{ const {dt}=parseDateFlexible(v); const days=parseInt(n,10);
+        if(isNaN(days)) throw "일수를 숫자로 입력하세요";
+        const result=new Date(dt); result.setDate(result.getDate()+days);
+        const y=result.getFullYear(), m=result.getMonth()+1, d=result.getDate();
+        return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; } },
+    { key:"기간계산", label:"두 날짜 기간 계산(년/월/일)", example:"2020-01-01 / 2023-06-15 → 3년 5개월 14일", note:"단순 일수가 아니라 '몇 년 몇 개월 며칠'로 계산해줘서 근속기간·계약기간을 보고서에 바로 쓸 수 있는 형태로 만들어줍니다.", params:["시작일","종료일"],
       fn:([a,b])=>{ const d1=parseDateFlexible(a).dt, d2=parseDateFlexible(b).dt;
         if(d2 < d1) throw "종료일이 시작일보다 빠릅니다";
         let y = d2.getFullYear() - d1.getFullYear();
@@ -420,7 +515,7 @@ const CATEGORIES = [
         if(m>0) parts.push(`${m}개월`);
         parts.push(`${d}일`);
         return parts.join(" "); } },
-    { key:"만나이계산", label:"만 나이 계산", example:"1990-05-20 → 만 34세", params:["생년월일"],
+    { key:"만나이계산", label:"만 나이 계산", example:"1990-05-20 → 만 34세", note:"생년월일만 넣으면 오늘 날짜 기준 만 나이를 자동 계산합니다. 생일이 지났는지 여부까지 반영됩니다.", params:["생년월일"],
       fn:([v])=>{ const {dt}=parseDateFlexible(v); const today=new Date();
         let age = today.getFullYear() - dt.getFullYear();
         const beforeBday = (today.getMonth()<dt.getMonth()) || (today.getMonth()===dt.getMonth() && today.getDate()<dt.getDate());
@@ -429,62 +524,62 @@ const CATEGORIES = [
         return `만 ${age}세`; } },
   ]},
   { name:"숫자 / 금액", functions:[
-    { key:"한글금액변환", label:"한글 금액 변환", example:"1234000 → 일백이십삼만사천원정", params:["값"],
+    { key:"한글금액변환", label:"한글 금액 변환", example:"1234000 → 일백이십삼만사천원정", note:"계약서·품의서 등 공문서에 쓰이는 '일금 ○○○원정' 형식의 한글 금액 표기를 자동으로 만들어줍니다.", params:["값"],
       fn:([v])=>{ const s=v.trim().replace(/,/g,""); const num=parseInt(s,10);
         if(isNaN(num)||num<0) throw "0 이상 숫자 입력";
         if(num===0) return "영원정";
         return numberToKorean(num)+"원정"; } },
-    { key:"반올림", label:"반올림", example:"3.14159 / 2 → 3.14", params:["값","자리수"],
+    { key:"반올림", label:"반올림", example:"1234567.891 / 2 → 1,234,567.89", note:"소수점 자릿수를 지정해 반올림합니다. 금액을 원 단위 이하 절사 없이 정리할 때 씁니다.", params:["값","자리수"],
       fn:([s,n])=>{ const num=Number(s), digit=parseInt(n,10); if(isNaN(num)||isNaN(digit)) throw "숫자 확인 필요";
-        return num.toFixed(digit); } },
-    { key:"내림", label:"내림(자리 지정)", example:"12345 / -3 → 12000  (자리수: 0=정수, -1=십, -2=백, -3=천단위)", params:["값","자리수"],
+        return commify(num.toFixed(digit)); } },
+    { key:"내림", label:"내림(자리 지정)", example:"1234567 / -3 → 1,234,000  (자리수: 0=정수, -1=십, -2=백, -3=천단위)", note:"자리수에 음수를 넣으면 십·백·천 단위로 내림할 수 있어, 예산액을 천원 단위로 끊어 표시할 때 유용합니다.", params:["값","자리수"],
       fn:([v,d])=>{ const num=Number(v.trim()); const digits=parseInt(d,10);
         if(isNaN(num)) throw "숫자가 아닙니다"; if(isNaN(digits)) throw "자리수를 숫자로 입력하세요";
         const factor=Math.pow(10,digits); let scaled=Math.round(num*factor*1e6)/1e6;
         const result=Math.floor(scaled)/factor;
-        return digits>0 ? result.toFixed(digits) : String(result); } },
-    { key:"올림", label:"올림(자리 지정)", example:"12345 / -3 → 13000  (자리수: 0=정수, -1=십, -2=백, -3=천단위)", params:["값","자리수"],
+        return commify(digits>0 ? result.toFixed(digits) : String(result)); } },
+    { key:"올림", label:"올림(자리 지정)", example:"1234567 / -3 → 1,235,000  (자리수: 0=정수, -1=십, -2=백, -3=천단위)", note:"내림과 반대로 올림 처리합니다. 최소 집행 금액을 천원 단위로 올려 잡을 때 등에 씁니다.", params:["값","자리수"],
       fn:([v,d])=>{ const num=Number(v.trim()); const digits=parseInt(d,10);
         if(isNaN(num)) throw "숫자가 아닙니다"; if(isNaN(digits)) throw "자리수를 숫자로 입력하세요";
         const factor=Math.pow(10,digits); let scaled=Math.round(num*factor*1e6)/1e6;
         const result=Math.ceil(scaled)/factor;
-        return digits>0 ? result.toFixed(digits) : String(result); } },
-    { key:"천단위콤마", label:"천단위 콤마", example:"1234567 → 1,234,567", params:["값"],
+        return commify(digits>0 ? result.toFixed(digits) : String(result)); } },
+    { key:"천단위콤마", label:"천단위 콤마", example:"1234567 → 1,234,567", note:"숫자에 쉼표를 넣어 금액을 읽기 쉽게 만듭니다. 보고서나 품의서에 금액을 표기할 때 기본으로 쓰입니다.", params:["값"],
       fn:([v])=>{ const s=v.trim().replace(/,/g,""); if(isNaN(Number(s))) throw "숫자가 아닙니다";
         return Number(s).toLocaleString("ko-KR"); } },
-    { key:"콤마제거", label:"콤마 제거", example:"1,234,567 → 1234567", params:["값"],
+    { key:"콤마제거", label:"콤마 제거", example:"1,234,567 → 1234567", note:"쉼표가 섞인 금액 텍스트를 다시 순수 숫자로 되돌려 계산 가능한 값으로 만듭니다.", params:["값"],
       fn:([v])=> v.replace(/,/g,"").trim() },
-    { key:"일원단위절사", label:"1원 단위 절사(소수점 절사)", example:"12345.67 → 12345", params:["값"],
-      fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return String(Math.floor(num)); } },
-    { key:"퍼센트변환", label:"퍼센트 변환", example:"0.257 → 25.7%", params:["값"],
+    { key:"일원단위절사", label:"1원 단위 절사(소수점 절사)", example:"1234567.67 → 1,234,567", note:"소수점 이하 원 단위를 그냥 잘라냅니다(반올림 아님). 정산 시 원 단위 절사가 원칙인 경우에 씁니다.", params:["값"],
+      fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return commify(String(Math.floor(num))); } },
+    { key:"퍼센트변환", label:"퍼센트 변환", example:"12.573 → 1,257.3%", note:"소수로 된 비율을 보기 쉬운 퍼센트 표기로 바꿔줍니다. 값이 커도 천단위 쉼표가 함께 붙어 읽기 편합니다.", params:["값"],
       fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다";
-        return (num*100).toFixed(1).replace(/\.0$/,"")+"%"; } },
+        return commify((num*100).toFixed(1).replace(/\.0$/,""))+"%"; } },
   ]},
   { name:"개인정보 마스킹", functions:[
-    { key:"이름마스킹", label:"이름 가운데 마스킹", example:"홍길동 / * → 홍*동", params:["값","마스킹문자"],
+    { key:"이름마스킹", label:"이름 가운데 마스킹", example:"홍길동 / * → 홍*동", note:"이름 가운데 글자만 가려 개인정보를 보호하면서도 누구인지는 알아볼 수 있게 합니다. 공개 문서·게시물에 이름을 실을 때 씁니다.", params:["값","마스킹문자"],
       fn:([v,mask])=>{ const s=v.trim(); if(s.length<2) throw "2자 이상 입력";
         if(s.length===2) return s[0]+mask; return s[0]+mask.repeat(s.length-2)+s[s.length-1]; } },
-    { key:"주민번호마스킹", label:"주민등록번호 마스킹", example:"9001011234567 / * → 900101-1******", params:["값","마스킹문자"],
+    { key:"주민번호마스킹", label:"주민등록번호 마스킹", example:"9001011234567 / * → 900101-1******", note:"생년월일(앞 6자리)과 성별 구분자(뒤 1자리)만 남기고 나머지를 가려, 최소한의 정보만 노출합니다.", params:["값","마스킹문자"],
       fn:([v,mask])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "13자리 필요";
         return `${digits.slice(0,6)}-${digits.slice(6,7)}${mask.repeat(6)}`; } },
-    { key:"전화번호마스킹", label:"전화번호 마스킹", example:"01012345678 / * → 010-****-5678", params:["값","마스킹문자"],
+    { key:"전화번호마스킹", label:"전화번호 마스킹", example:"01012345678 / * → 010-****-5678", note:"가운데 자리만 가려 번호 형태는 유지하면서 개인정보는 보호합니다.", params:["값","마스킹문자"],
       fn:([v,mask])=>{ const digits=v.replace(/[^0-9]/g,"");
         if(digits.length===11) return `${digits.slice(0,3)}-${mask.repeat(4)}-${digits.slice(7)}`;
         if(digits.length===10) return `${digits.slice(0,3)}-${mask.repeat(3)}-${digits.slice(6)}`;
         throw "자릿수 확인 필요"; } },
-    { key:"이메일마스킹", label:"이메일 마스킹", example:"hong123@naver.com / * → hon****@naver.com", params:["값","마스킹문자"],
+    { key:"이메일마스킹", label:"이메일 마스킹", example:"hong123@naver.com / * → hon****@naver.com", note:"@ 앞 아이디 일부만 가려, 이메일 형태는 알아볼 수 있으면서 전체 노출은 막습니다.", params:["값","마스킹문자"],
       fn:([v,mask])=>{ const s=v.trim(); const at=s.indexOf("@"); if(at<1) throw "이메일 형식이 아닙니다";
         const local=s.slice(0,at), domain=s.slice(at);
         const visible=Math.min(3, local.length-1||1);
         return local.slice(0,visible)+mask.repeat(Math.max(local.length-visible,1))+domain; } },
-    { key:"계좌번호마스킹", label:"계좌번호 마스킹", example:"110123456789 / * → 110****6789", params:["값","마스킹문자"],
+    { key:"계좌번호마스킹", label:"계좌번호 마스킹", example:"110123456789 / * → 110****6789", note:"앞 3자리와 뒤 4자리만 남기고 가운데를 가려, 계좌 소유 확인용으로만 쓸 수 있게 합니다.", params:["값","마스킹문자"],
       fn:([v,mask])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length<6) throw "자릿수가 너무 짧습니다";
         const head=digits.slice(0,3), tail=digits.slice(-4);
         const midLen=digits.length-head.length-tail.length;
         return head+mask.repeat(Math.max(midLen,2))+tail; } },
   ]},
   { name:"서식 변환", functions:[
-    { key:"전화번호형식", label:"전화번호 형식(-추가)", example:"01012345678 → 010-1234-5678", params:["값"],
+    { key:"전화번호형식", label:"전화번호 형식(-추가)", example:"01012345678 → 010-1234-5678", note:"숫자만 있는 전화번호에 하이픈을 자동으로 넣어 정식 표기로 정리합니다. 02(서울) 지역번호도 자동으로 구분됩니다.", params:["값"],
       fn:([v])=>{ const digits=v.replace(/[^0-9]/g,"");
         if(digits.length===11) return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
         if(digits.length===10){
@@ -493,14 +588,87 @@ const CATEGORIES = [
         }
         if(digits.length===9 && digits.startsWith("02")) return `${digits.slice(0,2)}-${digits.slice(2,5)}-${digits.slice(5)}`;
         throw "자릿수 확인 필요"; } },
-    { key:"주민번호형식", label:"주민등록번호 형식(-추가)", example:"9001011234567 → 900101-1234567", params:["값"],
+    { key:"주민번호형식", label:"주민등록번호 형식(-추가)", example:"9001011234567 → 900101-1234567", note:"하이픈 없이 입력된 13자리 주민번호에 하이픈을 넣어 정식 표기로 만듭니다.", params:["값"],
       fn:([v])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "13자리 필요";
         return `${digits.slice(0,6)}-${digits.slice(6)}`; } },
-    { key:"사업자번호형식", label:"사업자등록번호 형식(-추가)", example:"1234567890 → 123-45-67890", params:["값"],
+    { key:"사업자번호형식", label:"사업자등록번호 형식(-추가)", example:"1234567890 → 123-45-67890", note:"10자리 사업자등록번호에 하이픈을 넣어 '000-00-00000' 형식으로 정리합니다.", params:["값"],
       fn:([v])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==10) throw "10자리 필요";
         return `${digits.slice(0,3)}-${digits.slice(3,5)}-${digits.slice(5)}`; } },
-    { key:"숫자만추출", label:"숫자만 추출(하이픈 제거)", example:"010-1234-5678 → 01012345678", params:["값"],
+    { key:"숫자만추출", label:"숫자만 추출(하이픈 제거)", example:"010-1234-5678 → 01012345678", note:"하이픈이나 공백이 섞인 값에서 숫자만 뽑아냅니다. 형식이 제각각인 전화번호·문서번호를 통일된 숫자로 정리할 때 씁니다.", params:["값"],
       fn:([v])=>{ const digits=v.replace(/[^0-9]/g,""); if(!digits) throw "숫자가 없습니다"; return digits; } },
+  ]},
+  { name:"조회 (XLOOKUP)", functions:[
+    { key:"엑스룩업", label:"XLOOKUP (값 찾기)",
+      example:"부서명 생활복지과 입력 / 기준 열 번호 3 / 결과 열 번호 1 → 3열(부서명)에서 '생활복지과'를 찾아 1열(사번) 값 반환",
+      note:"VLOOKUP과 달리 찾을 값이 반드시 맨 왼쪽(1열)에 있지 않아도 됩니다. 기준 열 번호에 찾을 값이 들어있는 열을, 결과 열 번호에 가져올 값이 들어있는 열을 각각 지정하면 되며, 결과 열이 기준 열보다 왼쪽에 있어도(예: 부서명으로 사번을 거꾸로 찾기) 정상적으로 동작합니다. 자세한 사용법은 화면 맨 아래 참조표 카드 설명을 참고하세요.",
+      params:["찾을 값","기준 열 번호","결과 열 번호"],
+      fn:([val, keyColStr, resultColStr])=>{
+        const keyCol = parseInt(keyColStr,10), resultCol = parseInt(resultColStr,10);
+        if(isNaN(keyCol) || keyCol<1) throw "기준 열 번호는 1 이상 숫자로 입력하세요";
+        if(isNaN(resultCol) || resultCol<1) throw "결과 열 번호는 1 이상 숫자로 입력하세요";
+        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const match = lookupTable.find(row => (row[keyCol-1]||"").trim() === val.trim());
+        if(!match) throw "참조표에서 값을 찾을 수 없습니다";
+        if(match[resultCol-1] === undefined || match[resultCol-1] === "") throw "해당 열 번호에 데이터가 없습니다";
+        return match[resultCol-1];
+      } },
+    { key:"카운트이프", label:"COUNTIF (조건 개수 세기)",
+      example:"조건 열 번호 3 / 조건값 부여읍 → 참조표 3열이 '부여읍'인 행 개수",
+      note:"아래 'XLOOKUP 참조표'에서 지정한 열의 값이 조건에 맞는 행이 몇 개인지 셉니다. 조건값에 '부여읍'처럼 그냥 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <> 를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100). 참조표를 먼저 붙여넣어야 사용할 수 있습니다.",
+      params:["조건 열 번호","조건값"],
+      fn:([colNumStr, condStr])=>{
+        const colNum = parseInt(colNumStr,10);
+        if(isNaN(colNum) || colNum<1) throw "조건 열 번호는 1 이상 숫자로 입력하세요";
+        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const count = lookupTable.filter(row => matchCondition(row[colNum-1]||"", condStr)).length;
+        return commify(String(count));
+      } },
+    { key:"카운트이프스", label:"COUNTIFS (여러 조건 개수 세기)",
+      example:"조건 목록 1:부여읍,4:>=5 → 1열이 '부여읍'이면서 4열이 5 이상인 행 개수",
+      note:"COUNTIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록 칸에 '열번호:조건값'을 쉼표로 이어서 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 동시에 4열이 5 이상인 행만 셉니다. 조건값 앞에 >, <, >=, <=, <> 를 붙이면 비교 조건도 쓸 수 있습니다.",
+      params:["조건 목록"],
+      fn:([condListStr])=>{
+        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const conditions = parseConditionList(condListStr);
+        const count = lookupTable.filter(row => conditions.every(c => matchCondition(row[c.colNum-1]||"", c.cond))).length;
+        return commify(String(count));
+      } },
+    { key:"섬이프", label:"SUMIF (조건에 맞는 값 합계)",
+      example:"조건 열 번호 3 / 조건값 부여읍 / 합계 열 번호 5 → 3열이 '부여읍'인 행들의 5열 값 합계",
+      note:"아래 'XLOOKUP 참조표'에서 조건에 맞는 행들만 찾아, 그 행들의 다른 열(합계 열 번호) 값을 모두 더합니다. 예를 들어 3열이 '부여읍'인 행들의 5열(집행금액) 합계를 구하고 싶으면 조건 열 번호에 3, 조건값에 부여읍, 합계 열 번호에 5를 넣으면 됩니다. 조건값에는 COUNTIF와 같은 비교연산자(>, <, >=, <=, <>)도 쓸 수 있습니다.",
+      params:["조건 열 번호","조건값","합계 열 번호"],
+      fn:([colNumStr, condStr, sumColStr])=>{
+        const colNum = parseInt(colNumStr,10), sumCol = parseInt(sumColStr,10);
+        if(isNaN(colNum) || colNum<1) throw "조건 열 번호는 1 이상 숫자로 입력하세요";
+        if(isNaN(sumCol) || sumCol<1) throw "합계 열 번호는 1 이상 숫자로 입력하세요";
+        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        let sum = 0;
+        lookupTable.forEach(row=>{
+          if(matchCondition(row[colNum-1]||"", condStr)){
+            const v = Number(String(row[sumCol-1]||"0").replace(/,/g,""));
+            if(!isNaN(v)) sum += v;
+          }
+        });
+        return commify(String(sum));
+      } },
+    { key:"섬이프스", label:"SUMIFS (여러 조건에 맞는 값 합계)",
+      example:"합계 열 번호 5 / 조건 목록 1:부여읍,4:>=5 → 조건을 모두 만족하는 행들의 5열 값 합계",
+      note:"SUMIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 합계 열 번호에는 더할 값이 있는 열을, 조건 목록에는 COUNTIFS와 같은 방식으로 '열번호:조건값'을 쉼표로 이어서 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 4열이 5 이상인 행들만 골라 그 행들의 합계 열 값을 더합니다.",
+      params:["합계 열 번호","조건 목록"],
+      fn:([sumColStr, condListStr])=>{
+        const sumCol = parseInt(sumColStr,10);
+        if(isNaN(sumCol) || sumCol<1) throw "합계 열 번호는 1 이상 숫자로 입력하세요";
+        if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const conditions = parseConditionList(condListStr);
+        let sum = 0;
+        lookupTable.forEach(row=>{
+          if(conditions.every(c => matchCondition(row[c.colNum-1]||"", c.cond))){
+            const v = Number(String(row[sumCol-1]||"0").replace(/,/g,""));
+            if(!isNaN(v)) sum += v;
+          }
+        });
+        return commify(String(sum));
+      } },
   ]},
 ];
 const MAX_PARAMS = Math.max(...CATEGORIES.flatMap(c=>c.functions.map(f=>f.params.length))); // 3
@@ -646,6 +814,7 @@ function addRow(){
       fillAllFromFirst("cat");
       showToast("1행 구분이 아래 행 전체에 자동으로 채워졌습니다.");
     }
+    updateLookupCardVisibility();
   });
 
   fnSel.addEventListener("change", ()=>{
@@ -657,6 +826,7 @@ function addRow(){
       fillAllFromFirst("fn");
       showToast("1행 세부기능이 아래 행 전체에 자동으로 채워졌습니다.");
     }
+    updateLookupCardVisibility();
   });
 
   pvals.forEach((input, idx)=>{
@@ -692,7 +862,7 @@ function addRow(){
     });
   });
 
-  delBtn.addEventListener("click", ()=>{ tr.remove(); renumber(); });
+  delBtn.addEventListener("click", ()=>{ tr.remove(); renumber(); updateLookupCardVisibility(); });
 
   tr.querySelectorAll(".fill-handle").forEach(handle=>{
     handle.addEventListener("mousedown", (e)=>{
@@ -887,6 +1057,84 @@ document.getElementById("downloadXlsx").addEventListener("click", ()=>{
   XLSX.utils.book_append_sheet(wb, ws, "함수변환결과");
   XLSX.writeFile(wb, "함수변환결과.xlsx");
 });
+
+// ---------- XLOOKUP 참조표 ----------
+function renderLookupPreview(){
+  const el = document.getElementById("lookupPreview");
+  const status = document.getElementById("lookupStatus");
+  if(lookupTable.length === 0){
+    el.innerHTML = `<tr><td class="lookup-empty">아직 참조표가 없습니다. 위 칸에 엑셀 데이터를 붙여넣고 '표 적용'을 눌러주세요.</td></tr>`;
+    status.textContent = "";
+    return;
+  }
+  const colCount = Math.max(...lookupTable.map(r=>r.length));
+  let html = "<thead><tr>";
+  for(let c=0;c<colCount;c++){
+    html += `<th class="lookup-colnum">${c+1}열${c===0 ? " (찾을 기준)" : ""}</th>`;
+  }
+  html += "</tr></thead><tbody>";
+  lookupTable.forEach(row=>{
+    html += "<tr>";
+    for(let c=0;c<colCount;c++){
+      html += `<td>${(row[c] !== undefined ? row[c] : "")}</td>`;
+    }
+    html += "</tr>";
+  });
+  html += "</tbody>";
+  el.innerHTML = html;
+  status.textContent = `${lookupTable.length}행 × ${colCount}열 적용됨`;
+}
+
+function applyLookupFromTextarea(silent){
+  const raw = document.getElementById("lookupPaste").value;
+  if(!raw.trim()){
+    lookupTable = [];
+    renderLookupPreview();
+    recomputeAllRows();
+    return;
+  }
+  lookupTable = raw.split(/\r\n|\n|\r/).filter(l=>l!=="").map(line=>line.split("\t"));
+  renderLookupPreview();
+  recomputeAllRows();
+  if(!silent) showToast(`참조표 ${lookupTable.length}행이 적용되었습니다.`);
+}
+
+document.getElementById("applyLookup").addEventListener("click", ()=>{
+  if(!document.getElementById("lookupPaste").value.trim()){ alert("붙여넣은 데이터가 없습니다."); return; }
+  applyLookupFromTextarea(false);
+});
+
+// 붙여넣는 순간(Ctrl+V) 자동으로 표가 만들어지도록 input 이벤트에서도 바로 적용
+document.getElementById("lookupPaste").addEventListener("input", ()=> applyLookupFromTextarea(true));
+
+document.getElementById("clearLookup").addEventListener("click", ()=>{
+  lookupTable = [];
+  document.getElementById("lookupPaste").value = "";
+  renderLookupPreview();
+  recomputeAllRows();
+});
+
+function recomputeAllRows(){
+  rowsInGrid().forEach(tr=>{
+    tr.querySelectorAll(".pval").forEach(inp=>{
+      if(!inp.disabled) inp.dispatchEvent(new Event("input"));
+    });
+  });
+}
+
+function updateLookupCardVisibility(){
+  const anyVlookupSelected = rowsInGrid().some(tr=>{
+    const catSel = tr.querySelector(".catSel");
+    const fnSel = tr.querySelector(".fnSel");
+    if(catSel.value === "" || fnSel.value === "") return false;
+    const fnDef = CATEGORIES[catSel.value].functions[fnSel.value];
+    const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스"];
+    return fnDef && lookupFnKeys.includes(fnDef.key);
+  });
+  document.getElementById("lookupCard").style.display = anyVlookupSelected ? "" : "none";
+}
+
+renderLookupPreview();
 
 for(let i=0;i<8;i++) addRow();
 </script>
