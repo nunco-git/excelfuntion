@@ -180,6 +180,8 @@
   .fn-detail-params li{font-size:.79rem;color:var(--text);padding:5px 0;border-top:1px solid var(--detail-border);}
   .fn-detail-params li:first-child{border-top:none;}
   .fn-detail-params strong{color:var(--detail-text);font-weight:700;margin-right:6px;}
+  .fn-detail-note{font-size:.76rem;color:var(--detail-strong);line-height:1.6;margin-top:10px;
+    background:rgba(240,171,252,.18);border:1px dashed var(--detail-border);border-radius:6px;padding:8px 10px;}
 
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);
     background:#0f172a;color:#fff;font-size:13px;padding:10px 18px;border-radius:8px;
@@ -335,13 +337,16 @@ const CATEGORIES = [
         if(isNaN(start)||start<1) throw "시작위치는 1 이상 숫자";
         if(isNaN(len)||len<1) throw "글자수는 1 이상 숫자";
         return s.slice(start-1, start-1+len); } },
-    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(LEFT+FIND)", example:"사비로 33 (부여읍) / ( → 사비로 33<br>성왕로32번길 12 (부여읍) / ( → 성왕로32번길 12", params:["값","구분자"],
+    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(LEFT+FIND)", example:"사비로 33 (부여읍) / ( → 사비로 33<br>성왕로32번길 12 (부여읍) / ( → 성왕로32번길 12",
+      note:"도로명 길이가 주소마다 다르면 고정 글자수로 자르는 단순 LEFT로는 안 되지만, FIND로 괄호 위치를 찾아 자르면 길이에 상관없이 정확합니다.", params:["값","구분자"],
       fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
         if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(0,idx); } },
-    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(RIGHT+FIND)", example:"사비로 33 (부여읍) / (공백) → 33 (부여읍)<br>성왕로32번길 12 (부여읍) / (공백) → 12 (부여읍)", params:["값","구분자"],
+    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(RIGHT+FIND)", example:"사비로 33 (부여읍) / (공백) → 33 (부여읍)<br>성왕로32번길 12 (부여읍) / (공백) → 12 (부여읍)",
+      note:"첫 공백이 오는 위치가 주소마다 다르므로 고정 위치로 자르는 단순 RIGHT로는 대응이 안 되고, FIND로 공백을 찾아야 매번 정확히 잘립니다.", params:["값","구분자"],
       fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
         if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(idx+sep.length); } },
-    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"사비로 33 (부여읍) / ( / ) → 부여읍<br>성왕로32번길 12 (부여읍) / ( / ) → 부여읍", params:["값","시작구분자","종료구분자"],
+    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"사비로 33 (부여읍) / ( / ) → 부여읍<br>성왕로32번길 12 (부여읍) / ( / ) → 부여읍",
+      note:"괄호가 시작되는 위치가 주소마다 달라도 항상 정확히 그 안의 내용만 추출됩니다. 단순 MID는 시작 위치를 고정 숫자로 넣어야 해서 이런 가변 길이 데이터에는 쓸 수 없습니다.", params:["값","시작구분자","종료구분자"],
       fn:([s,start,end])=>{ if(!start||!end) throw "시작·종료 구분자를 모두 입력하세요";
         const i1=s.indexOf(start); if(i1===-1) throw "시작 구분자를 찾을 수 없습니다";
         const from=i1+start.length; const i2=s.indexOf(end, from);
@@ -535,6 +540,7 @@ function showFnDetail(fnDef, catName){
     <div class="fn-detail-name">${fnDef.label}</div>
     <div class="fn-detail-example">${fnDef.example}</div>
     <ul class="fn-detail-params">${paramItems}</ul>
+    ${fnDef.note ? `<div class="fn-detail-note">💡 ${fnDef.note}</div>` : ""}
   `;
 }
 
