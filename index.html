@@ -9,11 +9,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0; --text:#334155; --title:#0f172a; --muted:#64748b;
+    --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0; --text:#334155; --title:#0f172a; --muted:#57616f;
     --accent:#2563eb; --accent-bg:#eff6ff; --danger:#ef4444;
     --green-bg:#f0fdf4; --green-border:#bbf7d0; --green-text:#166534; --green-strong:#15803d;
     --green-btn:#10b981;
     --detail-bg:#fdf4ff; --detail-border:#f0abfc; --detail-text:#a21caf; --detail-strong:#86198f;
+    --col-cat:#0891b2; --col-fn:#7c3aed; --col-val2:#e11d48; --col-val3:#0d9488;
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
@@ -33,24 +34,30 @@
 
   .top-col-guide{flex:1 1 420px;display:flex;min-width:0;}
   .top-col-guide .security-banner{width:100%;margin-bottom:0;}
+  .top-col-detail{flex:0 0 270px;display:flex;min-width:0;}
+  .top-col-detail .card{width:100%;margin:0;}
 
   h1{margin:0;color:var(--title);font-size:1.5rem;font-weight:700;display:flex;align-items:center;gap:8px;}
   .sub{color:var(--muted);font-size:.9rem;margin:4px 0 0;line-height:1.6;}
 
   .security-banner{background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);border:1px solid var(--green-border);
-    border-radius:14px;padding:14px 16px;color:var(--green-text);font-size:.88rem;font-weight:700;
+    border-radius:14px;padding:14px 16px;color:var(--green-text);font-size:.88rem;font-weight:400;
     line-height:1.5;box-shadow:0 1px 3px rgba(16,24,40,.04),0 1px 2px rgba(16,24,40,.03);
     display:flex;flex-direction:column;justify-content:center;}
-  .security-banner-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-  .security-banner strong.head{font-size:.95rem;color:var(--green-strong);letter-spacing:-.2px;}
+  .security-banner-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+  .security-banner strong.head{font-size:.95rem;font-weight:800;color:var(--green-strong);letter-spacing:-.2px;}
+  .btn-reset{padding:5px 14px;background:#fff;border:1.5px solid var(--danger);color:var(--danger);
+    border-radius:20px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;
+    transition:background .15s,color .15s;}
+  .btn-reset:hover{background:var(--danger);color:#fff;}
   .security-features{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
   .security-features li{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.55);
     border:1px solid rgba(187,247,208,.7);border-radius:9px;padding:6px 10px;font-size:.79rem;}
   .security-features .feat-icon{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#16a34a;
     color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;
     box-shadow:0 2px 4px rgba(22,163,74,.25);}
-  .security-features strong{font-size:.79rem;color:#14532d;}
-  .security-features .feat-desc{color:#15803d;font-weight:700;}
+  .security-features strong{font-size:.79rem;font-weight:700;color:#14532d;}
+  .security-features .feat-desc{color:#166534;font-weight:400;}
 
   .layout{display:grid;grid-template-columns:1fr 270px;gap:16px;align-items:start;}
   @media (max-width:960px){.layout{grid-template-columns:1fr;} .top-section{flex-direction:column;} .top-col-title{flex:1 1 auto;}}
@@ -68,6 +75,16 @@
   .btn.ghost{color:var(--muted);}
   .btn.success{background:var(--green-btn);border-color:var(--green-btn);color:#fff;font-weight:600;}
   .btn.success:hover{background:#0ea371;}
+  .btn.fill-cat,.btn.fill-fn,.btn.fill-val2,.btn.fill-val3{
+    background:var(--accent-bg);border-color:var(--line);font-weight:700;}
+  .btn.fill-cat{color:var(--col-cat);}
+  .btn.fill-cat:hover{background:#dbeafe;}
+  .btn.fill-fn{color:var(--col-fn);}
+  .btn.fill-fn:hover{background:#dbeafe;}
+  .btn.fill-val2{color:var(--col-val2);}
+  .btn.fill-val2:hover{background:#dbeafe;}
+  .btn.fill-val3{color:var(--col-val3);}
+  .btn.fill-val3:hover{background:#dbeafe;}
   .row-add-group{display:flex;align-items:center;gap:0;border:1px solid var(--line);
     border-radius:8px;background:#fff;overflow:hidden;}
   #addRowCount{width:50px;border:none;outline:none;font-size:12.5px;font-family:inherit;
@@ -87,10 +104,14 @@
   colgroup col.result{width:27%;}
   colgroup col.del{width:36px;}
 
-  thead th{background:#f8fafc;color:var(--muted);font-size:12px;font-weight:600;
+  thead th{background:#f8fafc;color:var(--muted);font-size:12px;font-weight:700;
     padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);}
   thead th.idx{text-align:center;}
   thead th.result{color:var(--accent);}
+  thead th.col-cat{color:var(--col-cat);}
+  thead th.col-fn{color:var(--col-fn);}
+  thead th.col-val2{color:var(--col-val2);}
+  thead th.col-val3{color:var(--col-val3);}
 
   tbody td{border:1px solid var(--line);padding:0;vertical-align:middle;font-size:13px;background:#fff;}
   tbody td.idx{text-align:center;color:var(--muted);background:#f8fafc;font-size:12px;}
@@ -120,7 +141,7 @@
   input.pval:disabled{background:#f8fafc;color:#cbd5e1;}
   input.pval{padding-top:2px;}
 
-  td.result-cell{background:var(--accent-bg);}
+  td.result-cell{background:transparent;}
   td.result-cell .cell{color:#1d4ed8;font-weight:600;background:transparent;pointer-events:none;}
   td.result-cell.err .cell{color:var(--danger);font-weight:500;}
   td.result-cell.empty .cell{color:#cbd5e1;font-weight:400;}
@@ -140,22 +161,23 @@
   details[open] summary::after{content:"–";}
   .fn-item{padding:6px 14px 6px 22px;font-size:12px;}
   .fn-name{font-weight:600;color:var(--text);display:block;}
-  .fn-ex{color:var(--muted);font-size:11px;margin-top:1px;}
-  .fn-params{color:var(--accent);font-size:10.5px;margin-top:2px;}
+  .fn-ex{color:var(--muted);font-size:11px;display:block;margin-top:2px;}
+  .fn-params{color:var(--accent);font-size:10.5px;display:block;margin-top:3px;}
   .side-note{margin:10px 14px 14px;padding-top:10px;border-top:1px solid var(--line);
     font-size:11.5px;color:var(--muted);line-height:1.6;}
 
   .fn-detail-card{background:var(--detail-bg);border:1.5px solid var(--detail-border);}
-  .fn-detail-card h2{color:var(--detail-strong);}
+  .fn-detail-card h2{color:var(--detail-strong);font-size:.95rem;font-weight:800;
+    margin:0 0 8px;padding:14px 14px 0;letter-spacing:-.2px;}
   #fnDetail{padding:0 14px 14px;}
-  .fn-detail-empty{font-size:12px;color:#a21caf;line-height:1.6;padding:2px 0 4px;opacity:.75;}
-  .fn-detail-cat{display:inline-block;font-size:10.5px;font-weight:600;color:#fff;
+  .fn-detail-empty{font-size:.79rem;color:#a21caf;line-height:1.6;padding:2px 0 4px;opacity:.75;}
+  .fn-detail-cat{display:inline-block;font-size:.7rem;font-weight:600;color:#fff;
     background:var(--detail-strong);padding:2px 8px;border-radius:10px;margin-bottom:8px;}
-  .fn-detail-name{font-size:14px;font-weight:700;color:var(--detail-strong);margin-bottom:6px;}
-  .fn-detail-example{font-size:12px;color:var(--detail-text);line-height:1.6;margin-bottom:10px;
+  .fn-detail-name{font-size:.79rem;font-weight:700;color:var(--detail-strong);margin-bottom:6px;}
+  .fn-detail-example{font-size:.79rem;color:var(--detail-text);line-height:1.6;margin-bottom:10px;
     background:#fff;border:1px solid var(--detail-border);border-radius:6px;padding:8px 10px;}
   .fn-detail-params{list-style:none;margin:0;padding:0;}
-  .fn-detail-params li{font-size:12px;color:var(--text);padding:5px 0;border-top:1px solid var(--detail-border);}
+  .fn-detail-params li{font-size:.79rem;color:var(--text);padding:5px 0;border-top:1px solid var(--detail-border);}
   .fn-detail-params li:first-child{border-top:none;}
   .fn-detail-params strong{color:var(--detail-text);font-weight:700;margin-right:6px;}
 
@@ -178,12 +200,21 @@
       <div class="security-banner">
         <div class="security-banner-header">
           <strong class="head">🔒 입력값 보안 100% 보장</strong>
+          <button class="btn-reset" id="clearAll">🗑️ 전체 지우기</button>
         </div>
         <ul class="security-features">
           <li><span class="feat-icon">🌐</span><span><strong>외부 서버 전송 ZERO</strong> <span class="feat-desc">: 입력값과 계산 결과가 브라우저 안에서만 처리</span></span></li>
           <li><span class="feat-icon">⚡</span><span><strong>실시간 자동 계산</strong> <span class="feat-desc">: 값 입력 즉시 결과 표시, 별도 실행 버튼 불필요</span></span></li>
           <li><span class="feat-icon">📋</span><span><strong>엑셀과 그대로 연동</strong> <span class="feat-desc">: 여러 셀 복사·붙여넣기, 결과값도 엑셀로 바로 복사</span></span></li>
         </ul>
+      </div>
+    </div>
+    <div class="top-col-detail">
+      <div class="card fn-detail-card">
+        <h2>선택한 기능 설명</h2>
+        <div id="fnDetail">
+          <div class="fn-detail-empty">표에서 구분·세부기능을 선택하면 여기에 설명이 표시됩니다.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -196,14 +227,11 @@
           <input type="number" id="addRowCount" min="1" max="500" value="10">
           <button class="btn" id="addRowsBulk">행 추가</button>
         </span>
-        <button class="btn ghost" id="clearAll">전체 지우기</button>
         <span class="divider"></span>
-        <button class="btn" id="fillCatAll">① 구분 채우기</button>
-        <button class="btn" id="fillFnAll">② 세부기능 채우기</button>
-        <button class="btn" id="fillVal1All">④ 입력값1 채우기</button>
-        <button class="btn" id="fillVal2All">⑤ 입력값2 채우기</button>
+        <button class="btn fill-val2" id="fillVal1All">① 입력값2 채우기</button>
+        <button class="btn fill-val3" id="fillVal2All">② 입력값3 채우기</button>
         <span style="flex:1"></span>
-        <button class="btn" id="copyResults">⑥ 결과값 복사</button>
+        <button class="btn" id="copyResults">③ 결과값 복사</button>
         <button class="btn success" id="downloadXlsx">엑셀로 다운로드</button>
       </div>
       <div class="table-scroll">
@@ -216,11 +244,11 @@
         <thead>
           <tr>
             <th class="idx">#</th>
-            <th>① 구분</th>
-            <th>② 세부 기능</th>
-            <th class="val">③ 입력값</th>
-            <th class="val">④ 입력값1</th>
-            <th class="val">⑤ 입력값2</th>
+            <th class="col-cat">① 구분</th>
+            <th class="col-fn">② 세부 기능</th>
+            <th class="val">③ 입력값1</th>
+            <th class="val col-val2">④ 입력값2</th>
+            <th class="val col-val3">⑤ 입력값3</th>
             <th class="result">⑥ 결과값</th>
             <th></th>
           </tr>
@@ -231,17 +259,11 @@
     </div>
 
     <div class="side">
-      <div class="card fn-detail-card">
-        <h2>선택한 기능 설명</h2>
-        <div id="fnDetail">
-          <div class="fn-detail-empty">표에서 구분·세부기능을 선택하면 여기에 설명이 표시됩니다.</div>
-        </div>
-      </div>
-      <div class="card" style="margin-top:12px;">
+      <div class="card">
         <h2>사용 가능한 기능</h2>
         <div id="fnList"></div>
         <div class="side-note">
-          입력값이 2개 이상 필요한 기능은 입력값1·입력값2 열까지 함께 입력해야 결과가 계산됩니다.
+          입력값이 2개 이상 필요한 기능은 입력값2·입력값3 열까지 함께 입력해야 결과가 계산됩니다.
         </div>
       </div>
     </div>
@@ -299,7 +321,7 @@ function numberToKorean(n){
 const WEEKDAY = ["일","월","화","수","목","금","토"];
 
 // ---------- 기능 정의 ----------
-// params: 필요한 입력값 항목명(순서대로 입력값/입력값1/입력값2 열에 대응). fn(values)는 항상 params.length 만큼의 배열을 받음.
+// params: 필요한 입력값 항목명(순서대로 입력값1/입력값2/입력값3 열에 대응). fn(values)는 항상 params.length 만큼의 배열을 받음.
 const CATEGORIES = [
   { name:"텍스트 편집", functions:[
     { key:"왼쪽N글자", label:"왼쪽 N글자 추출", example:"홍길동 / 1 → 홍", params:["값","글자수"],
@@ -313,13 +335,13 @@ const CATEGORIES = [
         if(isNaN(start)||start<1) throw "시작위치는 1 이상 숫자";
         if(isNaN(len)||len<1) throw "글자수는 1 이상 숫자";
         return s.slice(start-1, start-1+len); } },
-    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(FIND+LEFT)", example:"부여군-농업정책과 / - → 부여군", params:["값","구분자"],
+    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(LEFT+FIND)", example:"사비로 33 (부여읍) / ( → 사비로 33<br>성왕로32번길 12 (부여읍) / ( → 성왕로32번길 12", params:["값","구분자"],
       fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
         if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(0,idx); } },
-    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(FIND+RIGHT)", example:"부여군-농업정책과 / - → 농업정책과", params:["값","구분자"],
+    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(RIGHT+FIND)", example:"사비로 33 (부여읍) / (공백) → 33 (부여읍)<br>성왕로32번길 12 (부여읍) / (공백) → 12 (부여읍)", params:["값","구분자"],
       fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
         if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(idx+sep.length); } },
-    { key:"두구분자사이추출", label:"두 구분자 사이 추출(FIND+MID)", example:"가격(1,000원)입니다 / ( / ) → 1,000원", params:["값","시작구분자","종료구분자"],
+    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"사비로 33 (부여읍) / ( / ) → 부여읍<br>성왕로32번길 12 (부여읍) / ( / ) → 부여읍", params:["값","시작구분자","종료구분자"],
       fn:([s,start,end])=>{ if(!start||!end) throw "시작·종료 구분자를 모두 입력하세요";
         const i1=s.indexOf(start); if(i1===-1) throw "시작 구분자를 찾을 수 없습니다";
         const from=i1+start.length; const i2=s.indexOf(end, from);
@@ -505,7 +527,7 @@ function showFnDetail(fnDef, catName){
     return;
   }
   const paramItems = fnDef.params.map((p,i)=>{
-    const colName = i===0 ? "입력값" : `입력값${i}`;
+    const colName = `입력값${i+1}`;
     return `<li><strong>${colName}</strong>${p}</li>`;
   }).join("");
   fnDetailEl.innerHTML = `
@@ -614,6 +636,10 @@ function addRow(){
     applyParamCells(null);
     recompute();
     showFnDetail(null);
+    if(rowsInGrid().indexOf(tr) === 0 && catSel.value !== ""){
+      fillAllFromFirst("cat");
+      showToast("1행 구분이 아래 행 전체에 자동으로 채워졌습니다.");
+    }
   });
 
   fnSel.addEventListener("change", ()=>{
@@ -621,6 +647,10 @@ function addRow(){
     recompute();
     const fnDef = currentFn();
     showFnDetail(fnDef, fnDef ? CATEGORIES[catSel.value].name : null);
+    if(rowsInGrid().indexOf(tr) === 0 && fnSel.value !== ""){
+      fillAllFromFirst("fn");
+      showToast("1행 세부기능이 아래 행 전체에 자동으로 채워졌습니다.");
+    }
   });
 
   pvals.forEach((input, idx)=>{
@@ -737,8 +767,8 @@ function fillAllFromFirst(type){
   const firstRow = rows[0];
   const firstCat = firstRow.querySelector(".catSel");
   const firstFn = firstRow.querySelector(".fnSel");
-  if(type === "cat" && firstCat.value === ""){ alert("첫 번째 행에서 ① 구분을 먼저 선택하세요."); return; }
-  if(type === "fn" && firstFn.value === ""){ alert("첫 번째 행에서 ② 세부기능을 먼저 선택하세요."); return; }
+  if(type === "cat" && firstCat.value === ""){ return; }
+  if(type === "fn" && firstFn.value === ""){ return; }
   for(let i=1;i<rows.length;i++){
     const row = rows[i];
     const catSel = row.querySelector(".catSel");
@@ -756,8 +786,7 @@ function fillAllFromFirst(type){
     }
   }
 }
-document.getElementById("fillCatAll").addEventListener("click", ()=> fillAllFromFirst("cat"));
-document.getElementById("fillFnAll").addEventListener("click", ()=> fillAllFromFirst("fn"));
+// fillAllFromFirst("cat")/("fn")은 이제 버튼이 아니라 1행 값 변경 시 자동으로 호출됩니다 (아래 addRow 내부 참고).
 
 // ---------- 첫 행 기준 입력값1/입력값2 전체 채우기 ----------
 function fillValueAllFromFirst(colIdx){
@@ -765,7 +794,7 @@ function fillValueAllFromFirst(colIdx){
   if(rows.length < 2) return;
   const firstInput = rows[0].querySelectorAll(".pval")[colIdx];
   if(!firstInput || firstInput.disabled || firstInput.value === ""){
-    alert(`첫 번째 행에서 입력값${colIdx===0?"":colIdx} 값을 먼저 입력하세요.`);
+    alert(`첫 번째 행에서 입력값${colIdx+1} 값을 먼저 입력하세요.`);
     return;
   }
   const val = firstInput.value;
@@ -781,7 +810,7 @@ function fillValueAllFromFirst(colIdx){
   if(filled === 0){
     showToast("해당 열을 사용하는 행이 없어 채울 곳이 없습니다.");
   } else {
-    showToast(`입력값${colIdx===0?"":colIdx} 값을 ${filled}개 행에 채웠습니다.`);
+    showToast(`입력값${colIdx+1} 값을 ${filled}개 행에 채웠습니다.`);
   }
 }
 document.getElementById("fillVal1All").addEventListener("click", ()=> fillValueAllFromFirst(1));
@@ -833,7 +862,7 @@ document.getElementById("clearAll").addEventListener("click", ()=>{
   if(confirm("모든 행을 삭제할까요?")){ grid.innerHTML=""; rowCount=0; addRow(); }
 });
 document.getElementById("downloadXlsx").addEventListener("click", ()=>{
-  const rows = [["기능구분","세부기능","입력값","입력값1","입력값2","결과값"]];
+  const rows = [["기능구분","세부기능","입력값1","입력값2","입력값3","결과값"]];
   rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
     const fnSel = tr.querySelector(".fnSel");
