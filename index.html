@@ -14,7 +14,7 @@
     --green-bg:#f0fdf4; --green-border:#bbf7d0; --green-text:#166534; --green-strong:#15803d;
     --green-btn:#10b981;
     --detail-bg:#fdf4ff; --detail-border:#f0abfc; --detail-text:#a21caf; --detail-strong:#86198f;
-    --col-cat:#0891b2; --col-fn:#7c3aed; --col-val2:#e11d48; --col-val3:#0d9488;
+    --col-cat:#0891b2; --col-fn:#7c3aed; --col-val2:#e11d48; --col-val3:#0d9488; --col-val4:#ca8a04;
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
@@ -23,18 +23,31 @@
   .app-container{max-width:1900px;margin:0 auto;background:var(--card);border:1px solid var(--line);
     border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.05);padding:32px;}
 
+  /* 참조표 활용 함수 선택 + 데이터 있음 → 화면을 상/하로 나눠서, 아래쪽 참조표를 항상 보면서 입력할 수 있게 함 */
+  body.split-active{height:100vh;overflow:hidden;padding:16px 24px;box-sizing:border-box;}
+  body.split-active .app-container{height:100%;display:flex;flex-direction:column;padding:24px 32px;
+    box-sizing:border-box;}
+  body.split-active .split-top-wrap{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:4px;}
+  body.split-active .table-scroll{max-height:190px;overflow-y:auto;}
+  body.split-active #lookupCard{flex:0 0 auto;max-height:42vh;overflow-y:auto;margin-top:14px;
+    border:1.5px solid #4338ca;box-shadow:0 -4px 14px rgba(67,56,202,.12);}
+  .split-mode-badge{display:none;font-size:.72rem;font-weight:700;color:#4338ca;background:#eef2ff;
+    border:1px solid #c7d2fe;border-radius:20px;padding:3px 10px;margin-left:8px;white-space:nowrap;}
+  body.split-active .split-mode-badge{display:inline-block;}
+
   .top-section{display:flex;gap:14px;align-items:stretch;margin:0 0 20px;flex-wrap:wrap;}
 
-  .top-col-title{flex:0 0 240px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  .top-col-title{flex:0 0 20%;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:8px;text-align:center;background:linear-gradient(160deg,#fff7ed 0%,#ffedd5 100%);
-    border:1px solid #fed7aa;border-radius:12px;padding:14px 10px;box-shadow:0 1px 3px rgba(194,65,12,.06);}
+    border:1px solid #fed7aa;border-radius:12px;padding:14px 10px;box-shadow:0 1px 3px rgba(194,65,12,.06);
+    min-width:0;}
   .title-icon{font-size:2rem;line-height:1;filter:drop-shadow(0 1px 1px rgba(194,65,12,.15));}
   .title-main{margin:0;color:#9a3412;font-size:1.2rem;font-weight:800;line-height:1.3;letter-spacing:-.3px;}
   .title-security-badge{background:#dcfce7;color:#166534;font-size:.76rem;padding:4px 8px;border-radius:4px;font-weight:600;}
 
-  .top-col-guide{flex:1 1 420px;display:flex;min-width:0;}
+  .top-col-guide{flex:1 1 auto;display:flex;min-width:0;}
   .top-col-guide .security-banner{width:100%;margin-bottom:0;}
-  .top-col-detail{flex:0 0 270px;display:flex;min-width:0;}
+  .top-col-detail{flex:0 0 50%;display:flex;min-width:0;}
   .top-col-detail .card{width:100%;margin:0;}
 
   h1{margin:0;color:var(--title);font-size:1.5rem;font-weight:700;display:flex;align-items:center;gap:8px;}
@@ -76,7 +89,7 @@
   .btn.ghost{color:var(--muted);}
   .btn.success{background:var(--green-btn);border-color:var(--green-btn);color:#fff;font-weight:600;}
   .btn.success:hover{background:#0ea371;}
-  .btn.fill-cat,.btn.fill-fn,.btn.fill-val2,.btn.fill-val3{
+  .btn.fill-cat,.btn.fill-fn,.btn.fill-val2,.btn.fill-val3,.btn.fill-val4{
     background:var(--accent-bg);border-color:var(--line);font-weight:700;}
   .btn.fill-cat{color:var(--col-cat);}
   .btn.fill-cat:hover{background:#dbeafe;}
@@ -86,13 +99,13 @@
   .btn.fill-val2:hover{background:#dbeafe;}
   .btn.fill-val3{color:var(--col-val3);}
   .btn.fill-val3:hover{background:#dbeafe;}
+  .btn.fill-val4{color:var(--col-val4);}
+  .btn.fill-val4:hover{background:#dbeafe;}
   .row-add-group{display:flex;align-items:center;gap:0;border:1px solid var(--line);
     border-radius:8px;background:#fff;overflow:hidden;}
   #addRowCount{width:50px;border:none;outline:none;font-size:12.5px;font-family:inherit;
-    padding:6px 6px 6px 10px;color:var(--text);background:transparent;}
-  .row-add-group .btn{border:none;border-left:1px solid var(--line);border-radius:0;
-    padding:6px 10px;background:#f8fafc;}
-  .row-add-group .btn:hover{background:#eef2f6;}
+    padding:6px 10px;color:var(--text);background:transparent;}
+  .row-add-hint{font-size:.79rem;color:var(--muted);line-height:1.4;}
   .divider{width:1px;height:18px;background:var(--line);margin:0 2px;}
 
   .table-scroll{overflow-x:auto;}
@@ -113,6 +126,7 @@
   thead th.col-fn{color:var(--col-fn);}
   thead th.col-val2{color:var(--col-val2);}
   thead th.col-val3{color:var(--col-val3);}
+  thead th.col-val4{color:var(--col-val4);}
 
   tbody td{border:1px solid var(--line);padding:0;vertical-align:middle;font-size:13px;background:#fff;}
   tbody td.idx{text-align:center;color:var(--muted);background:#f8fafc;font-size:12px;}
@@ -170,12 +184,11 @@
 
   .fn-detail-card{background:var(--detail-bg);border:1.5px solid var(--detail-border);}
   .fn-detail-card h2{color:var(--detail-strong);font-size:.95rem;font-weight:800;
-    margin:0 0 8px;padding:14px 14px 0;letter-spacing:-.2px;}
-  #fnDetail{padding:0 14px 14px;}
+    margin:0 0 8px;padding:14px 14px 0;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;}
+  #fnDetailTitleTag{font-weight:600;color:var(--detail-text);}
+  #fnDetail{padding:0 14px 14px;max-height:172px;overflow-y:auto;}
   .fn-detail-empty{font-size:.79rem;color:#a21caf;line-height:1.6;padding:2px 0 4px;opacity:.75;}
-  .fn-detail-cat{display:inline-block;font-size:.7rem;font-weight:600;color:#fff;
-    background:var(--detail-strong);padding:2px 8px;border-radius:10px;margin-bottom:8px;}
-  .fn-detail-name{font-size:.79rem;font-weight:700;color:var(--detail-strong);margin-bottom:6px;}
   .fn-detail-example{font-size:.79rem;color:var(--detail-text);line-height:1.6;margin-bottom:10px;
     background:#fff;border:1px solid var(--detail-border);border-radius:6px;padding:8px 10px;}
   .fn-detail-params{list-style:none;margin:0;padding:0;}
@@ -185,27 +198,36 @@
   .fn-detail-note{font-size:.76rem;color:var(--detail-strong);line-height:1.6;margin-top:10px;
     background:rgba(240,171,252,.18);border:1px dashed var(--detail-border);border-radius:6px;padding:8px 10px;}
 
+  .fn-detail-lookup-cta{margin:0 0 12px;padding:10px 12px;border-radius:8px;
+    background:#fff7ed;border:1.5px solid #fb923c;color:#c2410c;font-size:.88rem;font-weight:700;
+    line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .btn-goto-lookup{border:none;background:#f97316;color:#fff;font-size:.78rem;font-weight:700;
+    padding:5px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+  .btn-goto-lookup:hover{background:#ea580c;}
+
   .lookup-card{margin-top:16px;padding:18px 20px;}
-  .lookup-header h2{font-size:.95rem;font-weight:800;color:#4338ca;margin:0 0 6px;
+  .lookup-header{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    flex-wrap:wrap;margin-bottom:6px;}
+  .lookup-header h2{font-size:.95rem;font-weight:800;color:#4338ca;margin:0;
     display:flex;align-items:center;gap:6px;}
+  .btn-goto-top{border:1.5px solid #4338ca;background:#fff;color:#4338ca;font-size:.78rem;
+    font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+  .btn-goto-top:hover{background:#4338ca;color:#fff;}
   .lookup-desc{font-size:.79rem;color:var(--text);line-height:1.65;margin:0 0 12px;
     background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 12px;}
-  .lookup-textarea{width:100%;min-height:70px;border:1.5px solid var(--line);border-radius:8px;
-    padding:10px 12px;font-size:12.5px;font-family:inherit;color:var(--text);resize:vertical;
-    box-sizing:border-box;}
-  .lookup-textarea:focus{outline:none;border-color:#4338ca;box-shadow:0 0 0 2px #e0e7ff;}
-  .lookup-actions{display:flex;align-items:center;gap:10px;margin:10px 0;}
+  .lookup-actions{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap;}
   .lookup-actions .btn.primary{background:#4338ca;border-color:#4338ca;}
   .lookup-actions .btn.primary:hover{background:#3730a3;}
   .lookup-status{font-size:.78rem;color:var(--muted);}
-  .lookup-preview-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;max-height:260px;
-    overflow-y:auto;}
-  table.lookup-preview{width:100%;border-collapse:collapse;font-size:12px;}
-  table.lookup-preview th.lookup-colnum{background:#4338ca;color:#fff;font-weight:700;
-    padding:6px 10px;text-align:left;white-space:nowrap;position:sticky;top:0;}
-  table.lookup-preview td{padding:6px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);
-    white-space:nowrap;}
-  table.lookup-preview .lookup-empty{padding:16px;color:var(--muted);text-align:center;font-size:12.5px;}
+  .lookup-preview-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:320px;}
+  table.lookup-grid{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+  table.lookup-grid th.lookup-colnum{background:#4338ca;color:#fff;font-weight:700;
+    padding:6px 4px;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:2;
+    min-width:110px;}
+  table.lookup-grid td{padding:0;border-bottom:1px solid var(--line);border-right:1px solid var(--line);}
+  input.lookup-cell{width:100%;border:none;outline:none;background:transparent;
+    padding:6px 8px;font-size:12px;font-family:inherit;color:var(--text);box-sizing:border-box;}
+  input.lookup-cell:focus{background:#eef2ff;box-shadow:inset 0 0 0 1.5px #4338ca;}
 
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);
     background:#0f172a;color:#fff;font-size:13px;padding:10px 18px;border-radius:8px;
@@ -216,6 +238,7 @@
 </head>
 <body>
 <div class="app-container">
+  <div class="split-top-wrap">
   <div class="top-section">
     <div class="top-col-title">
       <div class="title-icon">🧮</div>
@@ -232,12 +255,13 @@
           <li><span class="feat-icon">🌐</span><span><strong>외부 서버 전송 ZERO</strong> <span class="feat-desc">: 입력값과 계산 결과가 브라우저 안에서만 처리</span></span></li>
           <li><span class="feat-icon">⚡</span><span><strong>실시간 자동 계산</strong> <span class="feat-desc">: 값 입력 즉시 결과 표시, 별도 실행 버튼 불필요</span></span></li>
           <li><span class="feat-icon">📋</span><span><strong>엑셀과 그대로 연동</strong> <span class="feat-desc">: 여러 셀 복사·붙여넣기, 결과값도 엑셀로 바로 복사</span></span></li>
+          <li><span class="feat-icon">🧮</span><span><strong>엑셀함수 쉽게 활용</strong> <span class="feat-desc">: 쉬운 설명과 예시문을 보면 누구나 엑셀 함수 활용 가능</span></span></li>
         </ul>
       </div>
     </div>
-    <div class="top-col-detail">
+    <div class="top-col-detail" id="topColDetail">
       <div class="card fn-detail-card">
-        <h2>선택한 기능 설명</h2>
+        <h2>선택한 기능 설명<span id="fnDetailTitleTag"></span></h2>
         <div id="fnDetail">
           <div class="fn-detail-empty">표에서 구분·세부기능을 선택하면 여기에 설명이 표시됩니다.</div>
         </div>
@@ -248,23 +272,24 @@
   <div class="layout">
     <div class="card">
       <div class="toolbar">
-        <button class="btn primary" id="addRow">+ 행 추가</button>
         <span class="row-add-group">
           <input type="number" id="addRowCount" min="1" max="500" value="10">
-          <button class="btn" id="addRowsBulk">행 추가</button>
         </span>
-        <span class="divider"></span>
+        <button class="btn primary" id="addRow">+ 행 추가</button>
+        <span class="row-add-hint">필요한 만큼 행 추가 → ① 구분 ② 세부 기능에서 원하는 함수 선택 → 입력값1에 변환하거나 기준이 되는 값 입력(복사·붙여넣기 가능)</span>
+        <span style="flex:1"></span>
         <button class="btn fill-val2" id="fillVal1All">① 입력값2 채우기</button>
         <button class="btn fill-val3" id="fillVal2All">② 입력값3 채우기</button>
-        <span style="flex:1"></span>
-        <button class="btn" id="copyResults">③ 결과값 복사</button>
+        <button class="btn fill-val4" id="fillVal3All">③ 입력값4 채우기</button>
+        <button class="btn" id="copyResults">④ 결과값 복사</button>
         <button class="btn success" id="downloadXlsx">엑셀로 다운로드</button>
       </div>
       <div class="table-scroll">
       <table>
         <colgroup>
           <col class="idx"><col class="cat"><col class="fn">
-          <col class="val-main"><col class="val-sub"><col class="val-sub">
+          <col class="val-main">
+          <col class="val-sub" id="colVal2"><col class="val-sub" id="colVal3"><col class="val-sub" id="colVal4">
           <col class="result"><col class="del">
         </colgroup>
         <thead>
@@ -273,9 +298,10 @@
             <th class="col-cat">① 구분</th>
             <th class="col-fn">② 세부 기능</th>
             <th class="val">③ 입력값1</th>
-            <th class="val col-val2">④ 입력값2</th>
-            <th class="val col-val3">⑤ 입력값3</th>
-            <th class="result">⑥ 결과값</th>
+            <th class="val col-val2" id="thVal2">④ 입력값2</th>
+            <th class="val col-val3" id="thVal3">⑤ 입력값3</th>
+            <th class="val col-val4" id="thVal4">⑥ 입력값4</th>
+            <th class="result">⑦ 결과값</th>
             <th></th>
           </tr>
         </thead>
@@ -289,29 +315,37 @@
         <h2>사용 가능한 기능</h2>
         <div id="fnList"></div>
         <div class="side-note">
-          입력값이 2개 이상 필요한 기능은 입력값2·입력값3 열까지 함께 입력해야 결과가 계산됩니다.
+          입력값이 2개 이상 필요한 기능은 입력값2~입력값4 열까지 함께 입력해야 결과가 계산됩니다. 필요한 입력값 개수는 기능마다 달라서, 그보다 많은 열은 화면에 표시되지 않습니다.
         </div>
       </div>
     </div>
   </div>
+  </div>
 
   <div class="card lookup-card" id="lookupCard" style="display:none;">
-    <div class="lookup-header"><h2>🔍 조회 참조표 (XLOOKUP·COUNTIF·SUMIF 공용 데이터)</h2></div>
+    <div class="lookup-header">
+      <h2>🔍 조회 참조표 (XLOOKUP·COUNTIF·SUMIF 공용 데이터)<span class="split-mode-badge">📌 화면 분할 모드</span></h2>
+      <button type="button" class="btn-goto-top" onclick="window.scrollTo({top:0, behavior:'smooth'});">↑ 초기화면으로 이동</button>
+    </div>
     <p class="lookup-desc">
-      엑셀에서 원하는 데이터 범위를 복사해서(Ctrl+C) 아래 칸에 붙여넣으면(Ctrl+V) <strong>버튼을 누르지 않아도 자동으로</strong> 표가 만들어지고, 각 열 맨 위에 <strong>1열, 2열, 3열…</strong> 번호가 표시됩니다. <strong>XLOOKUP은 VLOOKUP과 달리 찾을 값이 있는 열(기준 열)이 꼭 맨 왼쪽일 필요가 없으므로</strong>, 필요한 열들을 포함해서 자유롭게 범위를 복사하면 됩니다. 예를 들어 [사번, 이름, 부서]를 복사했다면 이름으로 사번을 찾고 싶을 때는 기준 열 번호에 2, 결과 열 번호에 1을 넣으면 됩니다. 이 참조표는 "조회(XLOOKUP)" 구분의 5개 기능(XLOOKUP, COUNTIF, COUNTIFS, SUMIF, SUMIFS)이 함께 사용합니다.<br>
-      · <strong>XLOOKUP</strong>: 기준 열 번호로 지정한 열에서 찾을 값과 일치하는 행을 찾아, 결과 열 번호로 지정한 열 값을 반환(기준 열이 어디에 있든 상관없음)<br>
+      아래 표의 <strong>아무 칸이나 클릭한 뒤 엑셀에서 복사한 범위를 그대로 붙여넣으세요(Ctrl+V)</strong>. 클릭한 칸을 시작점으로 오른쪽·아래쪽으로 값이 자동으로 채워지고, 각 열 맨 위에는 <strong>1열, 2열, 3열…</strong> 번호가 표시됩니다. <strong>XLOOKUP은 VLOOKUP과 달리 기준이 되는 값이 있는 열(기준 열)이 꼭 맨 왼쪽일 필요가 없으므로</strong>, 필요한 열들을 포함해서 자유롭게 범위를 복사하면 됩니다. 예를 들어 [사번, 이름, 부서]를 복사했다면 이름으로 사번을 찾고 싶을 때는 기준 열 번호에 2, 결과 열 번호에 1을 넣으면 됩니다. 이 참조표는 "조회(XLOOKUP)" 구분의 5개 기능(XLOOKUP, COUNTIF, COUNTIFS, SUMIF, SUMIFS)이 함께 사용합니다.<br>
+      · <strong>XLOOKUP</strong>: 기준 열 번호로 지정한 열에서 기준이 되는 값과 일치하는 행을 찾아, 결과 열 번호로 지정한 열 값을 반환(기준 열이 어디에 있든 상관없음)<br>
       · <strong>COUNTIF/COUNTIFS</strong>: 조건에 맞는 행의 개수를 셈<br>
       · <strong>SUMIF/SUMIFS</strong>: 조건에 맞는 행들의 특정 열 값을 합산<br>
       COUNTIFS·SUMIFS의 조건 목록은 <strong>'열번호:조건값'</strong>을 쉼표로 이어서 입력하며(예: 1:부여읍,4:&gt;=5), 조건값 앞에 &gt;, &lt;, &gt;=, &lt;=, &lt;&gt; 를 붙이면 비교 조건으로도 쓸 수 있습니다.
     </p>
-    <textarea id="lookupPaste" class="lookup-textarea" placeholder="여기에 엑셀에서 복사한 표를 붙여넣으면(Ctrl+V) 자동으로 아래 표가 만들어집니다 (예: 1001[Tab]홍길동[Tab]생활복지과[Tab]주무관[Tab]1200000)"></textarea>
     <div class="lookup-actions">
-      <button class="btn primary" id="applyLookup">표 다시 적용</button>
+      <span class="row-add-group"><input type="number" id="lookupAddRowCount" min="1" max="200" value="10"></span>
+      <button class="btn primary" id="lookupAddRows">+ 행 추가</button>
+      <button class="btn" id="lookupAddCol">+ 열 추가</button>
       <button class="btn ghost" id="clearLookup">참조표 지우기</button>
       <span class="lookup-status" id="lookupStatus"></span>
     </div>
     <div class="lookup-preview-wrap">
-      <table class="lookup-preview" id="lookupPreview"></table>
+      <table class="lookup-grid" id="lookupGrid">
+        <thead><tr id="lookupGridHeadRow"></tr></thead>
+        <tbody id="lookupGridBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -426,18 +460,23 @@ const CATEGORIES = [
         if(isNaN(start)||start<1) throw "시작위치는 1 이상 숫자";
         if(isNaN(len)||len<1) throw "글자수는 1 이상 숫자";
         return s.slice(start-1, start-1+len); } },
-    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(LEFT+FIND)", example:"사비로 33 (부여읍) / ( → 사비로 33<br>성왕로32번길 12 (부여읍) / ( → 성왕로32번길 12",
-      note:"도로명 길이가 주소마다 다르면 고정 글자수로 자르는 단순 LEFT로는 안 되지만, FIND로 괄호 위치를 찾아 자르면 길이에 상관없이 정확합니다.", params:["값","구분자"],
-      fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
+    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(LEFT+FIND)", example:"성왕로32번길 12 (부여읍) / (공백) / 1 → 성왕로32번길<br>성왕로32번길 12 (부여읍) / (공백) / 9 → 성왕로32번길 12",
+      note:"도로명 길이가 주소마다 다르면 고정 글자수로 자르는 단순 LEFT로는 안 되지만, FIND로 괄호 위치를 찾아 자르면 길이에 상관없이 정확합니다. '찾기 시작 위치'는 구분자가 여러 번 나올 때 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째로 나오는 구분자를 찾고, 첫 구분자 뒤의 위치를 넣으면 두 번째(그 다음) 구분자를 찾습니다. 예: 공백이 2번 있는 주소에서 시작 위치 1은 첫 공백에서, 9는 두 번째 공백에서 자릅니다.", params:["값","구분자","찾기 시작 위치"],
+      fn:([s,sep,startPosStr])=>{ if(!sep) throw "구분자를 입력하세요";
+        const startPos=parseInt(startPosStr,10); if(isNaN(startPos)||startPos<1) throw "찾기 시작 위치는 1 이상 숫자로 입력하세요";
+        const idx=s.indexOf(sep, startPos-1);
         if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(0,idx); } },
-    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(RIGHT+FIND)", example:"생활복지과-2024년도 예산집행내역 / - → 2024년도 예산집행내역<br>동남권산업단지조성사업추진단-신규사업 추진계획 / - → 신규사업 추진계획",
-      note:"단순 RIGHT는 뒤에서 몇 글자를 가져올지 미리 알아야 하는데, 뒤에 오는 내용의 길이가 매번 다르면 몇 글자인지 알 수 없어 아예 쓸 수 없습니다. RIGHT+FIND는 구분자 위치만 찾으면 되므로 뒷부분 길이가 제각각이어도 정확히 잘립니다.", params:["값","구분자"],
-      fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요"; const idx=s.indexOf(sep);
+    { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(RIGHT+FIND)", example:"성왕로32번길 12 (부여읍) / (공백) / 1 → 12 (부여읍)<br>성왕로32번길 12 (부여읍) / (공백) / 9 → (부여읍)",
+      note:"단순 RIGHT는 뒤에서 몇 글자를 가져올지 미리 알아야 하는데, 뒤에 오는 내용의 길이가 매번 다르면 몇 글자인지 알 수 없어 아예 쓸 수 없습니다. RIGHT+FIND는 구분자 위치만 찾으면 되므로 뒷부분 길이가 제각각이어도 정확히 잘립니다. '찾기 시작 위치'는 구분자가 여러 번 나올 때 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째 구분자 기준, 첫 구분자 뒤의 위치를 넣으면 두 번째 구분자를 기준으로 자릅니다.", params:["값","구분자","찾기 시작 위치"],
+      fn:([s,sep,startPosStr])=>{ if(!sep) throw "구분자를 입력하세요";
+        const startPos=parseInt(startPosStr,10); if(isNaN(startPos)||startPos<1) throw "찾기 시작 위치는 1 이상 숫자로 입력하세요";
+        const idx=s.indexOf(sep, startPos-1);
         if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(idx+sep.length); } },
-    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"[생활복지과] 2024년도 예산집행계획 / [ / ] → 생활복지과<br>[동남권산업단지조성사업추진단] 신규사업 추진계획 / [ / ] → 동남권산업단지조성사업추진단",
-      note:"단순 MID는 시작 위치와 '가져올 글자수'를 미리 알아야 하는데, 대괄호 안 부서명처럼 추출할 내용 자체의 길이를 모르면 애초에 글자수를 정할 수 없습니다. MID+FIND는 여는·닫는 괄호 위치만 찾으면 되므로 안의 내용이 몇 글자든 정확히 추출됩니다.", params:["값","시작구분자","종료구분자"],
-      fn:([s,start,end])=>{ if(!start||!end) throw "시작·종료 구분자를 모두 입력하세요";
-        const i1=s.indexOf(start); if(i1===-1) throw "시작 구분자를 찾을 수 없습니다";
+    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"부여군 (총괄) 생활복지과 (담당) / ( / ) / 1 → 총괄<br>부여군 (총괄) 생활복지과 (담당) / ( / ) / 9 → 담당",
+      note:"단순 MID는 시작 위치와 '가져올 글자수'를 미리 알아야 하는데, 대괄호 안 부서명처럼 추출할 내용 자체의 길이를 모르면 애초에 글자수를 정할 수 없습니다. MID+FIND는 여는·닫는 괄호 위치만 찾으면 되므로 안의 내용이 몇 글자든 정확히 추출됩니다. '찾기 시작 위치'는 시작 구분자가 여러 번 나올 때(예: 괄호가 두 쌍 있을 때) 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째 괄호 쌍, 첫 괄호 뒤의 위치를 넣으면 두 번째 괄호 쌍의 내용을 가져옵니다.", params:["값","시작구분자","종료구분자","찾기 시작 위치"],
+      fn:([s,start,end,startPosStr])=>{ if(!start||!end) throw "시작·종료 구분자를 모두 입력하세요";
+        const startPos=parseInt(startPosStr,10); if(isNaN(startPos)||startPos<1) throw "찾기 시작 위치는 1 이상 숫자로 입력하세요";
+        const i1=s.indexOf(start, startPos-1); if(i1===-1) throw "시작 구분자를 찾을 수 없습니다";
         const from=i1+start.length; const i2=s.indexOf(end, from);
         if(i2===-1) throw "종료 구분자를 찾을 수 없습니다";
         return s.slice(from, i2); } },
@@ -600,8 +639,9 @@ const CATEGORIES = [
   { name:"조회 (XLOOKUP)", functions:[
     { key:"엑스룩업", label:"XLOOKUP (값 찾기)",
       example:"부서명 생활복지과 입력 / 기준 열 번호 3 / 결과 열 번호 1 → 3열(부서명)에서 '생활복지과'를 찾아 1열(사번) 값 반환",
-      note:"VLOOKUP과 달리 찾을 값이 반드시 맨 왼쪽(1열)에 있지 않아도 됩니다. 기준 열 번호에 찾을 값이 들어있는 열을, 결과 열 번호에 가져올 값이 들어있는 열을 각각 지정하면 되며, 결과 열이 기준 열보다 왼쪽에 있어도(예: 부서명으로 사번을 거꾸로 찾기) 정상적으로 동작합니다. 자세한 사용법은 화면 맨 아래 참조표 카드 설명을 참고하세요.",
-      params:["찾을 값","기준 열 번호","결과 열 번호"],
+      note:"VLOOKUP과 달리 기준이 되는 값이 반드시 맨 왼쪽(1열)에 있지 않아도 됩니다. 기준 열 번호에 기준이 되는 값이 들어있는 열을, 결과 열 번호에 가져올 값이 들어있는 열을 각각 지정하면 되며, 결과 열이 기준 열보다 왼쪽에 있어도(예: 부서명으로 사번을 거꾸로 찾기) 정상적으로 동작합니다.",
+      usesLookupTable:true,
+      params:["기준이 되는 값","기준 열 번호","결과 열 번호"],
       fn:([val, keyColStr, resultColStr])=>{
         const keyCol = parseInt(keyColStr,10), resultCol = parseInt(resultColStr,10);
         if(isNaN(keyCol) || keyCol<1) throw "기준 열 번호는 1 이상 숫자로 입력하세요";
@@ -613,10 +653,11 @@ const CATEGORIES = [
         return match[resultCol-1];
       } },
     { key:"카운트이프", label:"COUNTIF (조건 개수 세기)",
-      example:"조건 열 번호 3 / 조건값 부여읍 → 참조표 3열이 '부여읍'인 행 개수",
-      note:"아래 'XLOOKUP 참조표'에서 지정한 열의 값이 조건에 맞는 행이 몇 개인지 셉니다. 조건값에 '부여읍'처럼 그냥 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <> 를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100). 참조표를 먼저 붙여넣어야 사용할 수 있습니다.",
-      params:["조건 열 번호","조건값"],
-      fn:([colNumStr, condStr])=>{
+      example:"조건값 부여읍 / 조건 열 번호 3 → 참조표 3열이 '부여읍'인 행 개수",
+      note:"아래 'XLOOKUP 참조표'에서 지정한 열의 값이 조건에 맞는 행이 몇 개인지 셉니다. 조건값에 '부여읍'처럼 그냥 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <> 를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100). 참조표를 먼저 붙여넣어야 사용할 수 있습니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호(입력값2)는 1행에만 입력한 뒤 '입력값2 채우기' 버튼으로 나머지 행에 채우면 편리합니다.",
+      usesLookupTable:true,
+      params:["조건값","조건 열 번호"],
+      fn:([condStr, colNumStr])=>{
         const colNum = parseInt(colNumStr,10);
         if(isNaN(colNum) || colNum<1) throw "조건 열 번호는 1 이상 숫자로 입력하세요";
         if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
@@ -625,7 +666,8 @@ const CATEGORIES = [
       } },
     { key:"카운트이프스", label:"COUNTIFS (여러 조건 개수 세기)",
       example:"조건 목록 1:부여읍,4:>=5 → 1열이 '부여읍'이면서 4열이 5 이상인 행 개수",
-      note:"COUNTIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록 칸에 '열번호:조건값'을 쉼표로 이어서 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 동시에 4열이 5 이상인 행만 셉니다. 조건값 앞에 >, <, >=, <=, <> 를 붙이면 비교 조건도 쓸 수 있습니다.",
+      note:"COUNTIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록 칸에 '열번호:조건값'을 쉼표로 이어서 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 동시에 4열이 5 이상인 행만 셉니다. 조건값 앞에 >, <, >=, <=, <> 를 붙이면 비교 조건도 쓸 수 있습니다. 조건 목록 자체가 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣을 수 있습니다.",
+      usesLookupTable:true,
       params:["조건 목록"],
       fn:([condListStr])=>{
         if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
@@ -634,10 +676,11 @@ const CATEGORIES = [
         return commify(String(count));
       } },
     { key:"섬이프", label:"SUMIF (조건에 맞는 값 합계)",
-      example:"조건 열 번호 3 / 조건값 부여읍 / 합계 열 번호 5 → 3열이 '부여읍'인 행들의 5열 값 합계",
-      note:"아래 'XLOOKUP 참조표'에서 조건에 맞는 행들만 찾아, 그 행들의 다른 열(합계 열 번호) 값을 모두 더합니다. 예를 들어 3열이 '부여읍'인 행들의 5열(집행금액) 합계를 구하고 싶으면 조건 열 번호에 3, 조건값에 부여읍, 합계 열 번호에 5를 넣으면 됩니다. 조건값에는 COUNTIF와 같은 비교연산자(>, <, >=, <=, <>)도 쓸 수 있습니다.",
-      params:["조건 열 번호","조건값","합계 열 번호"],
-      fn:([colNumStr, condStr, sumColStr])=>{
+      example:"조건값 부여읍 / 조건 열 번호 3 / 합계 열 번호 5 → 3열이 '부여읍'인 행들의 5열 값 합계",
+      note:"아래 'XLOOKUP 참조표'에서 조건에 맞는 행들만 찾아, 그 행들의 다른 열(합계 열 번호) 값을 모두 더합니다. 예를 들어 3열이 '부여읍'인 행들의 5열(집행금액) 합계를 구하고 싶으면 조건값에 부여읍, 조건 열 번호에 3, 합계 열 번호에 5를 넣으면 됩니다. 조건값에는 COUNTIF와 같은 비교연산자(>, <, >=, <=, <>)도 쓸 수 있습니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호·합계 열 번호(입력값2·입력값3)는 1행에만 입력한 뒤 채우기 버튼으로 나머지 행에 채우면 편리합니다.",
+      usesLookupTable:true,
+      params:["조건값","조건 열 번호","합계 열 번호"],
+      fn:([condStr, colNumStr, sumColStr])=>{
         const colNum = parseInt(colNumStr,10), sumCol = parseInt(sumColStr,10);
         if(isNaN(colNum) || colNum<1) throw "조건 열 번호는 1 이상 숫자로 입력하세요";
         if(isNaN(sumCol) || sumCol<1) throw "합계 열 번호는 1 이상 숫자로 입력하세요";
@@ -652,10 +695,11 @@ const CATEGORIES = [
         return commify(String(sum));
       } },
     { key:"섬이프스", label:"SUMIFS (여러 조건에 맞는 값 합계)",
-      example:"합계 열 번호 5 / 조건 목록 1:부여읍,4:>=5 → 조건을 모두 만족하는 행들의 5열 값 합계",
-      note:"SUMIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 합계 열 번호에는 더할 값이 있는 열을, 조건 목록에는 COUNTIFS와 같은 방식으로 '열번호:조건값'을 쉼표로 이어서 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 4열이 5 이상인 행들만 골라 그 행들의 합계 열 값을 더합니다.",
-      params:["합계 열 번호","조건 목록"],
-      fn:([sumColStr, condListStr])=>{
+      example:"조건 목록 1:부여읍,4:>=5 / 합계 열 번호 5 → 조건을 모두 만족하는 행들의 5열 값 합계",
+      note:"SUMIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록에는 COUNTIFS와 같은 방식으로 '열번호:조건값'을 쉼표로 이어서 입력하고, 합계 열 번호에는 더할 값이 있는 열을 입력하세요. 예를 들어 '1:부여읍,4:>=5'는 1열이 '부여읍'이면서 4열이 5 이상인 행들만 골라 그 행들의 합계 열 값을 더합니다. 조건 목록(입력값1)이 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 합계 열 번호(입력값2)는 1행에만 입력한 뒤 '입력값2 채우기' 버튼으로 나머지 행에 채우면 편리합니다.",
+      usesLookupTable:true,
+      params:["조건 목록","합계 열 번호"],
+      fn:([condListStr, sumColStr])=>{
         const sumCol = parseInt(sumColStr,10);
         if(isNaN(sumCol) || sumCol<1) throw "합계 열 번호는 1 이상 숫자로 입력하세요";
         if(lookupTable.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
@@ -677,7 +721,6 @@ const MAX_PARAMS = Math.max(...CATEGORIES.flatMap(c=>c.functions.map(f=>f.params
 const fnListEl = document.getElementById("fnList");
 CATEGORIES.forEach((cat,ci)=>{
   const det = document.createElement("details");
-  if(ci===0) det.open = true;
   const sum = document.createElement("summary");
   sum.textContent = cat.name;
   det.appendChild(sum);
@@ -695,17 +738,23 @@ CATEGORIES.forEach((cat,ci)=>{
 // ---------- 선택한 기능 설명 패널 ----------
 const fnDetailEl = document.getElementById("fnDetail");
 function showFnDetail(fnDef, catName){
+  const titleTag = document.getElementById("fnDetailTitleTag");
   if(!fnDef){
     fnDetailEl.innerHTML = `<div class="fn-detail-empty">표에서 구분·세부기능을 선택하면 여기에 설명이 표시됩니다.</div>`;
+    titleTag.textContent = "";
     return;
   }
   const paramItems = fnDef.params.map((p,i)=>{
     const colName = `입력값${i+1}`;
     return `<li><strong>${colName}</strong>${p}</li>`;
   }).join("");
+  titleTag.textContent = ` : ${catName} - ${fnDef.label}`;
   fnDetailEl.innerHTML = `
-    <div class="fn-detail-cat">${catName}</div>
-    <div class="fn-detail-name">${fnDef.label}</div>
+    ${fnDef.usesLookupTable ? `
+      <div class="fn-detail-lookup-cta">
+        📋 자세한 사용법은 화면 맨 아래 참조표 카드 설명을 참고하세요.
+        <button type="button" class="btn-goto-lookup" onclick="document.getElementById('lookupCard').scrollIntoView({behavior:'smooth', block:'start'});">참조표로 이동 ↓</button>
+      </div>` : ""}
     <div class="fn-detail-example">${fnDef.example}</div>
     <ul class="fn-detail-params">${paramItems}</ul>
     ${fnDef.note ? `<div class="fn-detail-note">💡 ${fnDef.note}</div>` : ""}
@@ -815,6 +864,7 @@ function addRow(){
       showToast("1행 구분이 아래 행 전체에 자동으로 채워졌습니다.");
     }
     updateLookupCardVisibility();
+    updateValueColumnVisibility();
   });
 
   fnSel.addEventListener("change", ()=>{
@@ -827,6 +877,7 @@ function addRow(){
       showToast("1행 세부기능이 아래 행 전체에 자동으로 채워졌습니다.");
     }
     updateLookupCardVisibility();
+    updateValueColumnVisibility();
   });
 
   pvals.forEach((input, idx)=>{
@@ -862,7 +913,7 @@ function addRow(){
     });
   });
 
-  delBtn.addEventListener("click", ()=>{ tr.remove(); renumber(); updateLookupCardVisibility(); });
+  delBtn.addEventListener("click", ()=>{ tr.remove(); renumber(); updateLookupCardVisibility(); updateValueColumnVisibility(); });
 
   tr.querySelectorAll(".fill-handle").forEach(handle=>{
     handle.addEventListener("mousedown", (e)=>{
@@ -991,6 +1042,7 @@ function fillValueAllFromFirst(colIdx){
 }
 document.getElementById("fillVal1All").addEventListener("click", ()=> fillValueAllFromFirst(1));
 document.getElementById("fillVal2All").addEventListener("click", ()=> fillValueAllFromFirst(2));
+document.getElementById("fillVal3All").addEventListener("click", ()=> fillValueAllFromFirst(3));
 
 // ---------- 토스트 ----------
 let toastTimer = null;
@@ -1026,8 +1078,7 @@ async function copyAllResults(){
 document.getElementById("copyResults").addEventListener("click", copyAllResults);
 
 // ---------- 툴바 이벤트 ----------
-document.getElementById("addRow").addEventListener("click", addRow);
-document.getElementById("addRowsBulk").addEventListener("click", ()=>{
+document.getElementById("addRow").addEventListener("click", ()=>{
   const input = document.getElementById("addRowCount");
   let n = parseInt(input.value, 10);
   if(isNaN(n) || n < 1){ alert("추가할 행 개수를 1 이상으로 입력하세요."); return; }
@@ -1038,80 +1089,133 @@ document.getElementById("clearAll").addEventListener("click", ()=>{
   if(confirm("모든 행을 삭제할까요?")){ grid.innerHTML=""; rowCount=0; addRow(); }
 });
 document.getElementById("downloadXlsx").addEventListener("click", ()=>{
-  const rows = [["기능구분","세부기능","입력값1","입력값2","입력값3","결과값"]];
+  const rows = [["기능구분","세부기능","입력값1","입력값2","입력값3","입력값4","결과값"]];
   rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
     const fnSel = tr.querySelector(".fnSel");
     const catName = catSel.value !== "" ? CATEGORIES[catSel.value].name : "";
     const fnName = (catSel.value !== "" && fnSel.value !== "") ? CATEGORIES[catSel.value].functions[fnSel.value].label : "";
     const pvals = [...tr.querySelectorAll(".pval")].map(i=>i.value);
-    rows.push([catName, fnName, pvals[0]||"", pvals[1]||"", pvals[2]||"", tr.querySelector(".fresult").value]);
+    rows.push([catName, fnName, pvals[0]||"", pvals[1]||"", pvals[2]||"", pvals[3]||"", tr.querySelector(".fresult").value]);
   });
   if(typeof XLSX === "undefined"){
     alert("엑셀 다운로드 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.");
     return;
   }
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"] = [{wch:12},{wch:22},{wch:16},{wch:12},{wch:12},{wch:22}];
+  ws["!cols"] = [{wch:12},{wch:22},{wch:16},{wch:12},{wch:12},{wch:12},{wch:22}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "함수변환결과");
   XLSX.writeFile(wb, "함수변환결과.xlsx");
 });
 
-// ---------- XLOOKUP 참조표 ----------
-function renderLookupPreview(){
-  const el = document.getElementById("lookupPreview");
-  const status = document.getElementById("lookupStatus");
-  if(lookupTable.length === 0){
-    el.innerHTML = `<tr><td class="lookup-empty">아직 참조표가 없습니다. 위 칸에 엑셀 데이터를 붙여넣고 '표 적용'을 눌러주세요.</td></tr>`;
-    status.textContent = "";
-    return;
-  }
-  const colCount = Math.max(...lookupTable.map(r=>r.length));
-  let html = "<thead><tr>";
-  for(let c=0;c<colCount;c++){
-    html += `<th class="lookup-colnum">${c+1}열${c===0 ? " (찾을 기준)" : ""}</th>`;
-  }
-  html += "</tr></thead><tbody>";
-  lookupTable.forEach(row=>{
-    html += "<tr>";
-    for(let c=0;c<colCount;c++){
-      html += `<td>${(row[c] !== undefined ? row[c] : "")}</td>`;
+// ---------- XLOOKUP 참조표 (실제 편집 가능한 그리드) ----------
+let lookupCols = 0;
+
+function createLookupCell(r, c){
+  const td = document.createElement("td");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "lookup-cell";
+  input.dataset.row = r;
+  input.dataset.col = c;
+  input.addEventListener("input", syncLookupTableFromGrid);
+  input.addEventListener("paste", handleLookupPaste);
+  td.appendChild(input);
+  return td;
+}
+
+function addLookupRows(n){
+  const body = document.getElementById("lookupGridBody");
+  for(let i=0;i<n;i++){
+    const r = body.children.length;
+    const tr = document.createElement("tr");
+    for(let c=0;c<lookupCols;c++){
+      tr.appendChild(createLookupCell(r,c));
     }
-    html += "</tr>";
-  });
-  html += "</tbody>";
-  el.innerHTML = html;
-  status.textContent = `${lookupTable.length}행 × ${colCount}열 적용됨`;
-}
-
-function applyLookupFromTextarea(silent){
-  const raw = document.getElementById("lookupPaste").value;
-  if(!raw.trim()){
-    lookupTable = [];
-    renderLookupPreview();
-    recomputeAllRows();
-    return;
+    body.appendChild(tr);
   }
-  lookupTable = raw.split(/\r\n|\n|\r/).filter(l=>l!=="").map(line=>line.split("\t"));
-  renderLookupPreview();
-  recomputeAllRows();
-  if(!silent) showToast(`참조표 ${lookupTable.length}행이 적용되었습니다.`);
 }
 
-document.getElementById("applyLookup").addEventListener("click", ()=>{
-  if(!document.getElementById("lookupPaste").value.trim()){ alert("붙여넣은 데이터가 없습니다."); return; }
-  applyLookupFromTextarea(false);
+function addLookupColumn(){
+  const th = document.createElement("th");
+  th.className = "lookup-colnum";
+  th.textContent = `${lookupCols+1}열`;
+  document.getElementById("lookupGridHeadRow").appendChild(th);
+  const body = document.getElementById("lookupGridBody");
+  [...body.children].forEach((tr, rIdx)=>{
+    tr.appendChild(createLookupCell(rIdx, lookupCols));
+  });
+  lookupCols++;
+}
+
+function initLookupGrid(){
+  document.getElementById("lookupGridHeadRow").innerHTML = "";
+  document.getElementById("lookupGridBody").innerHTML = "";
+  lookupCols = 0;
+  addLookupRows(12);
+  for(let c=0;c<6;c++) addLookupColumn();
+  syncLookupTableFromGrid();
+}
+
+function handleLookupPaste(e){
+  e.preventDefault();
+  const clip = (e.clipboardData || window.clipboardData);
+  if(!clip) return;
+  const raw = clip.getData("text");
+  if(!raw) return;
+  let lines = raw.split(/\r\n|\n|\r/);
+  if(lines.length > 1 && lines[lines.length-1] === "") lines = lines.slice(0,-1);
+  const rows = lines.map(l => l.split("\t"));
+  const startRow = parseInt(e.target.dataset.row, 10);
+  const startCol = parseInt(e.target.dataset.col, 10);
+  const maxRowLen = Math.max(...rows.map(r=>r.length));
+
+  const neededRows = startRow + rows.length;
+  const neededCols = startCol + maxRowLen;
+  const body = document.getElementById("lookupGridBody");
+  if(body.children.length < neededRows) addLookupRows(neededRows - body.children.length);
+  while(lookupCols < neededCols) addLookupColumn();
+
+  rows.forEach((rowVals, ri)=>{
+    const tr = body.children[startRow + ri];
+    rowVals.forEach((val, ci)=>{
+      const td = tr.children[startCol + ci];
+      td.querySelector("input").value = val;
+    });
+  });
+  syncLookupTableFromGrid();
+  showToast(`${rows.length}행 × ${maxRowLen}열을 참조표에 붙여넣었습니다.`);
+}
+
+function syncLookupTableFromGrid(){
+  const body = document.getElementById("lookupGridBody");
+  const table = [];
+  [...body.children].forEach(tr=>{
+    const rowVals = [...tr.children].map(td => td.querySelector("input").value);
+    if(rowVals.some(v => v.trim() !== "")) table.push(rowVals);
+  });
+  lookupTable = table;
+  const status = document.getElementById("lookupStatus");
+  status.textContent = lookupTable.length ? `데이터 있는 행 ${lookupTable.length}개 · 전체 ${lookupCols}열` : "";
+  recomputeAllRows();
+  updateLookupCardVisibility();
+}
+
+document.getElementById("lookupAddRows").addEventListener("click", ()=>{
+  const input = document.getElementById("lookupAddRowCount");
+  let n = parseInt(input.value, 10);
+  if(isNaN(n) || n < 1){ alert("추가할 행 개수를 1 이상으로 입력하세요."); return; }
+  if(n > 200) n = 200;
+  addLookupRows(n);
 });
 
-// 붙여넣는 순간(Ctrl+V) 자동으로 표가 만들어지도록 input 이벤트에서도 바로 적용
-document.getElementById("lookupPaste").addEventListener("input", ()=> applyLookupFromTextarea(true));
+document.getElementById("lookupAddCol").addEventListener("click", ()=> addLookupColumn());
 
 document.getElementById("clearLookup").addEventListener("click", ()=>{
-  lookupTable = [];
-  document.getElementById("lookupPaste").value = "";
-  renderLookupPreview();
-  recomputeAllRows();
+  if(confirm("참조표 내용을 모두 지울까요?")){
+    initLookupGrid();
+  }
 });
 
 function recomputeAllRows(){
@@ -1132,11 +1236,42 @@ function updateLookupCardVisibility(){
     return fnDef && lookupFnKeys.includes(fnDef.key);
   });
   document.getElementById("lookupCard").style.display = anyVlookupSelected ? "" : "none";
+  // 참조표 활용 함수가 선택되어 있고 참조표에 실제 데이터가 있을 때만 화면을 상/하로 나눠서
+  // 위쪽 목록은 짧게(내부 스크롤), 아래쪽엔 참조표가 항상 보이도록 함
+  document.body.classList.toggle("split-active", anyVlookupSelected && lookupTable.length > 0);
 }
 
-renderLookupPreview();
+// 표에서 현재 선택된 함수들 중 가장 많은 입력값을 요구하는 개수까지만
+// 입력값2~입력값4 열을 화면에 표시하고, 나머지는 아예 숨김
+function updateValueColumnVisibility(){
+  let maxNeeded = 1;
+  const rows = rowsInGrid();
+  rows.forEach(tr=>{
+    const catSel = tr.querySelector(".catSel");
+    const fnSel = tr.querySelector(".fnSel");
+    if(catSel.value !== "" && fnSel.value !== ""){
+      const fnDef = CATEGORIES[catSel.value].functions[fnSel.value];
+      if(fnDef) maxNeeded = Math.max(maxNeeded, fnDef.params.length);
+    }
+  });
+  for(let idx=1; idx<MAX_PARAMS; idx++){
+    const show = idx < maxNeeded;
+    const disp = show ? "" : "none";
+    const col = document.getElementById(`colVal${idx+1}`);
+    const th = document.getElementById(`thVal${idx+1}`);
+    if(col) col.style.display = disp;
+    if(th) th.style.display = disp;
+    rows.forEach(tr=>{
+      const td = tr.querySelector(`.valCell[data-idx="${idx}"]`);
+      if(td) td.style.display = disp;
+    });
+  }
+}
+
+initLookupGrid();
 
 for(let i=0;i<8;i++) addRow();
+updateValueColumnVisibility();
 </script>
 </body>
 </html>
