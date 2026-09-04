@@ -14,7 +14,7 @@
     --green-bg:#f0fdf4; --green-border:#bbf7d0; --green-text:#166534; --green-strong:#15803d;
     --green-btn:#10b981;
     --detail-bg:#fdf4ff; --detail-border:#f0abfc; --detail-text:#a21caf; --detail-strong:#86198f;
-    --col-cat:#0891b2; --col-fn:#7c3aed; --col-val2:#e11d48; --col-val3:#0d9488; --col-val4:#ca8a04;
+    --col-cat:#0891b2; --col-fn:#7c3aed; --col-val2:#e11d48; --col-val3:#0d9488;
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
@@ -34,6 +34,16 @@
   .split-mode-badge{display:none;font-size:.72rem;font-weight:700;color:#4338ca;background:#eef2ff;
     border:1px solid #c7d2fe;border-radius:20px;padding:3px 10px;margin-left:8px;white-space:nowrap;}
   body.split-active .split-mode-badge{display:inline-block;}
+
+  /* 피벗 테이블 함수 선택 시: 위쪽 제목·배너·설명, 우측 사이드바까지 숨기고
+     메인 표는 1행만, 아래 참조표·피벗 테이블 위주로 화면을 정리 */
+  body.pivot-active .top-section{display:none;}
+  body.pivot-active .side{display:none;}
+  body.pivot-active .layout{grid-template-columns:1fr;}
+  body.pivot-active .table-scroll{max-height:80px;}
+  body.pivot-active #lookupCard{max-height:64vh;}
+  body.pivot-active #lookupTitleSuffix{display:none;}
+  body.pivot-active #lookupXlookupDesc{display:none;}
 
   .top-section{display:flex;gap:14px;align-items:stretch;margin:0 0 20px;flex-wrap:wrap;}
 
@@ -89,7 +99,7 @@
   .btn.ghost{color:var(--muted);}
   .btn.success{background:var(--green-btn);border-color:var(--green-btn);color:#fff;font-weight:600;}
   .btn.success:hover{background:#0ea371;}
-  .btn.fill-cat,.btn.fill-fn,.btn.fill-val2,.btn.fill-val3,.btn.fill-val4{
+  .btn.fill-cat,.btn.fill-fn,.btn.fill-val2,.btn.fill-val3{
     background:var(--accent-bg);border-color:var(--line);font-weight:700;}
   .btn.fill-cat{color:var(--col-cat);}
   .btn.fill-cat:hover{background:#dbeafe;}
@@ -99,11 +109,9 @@
   .btn.fill-val2:hover{background:#dbeafe;}
   .btn.fill-val3{color:var(--col-val3);}
   .btn.fill-val3:hover{background:#dbeafe;}
-  .btn.fill-val4{color:var(--col-val4);}
-  .btn.fill-val4:hover{background:#dbeafe;}
   .row-add-group{display:flex;align-items:center;gap:0;border:1px solid var(--line);
     border-radius:8px;background:#fff;overflow:hidden;}
-  #addRowCount{width:50px;border:none;outline:none;font-size:12.5px;font-family:inherit;
+  #addRowCount{width:66px;border:none;outline:none;font-size:12.5px;font-family:inherit;
     padding:6px 10px;color:var(--text);background:transparent;}
   .row-add-hint{font-size:.79rem;color:var(--muted);line-height:1.4;}
   .divider{width:1px;height:18px;background:var(--line);margin:0 2px;}
@@ -126,7 +134,6 @@
   thead th.col-fn{color:var(--col-fn);}
   thead th.col-val2{color:var(--col-val2);}
   thead th.col-val3{color:var(--col-val3);}
-  thead th.col-val4{color:var(--col-val4);}
 
   tbody td{border:1px solid var(--line);padding:0;vertical-align:middle;font-size:13px;background:#fff;}
   tbody td.idx{text-align:center;color:var(--muted);background:#f8fafc;font-size:12px;}
@@ -234,6 +241,20 @@
     padding:6px 8px;font-size:12px;font-family:inherit;color:var(--text);box-sizing:border-box;}
   input.lookup-cell:focus{background:#eef2ff;box-shadow:inset 0 0 0 1.5px #4338ca;}
 
+  .pivot-section{margin-top:20px;padding-top:16px;border-top:1.5px dashed #c7d2fe;}
+  .pivot-title{font-size:.95rem;font-weight:800;color:#4338ca;margin:0 0 8px;}
+  .pivot-field{display:flex;align-items:center;gap:6px;font-size:.79rem;color:var(--text);}
+  .pivot-field-label{color:var(--muted);white-space:nowrap;}
+  .pivot-field select{border:1px solid var(--line);border-radius:6px;padding:5px 8px;
+    font-size:.79rem;font-family:inherit;color:var(--text);background:#fff;}
+  table.pivot-result-table{width:100%;border-collapse:collapse;font-size:12px;}
+  table.pivot-result-table th{background:#4338ca;color:#fff;font-weight:700;padding:6px 10px;
+    text-align:left;white-space:nowrap;position:sticky;top:0;}
+  table.pivot-result-table td{padding:6px 10px;border-bottom:1px solid var(--line);
+    border-right:1px solid var(--line);white-space:nowrap;}
+  table.pivot-result-table td:first-child{font-weight:700;background:#f8fafc;}
+  table.pivot-result-table tr:last-child td{background:#eef2ff;font-weight:700;}
+
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);
     background:#0f172a;color:#fff;font-size:13px;padding:10px 18px;border-radius:8px;
     opacity:0;pointer-events:none;transition:opacity .18s, transform .18s;z-index:999;
@@ -296,8 +317,7 @@
         <span style="flex:1"></span>
         <button class="btn fill-val2" id="fillVal1All">① 입력값2 채우기</button>
         <button class="btn fill-val3" id="fillVal2All">② 입력값3 채우기</button>
-        <button class="btn fill-val4" id="fillVal3All">③ 입력값4 채우기</button>
-        <button class="btn" id="copyResults">④ 결과값 복사</button>
+        <button class="btn" id="copyResults">③ 결과값 복사</button>
         <button class="btn success" id="downloadXlsx">엑셀로 다운로드</button>
       </div>
       <div class="table-scroll">
@@ -305,7 +325,7 @@
         <colgroup>
           <col class="idx"><col class="cat"><col class="fn">
           <col class="val-main">
-          <col class="val-sub" id="colVal2"><col class="val-sub" id="colVal3"><col class="val-sub" id="colVal4">
+          <col class="val-sub" id="colVal2"><col class="val-sub" id="colVal3">
           <col class="result"><col class="del">
         </colgroup>
         <thead>
@@ -316,8 +336,7 @@
             <th class="val">③ 입력값1</th>
             <th class="val col-val2" id="thVal2">④ 입력값2</th>
             <th class="val col-val3" id="thVal3">⑤ 입력값3</th>
-            <th class="val col-val4" id="thVal4">⑥ 입력값4</th>
-            <th class="result">⑦ 결과값</th>
+            <th class="result">⑥ 결과값</th>
             <th></th>
           </tr>
         </thead>
@@ -331,7 +350,7 @@
         <h2>사용 가능한 기능</h2>
         <div id="fnList"></div>
         <div class="side-note">
-          입력값이 2개 이상 필요한 기능은 입력값2~입력값4 열까지 함께 입력해야 결과가 계산됩니다. 필요한 입력값 개수는 기능마다 달라서, 그보다 많은 열은 화면에 표시되지 않습니다.
+          입력값이 2개 이상 필요한 기능은 입력값2·입력값3 열까지 함께 입력해야 결과가 계산됩니다. 필요한 입력값 개수는 기능마다 달라서, 그보다 많은 열은 화면에 표시되지 않습니다.
         </div>
       </div>
     </div>
@@ -340,10 +359,12 @@
 
   <div class="card lookup-card" id="lookupCard" style="display:none;">
     <div class="lookup-header">
-      <h2>🔍 조회 참조표 (XLOOKUP·COUNTIF·SUMIF 공용 데이터)<span class="split-mode-badge">📌 화면 분할 모드</span></h2>
-      <button type="button" class="btn-goto-top" onclick="window.scrollTo({top:0, behavior:'smooth'});">↑ 초기화면으로 이동</button>
+      <h2>🔍 조회 참조표 <span id="lookupTitleSuffix">(XLOOKUP·COUNTIF·SUMIF 공용 데이터)</span><span class="split-mode-badge">📌 화면 분할 모드</span></h2>
+      <button type="button" class="btn-goto-top" onclick="window.scrollTo({top:0, behavior:'smooth'});">↑ TOP 화면으로 이동</button>
+      <button type="button" class="btn-goto-top" onclick="restoreInitialScreen();">🔄 초기화면으로 복구</button>
+      <button type="button" class="btn-goto-top btn-toggle-split" id="btnToggleSplitBottom" onclick="toggleSplitMode();">🔳 화면 분할모드 켜기</button>
     </div>
-    <p class="lookup-desc">
+    <p class="lookup-desc" id="lookupXlookupDesc">
       아래 표의 <strong>아무 칸이나 클릭한 뒤 엑셀에서 복사한 범위를 그대로 붙여넣으세요(Ctrl+V)</strong>. 클릭한 칸을 시작점으로 오른쪽·아래쪽으로 값이 자동으로 채워지고, 각 열 맨 위에는 <strong>1열, 2열, 3열…</strong> 번호가 표시됩니다. <strong>XLOOKUP은 VLOOKUP과 달리 기준이 되는 값이 있는 열(기준 열)이 꼭 맨 왼쪽일 필요가 없으므로</strong>, 필요한 열들을 포함해서 자유롭게 범위를 복사하면 됩니다. 예를 들어 [사번, 이름, 부서]를 복사했다면 이름으로 사번을 찾고 싶을 때는 기준 열 번호에 2, 결과 열 번호에 1을 넣으면 됩니다. 이 참조표는 "조회(XLOOKUP)" 구분의 5개 기능(XLOOKUP, COUNTIF, COUNTIFS, SUMIF, SUMIFS)이 함께 사용합니다.<br>
       · <strong>XLOOKUP</strong>: 기준 열 번호로 지정한 열에서 기준이 되는 값과 일치하는 행을 찾아, 결과 열 번호로 지정한 열 값을 반환(기준 열이 어디에 있든 상관없음)<br>
       · <strong>COUNTIF/COUNTIFS</strong>: 조건에 맞는 행의 개수를 셈<br>
@@ -363,6 +384,30 @@
         <thead><tr id="lookupGridHeadRow"></tr></thead>
         <tbody id="lookupGridBody"></tbody>
       </table>
+    </div>
+
+    <div class="pivot-section">
+      <h2 class="pivot-title">📊 피벗 테이블</h2>
+      <p class="lookup-desc">
+        위 참조표 데이터를 기준으로 그룹별 집계표를 만듭니다. <strong>행 그룹(표의 세로쪽 구분)</strong>에 고른 열의 값마다 표의 세로 방향으로 한 행씩 묶고, <strong>열 그룹(표의 가로쪽 구분)</strong>을 고르면 그 값마다 표의 가로 방향으로 열을 나눠 교차표를 만듭니다(고르지 않으면 값 하나만 계산). <strong>값 열</strong>은 합계·평균을 낼 대상 열이고, 개수만 셀 때는 아무 열이나 선택해도 됩니다.
+      </p>
+      <div class="lookup-actions">
+        <span class="pivot-field"><span class="pivot-field-label">행 그룹(표의 세로쪽 구분)</span><select id="pivotRowCol"></select></span>
+        <span class="pivot-field"><span class="pivot-field-label">열 그룹(표의 가로쪽 구분, 선택)</span><select id="pivotColCol"><option value="">없음</option></select></span>
+        <span class="pivot-field"><span class="pivot-field-label">값 열</span><select id="pivotValCol"></select></span>
+        <span class="pivot-field"><span class="pivot-field-label">집계 방식</span>
+          <select id="pivotAgg">
+            <option value="count">개수</option>
+            <option value="sum">합계</option>
+            <option value="avg">평균</option>
+          </select>
+        </span>
+        <button class="btn primary" id="pivotRun">피벗 테이블 만들기</button>
+        <button class="btn" id="pivotCopyResults">결과값 복사</button>
+      </div>
+      <div class="lookup-preview-wrap" id="pivotResultWrap" style="display:none;">
+        <table class="lookup-grid pivot-result-table" id="pivotResultTable"></table>
+      </div>
     </div>
   </div>
 </div>
@@ -385,25 +430,42 @@
 function parseDateFlexible(s){
   s = (s||"").trim();
   if(!s) throw "값을 입력하세요";
-  const digits = s.replace(/[^0-9]/g,"");
   let y,m,d;
-  if(digits.length === 8){
-    y = digits.slice(0,4); m = digits.slice(4,6); d = digits.slice(6,8);
-  } else if(digits.length === 6){
-    const yy = parseInt(digits.slice(0,2),10);
-    y = String(yy < 50 ? 2000+yy : 1900+yy); m = digits.slice(2,4); d = digits.slice(4,6);
+  if(/^[0-9]+$/.test(s)){
+    // 순수 숫자만 있는 경우: 8자리(YYYYMMDD) 또는 6자리(YYMMDD)
+    if(s.length === 8){
+      y = s.slice(0,4); m = s.slice(4,6); d = s.slice(6,8);
+    } else if(s.length === 6){
+      const yy = parseInt(s.slice(0,2),10);
+      y = String(yy < 50 ? 2000+yy : 1900+yy); m = s.slice(2,4); d = s.slice(4,6);
+    } else {
+      throw "날짜 형식 인식 불가";
+    }
   } else {
+    // 점·슬래시·하이픈·한글·공백 등 구분자가 있는 경우: 자릿수(2자리/4자리 연도, 앞자리 0 유무, 끝에 점 유무)에 상관없이 인식
     const parts = s.split(/[.\-\/년월일\s]+/).filter(Boolean);
     if(parts.length < 3) throw "날짜 형식 인식 불가";
-    [y,m,d] = parts;
-    if(y.length !== 4) throw "연도는 4자리로 입력";
+    [y, m, d] = parts;
+    if(y.length === 2){
+      const yy = parseInt(y,10);
+      y = String(yy < 50 ? 2000+yy : 1900+yy);
+    } else if(y.length !== 4){
+      throw "연도는 2자리 또는 4자리로 입력하세요";
+    }
   }
   m = String(parseInt(m,10)).padStart(2,"0");
   d = String(parseInt(d,10)).padStart(2,"0");
   const dt = new Date(`${y}-${m}-${d}T00:00:00`);
   if(isNaN(dt.getTime())) throw "유효하지 않은 날짜";
+  // 13월, 32일처럼 실제로 없는 날짜가 자동 보정되어 엉뚱한 날짜로 계산되는 것을 방지
+  if(dt.getFullYear() !== parseInt(y,10) || dt.getMonth()+1 !== parseInt(m,10) || dt.getDate() !== parseInt(d,10)){
+    throw "유효하지 않은 날짜";
+  }
   return {y:parseInt(y,10), m:parseInt(m,10), d:parseInt(d,10), dt};
 }
+
+// MID+FIND에서 시작 구분자만 넣으면 자동으로 짝이 되는 종료 구분자를 찾을 때 사용
+const BRACKET_PAIRS = {"(":")", "[":"]", "{":"}", "<":">", "（":"）", "「":"」", "『":"』"};
 
 function commify(numStr){
   const neg = numStr.startsWith("-");
@@ -519,25 +581,27 @@ const CATEGORIES = [
         if(isNaN(start)||start<1) throw "시작위치는 1 이상 숫자";
         if(isNaN(len)||len<1) throw "글자수는 1 이상 숫자";
         return s.slice(start-1, start-1+len); } },
-    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(LEFT+FIND)", example:"성왕로32번길 12 (부여읍) / (공백) / 1 → 성왕로32번길<br>성왕로32번길 12 (부여읍) / (공백) / 9 → 성왕로32번길 12",
-      note:"도로명 길이가 주소마다 다르면 고정 글자수로 자르는 단순 LEFT로는 안 되지만, FIND로 괄호 위치를 찾아 자르면 길이에 상관없이 정확합니다. '찾기 시작 위치'는 구분자가 여러 번 나올 때 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째로 나오는 구분자를 찾고, 첫 구분자 뒤의 위치를 넣으면 두 번째(그 다음) 구분자를 찾습니다. 예: 공백이 2번 있는 주소에서 시작 위치 1은 첫 공백에서, 9는 두 번째 공백에서 자릅니다.", params:["값","구분자","찾기 시작 위치"],
-      fn:([s,sep,startPosStr])=>{ if(!sep) throw "구분자를 입력하세요";
+    { key:"구분자왼쪽추출", label:"구분자 왼쪽 추출(LEFT+FIND)", example:"부여읍 성왕로328번길(백제아파트) / (공백) / 1 → 부여읍<br>남면 남성로 34-12 / (공백) / 1 → 남면",
+      note:"도로명 길이가 주소마다 다르면 고정 글자수로 자르는 단순 LEFT로는 안 되지만, FIND로 찾는 값의 위치를 찾아 자르면 길이에 상관없이 정확합니다. 찾는 값에는 보통 괄호 '(' 나 빈칸을 넣으면 되는데, 빈칸(공백)을 찾는 값으로 넣을 때는 스페이스바를 1번 눌러 칸 하나만 입력하면 됩니다. '찾기 시작 위치'는 찾는 값이 여러 번 나올 때 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째로 나오는 값을 찾고, 첫 번째 값 뒤의 위치를 넣으면 두 번째(그 다음) 값을 찾습니다. 예: 두 주소 모두 '읍/면 이름 + 빈칸'으로 시작하지만 읍/면 이름 길이가 달라(부여읍=3자, 남면=2자) 빈칸이 나오는 위치도 다릅니다 — 그래도 FIND가 빈칸 위치를 알아서 찾아주므로 둘 다 정확히 읍/면 이름만 잘립니다.<br><br>💡 FIND 계열 함수의 핵심: 값 하나하나를 눈으로 보고 자르는 게 아니라, 여러 행에 공통으로 들어있는 기호(괄호, 쉼표, 빈칸 등)를 '찾는 값'으로 잡는 것이 중요합니다. 그 기호만 데이터마다 일정하게 나온다면, 앞뒤 글자 수가 제각각이어도 항상 정확한 위치에서 잘립니다.<br><br>📌 LEFT+FIND · RIGHT+FIND · MID+FIND 비교 — <strong>LEFT+FIND</strong>: 찾는 값 앞쪽 전부, <strong>RIGHT+FIND</strong>: 찾는 값 뒤쪽 전부(끝까지), <strong>MID+FIND</strong>: 두 표시 '사이'만. 예) '부여군 (총괄) 생활복지과 (담당)'에서 '(총괄)'까지 포함해 뒤쪽 전부가 필요하면 RIGHT+FIND, '총괄'만 필요하면 MID+FIND를 씁니다.", params:["값","찾는 값","찾기 시작 위치"],
+      fn:([s,sep,startPosStr])=>{ if(!sep) throw "찾는 값을 입력하세요";
         const startPos=parseInt(startPosStr,10); if(isNaN(startPos)||startPos<1) throw "찾기 시작 위치는 1 이상 숫자로 입력하세요";
         const idx=s.indexOf(sep, startPos-1);
-        if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(0,idx); } },
+        if(idx===-1) throw "찾는 값을 찾을 수 없습니다"; return s.slice(0,idx); } },
     { key:"구분자오른쪽추출", label:"구분자 오른쪽 추출(RIGHT+FIND)", example:"성왕로32번길 12 (부여읍) / (공백) / 1 → 12 (부여읍)<br>성왕로32번길 12 (부여읍) / (공백) / 9 → (부여읍)",
-      note:"단순 RIGHT는 뒤에서 몇 글자를 가져올지 미리 알아야 하는데, 뒤에 오는 내용의 길이가 매번 다르면 몇 글자인지 알 수 없어 아예 쓸 수 없습니다. RIGHT+FIND는 구분자 위치만 찾으면 되므로 뒷부분 길이가 제각각이어도 정확히 잘립니다. '찾기 시작 위치'는 구분자가 여러 번 나올 때 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째 구분자 기준, 첫 구분자 뒤의 위치를 넣으면 두 번째 구분자를 기준으로 자릅니다.", params:["값","구분자","찾기 시작 위치"],
-      fn:([s,sep,startPosStr])=>{ if(!sep) throw "구분자를 입력하세요";
+      note:"단순 RIGHT는 뒤에서 몇 글자를 가져올지 미리 알아야 하는데, 뒤에 오는 내용의 길이가 매번 다르면 몇 글자인지 알 수 없어 아예 쓸 수 없습니다. RIGHT+FIND는 찾는 값의 위치만 찾으면 되므로 뒷부분 길이가 제각각이어도 정확히 잘립니다. 찾는 값에는 보통 괄호 '(' 나 빈칸을 넣으면 되는데, 빈칸(공백)을 찾는 값으로 넣을 때는 스페이스바를 1번 눌러 칸 하나만 입력하면 됩니다. '찾기 시작 위치'는 찾는 값이 여러 번 나올 때 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째 값 기준, 첫 번째 값 뒤의 위치를 넣으면 두 번째 값을 기준으로 자릅니다.<br><br>💡 FIND 계열 함수의 핵심: 값 하나하나를 눈으로 보고 자르는 게 아니라, 여러 행에 공통으로 들어있는 기호(괄호, 쉼표, 빈칸 등)를 '찾는 값'으로 잡는 것이 중요합니다. 그 기호만 데이터마다 일정하게 나온다면, 앞뒤 글자 수가 제각각이어도 항상 정확한 위치에서 잘립니다.<br><br>📌 LEFT+FIND · RIGHT+FIND · MID+FIND 비교 — <strong>LEFT+FIND</strong>: 찾는 값 앞쪽 전부, <strong>RIGHT+FIND</strong>: 찾는 값 뒤쪽 전부(끝까지), <strong>MID+FIND</strong>: 두 표시 '사이'만. 예) '부여군 (총괄) 생활복지과 (담당)'에서 '(총괄)'까지 포함해 뒤쪽 전부가 필요하면 RIGHT+FIND(찾는 값=총괄 앞 빈칸), '총괄'만 필요하면 MID+FIND를 씁니다.", params:["값","찾는 값","찾기 시작 위치"],
+      fn:([s,sep,startPosStr])=>{ if(!sep) throw "찾는 값을 입력하세요";
         const startPos=parseInt(startPosStr,10); if(isNaN(startPos)||startPos<1) throw "찾기 시작 위치는 1 이상 숫자로 입력하세요";
         const idx=s.indexOf(sep, startPos-1);
-        if(idx===-1) throw "구분자를 찾을 수 없습니다"; return s.slice(idx+sep.length); } },
-    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"부여군 (총괄) 생활복지과 (담당) / ( / ) / 1 → 총괄<br>부여군 (총괄) 생활복지과 (담당) / ( / ) / 9 → 담당",
-      note:"단순 MID는 시작 위치와 '가져올 글자수'를 미리 알아야 하는데, 대괄호 안 부서명처럼 추출할 내용 자체의 길이를 모르면 애초에 글자수를 정할 수 없습니다. MID+FIND는 여는·닫는 괄호 위치만 찾으면 되므로 안의 내용이 몇 글자든 정확히 추출됩니다. '찾기 시작 위치'는 시작 구분자가 여러 번 나올 때(예: 괄호가 두 쌍 있을 때) 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째 괄호 쌍, 첫 괄호 뒤의 위치를 넣으면 두 번째 괄호 쌍의 내용을 가져옵니다.", params:["값","시작구분자","종료구분자","찾기 시작 위치"],
-      fn:([s,start,end,startPosStr])=>{ if(!start||!end) throw "시작·종료 구분자를 모두 입력하세요";
+        if(idx===-1) throw "찾는 값을 찾을 수 없습니다"; return s.slice(idx+sep.length); } },
+    { key:"두구분자사이추출", label:"두 구분자 사이 추출(MID+FIND)", example:"부여군 (총괄) 생활복지과 (담당) / ( / 1 → 총괄<br>부여군 (총괄) 생활복지과 (담당) / ( / 9 → 담당",
+      note:"단순 MID는 시작 위치와 '가져올 글자수'를 미리 알아야 하는데, 괄호 안 부서명처럼 추출할 내용 자체의 길이를 모르면 애초에 글자수를 정할 수 없습니다. MID+FIND는 찾는 값의 위치만 찾으면 되므로 안의 내용이 몇 글자든 정확히 추출됩니다. '찾는 값'에 여는 괄호( ( [ { 등)를 넣으면 그에 맞는 닫는 괄호( ) ] } 등)를 자동으로 찾아 그 사이 내용을 뽑아줍니다. 괄호가 아닌 빈칸이나 다른 기호를 넣으면 같은 표시가 다시 나오는 곳까지(예: 빈칸과 빈칸 사이) 뽑아주고, 짝이 되는 표시를 찾지 못하면 안전하게 최대 50자까지만 추출합니다. 빈칸(공백)을 찾는 값으로 넣을 때는 스페이스바를 1번 눌러 칸 하나만 입력하면 됩니다. '찾기 시작 위치'는 찾는 값이 여러 번 나올 때(예: 괄호가 두 쌍 있을 때) 몇 번째 글자부터 찾을지 지정합니다 — 기본값 1이면 첫 번째 괄호 쌍, 첫 괄호 뒤의 위치를 넣으면 두 번째 괄호 쌍의 내용을 가져옵니다.<br><br>💡 FIND 계열 함수의 핵심: 값 하나하나를 눈으로 보고 자르는 게 아니라, 여러 행에 공통으로 들어있는 기호(괄호, 쉼표, 빈칸 등)를 '찾는 값'으로 잡는 것이 중요합니다. 그 기호만 데이터마다 일정하게 나온다면, 앞뒤 글자 수가 제각각이어도 항상 정확한 위치에서 잘립니다.<br><br>📌 LEFT+FIND · RIGHT+FIND · MID+FIND 비교 — <strong>LEFT+FIND</strong>: 찾는 값 앞쪽 전부, <strong>RIGHT+FIND</strong>: 찾는 값 뒤쪽 전부(끝까지), <strong>MID+FIND</strong>: 두 표시 '사이'만. 예) '부여군 (총괄) 생활복지과 (담당)'에서 '총괄'만 필요하면 MID+FIND, '(총괄)'까지 포함해 뒤쪽 전부가 필요하면 RIGHT+FIND를 씁니다.", params:["값","찾는 값","찾기 시작 위치"],
+      fn:([s,startDelim,startPosStr])=>{ if(!startDelim) throw "찾는 값을 입력하세요";
         const startPos=parseInt(startPosStr,10); if(isNaN(startPos)||startPos<1) throw "찾기 시작 위치는 1 이상 숫자로 입력하세요";
-        const i1=s.indexOf(start, startPos-1); if(i1===-1) throw "시작 구분자를 찾을 수 없습니다";
-        const from=i1+start.length; const i2=s.indexOf(end, from);
-        if(i2===-1) throw "종료 구분자를 찾을 수 없습니다";
+        const i1=s.indexOf(startDelim, startPos-1); if(i1===-1) throw "찾는 값을 찾을 수 없습니다";
+        const from=i1+startDelim.length;
+        const endDelim = BRACKET_PAIRS[startDelim] !== undefined ? BRACKET_PAIRS[startDelim] : startDelim;
+        let i2=s.indexOf(endDelim, from);
+        if(i2===-1) i2=Math.min(from+50, s.length);
         return s.slice(from, i2); } },
     { key:"특정문자치환", label:"특정 문자 치환", example:"부여군청 / 군청 / 군 → 부여군", note:"찾는 문자가 값 안에 여러 번 나와도 전부 한 번에 바뀝니다. 예를 들어 '부여군청'에서 '군'을 지우면 '부여청'이 됩니다.", params:["값","찾을문자","바꿀문자"],
       fn:([s,find,rep])=>{ if(!find) throw "찾을 문자를 입력하세요"; return s.split(find).join(rep||""); } },
@@ -547,11 +611,19 @@ const CATEGORIES = [
       fn:([v])=> v.trim().replace(/\s+/g," ") },
     { key:"문자열길이", label:"문자열 길이 세기", example:"부여군 → 3", note:"글자 수 제한이 있는 서식(예: 20자 이내)에 맞는지 확인할 때 유용합니다.", params:["값"],
       fn:([v])=> String(v.length) },
+    { key:"텍스트나누기", label:"텍스트 나누기", example:"부여군,농업정책과,주무관 / , / 2 → 농업정책과", note:"값을 지정한 구분자로 쪼갠 뒤, 몇 번째 조각을 가져올지 정합니다. 엑셀 '텍스트 나누기' 기능과 같은 역할이지만, 여러 셀로 퍼뜨리지 않고 원하는 한 조각만 바로 뽑아옵니다. 예를 들어 '부여군,농업정책과,주무관'처럼 쉼표로 나열된 값에서 2번째 조각(농업정책과)만 뽑을 수 있습니다.", params:["값","구분자","가져올 번째"],
+      fn:([s,sep,idxStr])=>{ if(!sep) throw "구분자를 입력하세요";
+        const idx=parseInt(idxStr,10); if(isNaN(idx)||idx<1) throw "가져올 번째는 1 이상 숫자로 입력하세요";
+        const parts=s.split(sep);
+        if(idx>parts.length) throw `구분자로 나눈 값이 ${parts.length}개뿐입니다`;
+        return parts[idx-1]; } },
+    { key:"텍스트합치기", label:"텍스트 합치기", example:"부여군 / 농업정책과 / - → 부여군-농업정책과", note:"두 값을 구분자로 이어붙입니다. 엑셀 CONCATENATE(또는 &)와 같은 역할입니다. 성과 이름, 부서명과 담당업무처럼 서로 다른 열에 나뉘어 있는 값을 한 칸으로 합칠 때 씁니다. 값1·값2는 각 행마다 다른 값을 복사해서 붙여넣으면 되고, 구분자가 매번 같다면(예: 항상 '-') 1행에만 입력한 뒤 채우기 버튼으로 나머지 행에 채우면 편리합니다. 구분자 없이 그냥 붙이고 싶어도 이 칸은 비워둘 수 없으니, 표시가 필요 없다면 나중에 '특정 문자 치환'으로 구분자를 지운 값으로 한 번 더 바꿔주면 됩니다.", params:["값1","값2","구분자"],
+      fn:([a,b,sep])=> a + sep + b },
   ]},
   { name:"날짜 / 시간", functions:[
-    { key:"날짜형식변환", label:"날짜 형식 변환 (YYYY-MM-DD)", example:"20240305 → 2024-03-05", note:"8자리 숫자(20240305)나 점·슬래시로 구분된 날짜를 표준 형식(YYYY-MM-DD)으로 한 번에 통일할 때 씁니다.", params:["날짜"],
+    { key:"날짜형식변환", label:"날짜 형식 변환 (YYYY-MM-DD)", example:"20240305 → 2024-03-05", note:"8자리(20240305)·6자리(240305) 숫자는 물론, 2015.5.2 / 2015.05.20. / 15.5.2. / 15-05-02 처럼 점·하이픈·슬래시로 구분되고 연도가 2자리든 4자리든, 앞자리 0이 있든 없든, 끝에 점이 붙어 있든 상관없이 인식해서 표준 형식(YYYY-MM-DD)으로 한 번에 통일해줍니다.", params:["날짜"],
       fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; } },
-    { key:"날짜형식변환한글", label:"날짜 형식 변환 (한글)", example:"20240305 → 2024년 03월 05일", note:"공문서에 자주 쓰이는 'YYYY년 MM월 DD일' 표기로 바꿔줍니다.", params:["날짜"],
+    { key:"날짜형식변환한글", label:"날짜 형식 변환 (한글)", example:"20240305 → 2024년 03월 05일", note:"공문서에 자주 쓰이는 'YYYY년 MM월 DD일' 표기로 바꿔줍니다. 8자리·6자리 숫자, 2자리·4자리 연도, 점·하이픈·슬래시 구분, 앞자리 0이나 끝에 점이 있고 없고에 상관없이 다양한 원본 형식을 인식합니다.", params:["날짜"],
       fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}년 ${String(m).padStart(2,"0")}월 ${String(d).padStart(2,"0")}일`; } },
     { key:"날짜형식변환행정", label:"날짜 형식 변환 (행정문서용, 2005. 6. 20.)", example:"20050620 → 2005. 6. 20.", note:"관공서 문서에서 흔히 쓰는 'YYYY. M. D.' 표기(0 없이 마침표로 구분)로 바꿔줍니다.", params:["날짜"],
       fn:([v])=>{ const {y,m,d}=parseDateFlexible(v); return `${y}. ${m}. ${d}.`; } },
@@ -630,6 +702,8 @@ const CATEGORIES = [
         return commify(digits>0 ? result.toFixed(digits) : String(result)); } },
     { key:"일원단위절사", label:"1원 단위 절사(소수점 절사)", example:"1234567.67 → 1,234,567", note:"소수점 이하 원 단위를 그냥 잘라냅니다(반올림 아님). 정산 시 원 단위 절사가 원칙인 경우에 씁니다.", params:["값"],
       fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return commify(String(Math.floor(num))); } },
+    { key:"십원단위절사", label:"10원 단위 미만 절사", example:"1234567.67 → 1,234,560", note:"10원 미만(1의 자리, 소수점 이하 포함)을 모두 잘라냅니다(반올림 아님). 정산 시 10원 단위로 끊어서 처리해야 하는 경우에 씁니다.", params:["값"],
+      fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return commify(String(Math.floor(num/10)*10)); } },
   ]},
   { name:"개인정보 마스킹", functions:[
     { key:"이름마스킹", label:"이름 가운데 마스킹", example:"홍길동 / * → 홍*동", note:"이름 가운데 글자만 가려 개인정보를 보호하면서도 누구인지는 알아볼 수 있게 합니다. 공개 문서·게시물에 이름을 실을 때 씁니다.", params:["값","마스킹문자"],
@@ -751,6 +825,13 @@ const CATEGORIES = [
         });
         return commify(String(sum));
       } },
+    { key:"피벗테이블", label:"피벗 테이블 만들기",
+      example:"참조표 데이터를 기준으로 그룹별 집계표(개수·합계·평균)를 만듭니다",
+      note:"이 기능을 선택하면 화면이 참조표·피벗 테이블 위주로 정리됩니다. 아래에 나타나는 참조표에 데이터를 붙여넣은 뒤, 그 아래 '📊 피벗 테이블' 섹션에서 행 그룹 열·열 그룹 열(선택)·값 열·집계 방식을 고르고 '피벗 테이블 만들기' 버튼을 누르면 교차 집계표가 만들어집니다. 이 표에서는 입력값이 따로 필요 없습니다.",
+      usesLookupTable:true,
+      isPivotMode:true,
+      params:[],
+      fn:()=> "↓ 아래 참조표에 데이터를 넣고 피벗 테이블에서 설정하세요" },
   ]},
 ];
 const MAX_PARAMS = Math.max(...CATEGORIES.flatMap(c=>c.functions.map(f=>f.params.length))); // 3
@@ -792,6 +873,7 @@ function showFnDetail(fnDef, catName){
       <div class="fn-detail-lookup-cta">
         📋 자세한 사용법은 화면 맨 아래 참조표 카드 설명을 참고하세요.
         <button type="button" class="btn-goto-lookup" onclick="document.getElementById('lookupCard').scrollIntoView({behavior:'smooth', block:'start'});">참조표로 이동 ↓</button>
+        <button type="button" class="btn-goto-lookup btn-toggle-split" id="btnToggleSplit" onclick="toggleSplitMode();">${document.body.classList.contains('split-active') ? '🔲 화면 분할모드 해제' : '🔳 화면 분할모드 켜기'}</button>
       </div>` : ""}
     <div class="fn-detail-example">${fnDef.example}</div>
     <ul class="fn-detail-params">${paramItems}</ul>
@@ -1080,7 +1162,6 @@ function fillValueAllFromFirst(colIdx){
 }
 document.getElementById("fillVal1All").addEventListener("click", ()=> fillValueAllFromFirst(1));
 document.getElementById("fillVal2All").addEventListener("click", ()=> fillValueAllFromFirst(2));
-document.getElementById("fillVal3All").addEventListener("click", ()=> fillValueAllFromFirst(3));
 
 // ---------- 토스트 ----------
 let toastTimer = null;
@@ -1148,21 +1229,21 @@ document.getElementById("clearAll").addEventListener("click", ()=>{
   if(confirm("모든 행을 삭제할까요?")){ grid.innerHTML=""; rowCount=0; addRow(); }
 });
 document.getElementById("downloadXlsx").addEventListener("click", ()=>{
-  const rows = [["기능구분","세부기능","입력값1","입력값2","입력값3","입력값4","결과값"]];
+  const rows = [["기능구분","세부기능","입력값1","입력값2","입력값3","결과값"]];
   rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
     const fnSel = tr.querySelector(".fnSel");
     const catName = catSel.value !== "" ? CATEGORIES[catSel.value].name : "";
     const fnName = (catSel.value !== "" && fnSel.value !== "") ? CATEGORIES[catSel.value].functions[fnSel.value].label : "";
     const pvals = [...tr.querySelectorAll(".pval")].map(i=>i.value);
-    rows.push([catName, fnName, pvals[0]||"", pvals[1]||"", pvals[2]||"", pvals[3]||"", tr.querySelector(".fresult").value]);
+    rows.push([catName, fnName, pvals[0]||"", pvals[1]||"", pvals[2]||"", tr.querySelector(".fresult").value]);
   });
   if(typeof XLSX === "undefined"){
     alert("엑셀 다운로드 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.");
     return;
   }
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"] = [{wch:12},{wch:22},{wch:16},{wch:12},{wch:12},{wch:12},{wch:22}];
+  ws["!cols"] = [{wch:12},{wch:22},{wch:16},{wch:12},{wch:12},{wch:22}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "함수변환결과");
   XLSX.writeFile(wb, "함수변환결과.xlsx");
@@ -1257,6 +1338,7 @@ function syncLookupTableFromGrid(){
   lookupTable = table;
   refreshLookupColumnLabels();
   refreshLookupHeaderRowStyle();
+  populatePivotSelectors();
   const status = document.getElementById("lookupStatus");
   const dataCount = getLookupDataRows().length;
   status.textContent = lookupTable.length
@@ -1275,6 +1357,123 @@ function refreshLookupColumnLabels(){
     th.textContent = name ? `${i+1}열 (${name})` : `${i+1}열`;
   });
 }
+
+// ---------- 피벗 테이블 ----------
+function pivotColumnLabel(c){
+  const headerRow = lookupHasHeader ? lookupTable[0] : null;
+  const name = headerRow && headerRow[c-1] ? headerRow[c-1].trim() : "";
+  return name ? `${c}열 (${name})` : `${c}열`;
+}
+
+function populatePivotSelectors(){
+  const rowSel = document.getElementById("pivotRowCol");
+  const colSel = document.getElementById("pivotColCol");
+  const valSel = document.getElementById("pivotValCol");
+  if(!rowSel || !colSel || !valSel) return;
+  const prevRow = rowSel.value, prevCol = colSel.value, prevVal = valSel.value;
+  const opts = [];
+  for(let c=1; c<=lookupCols; c++) opts.push(`<option value="${c}">${pivotColumnLabel(c)}</option>`);
+  rowSel.innerHTML = opts.join("");
+  valSel.innerHTML = opts.join("");
+  colSel.innerHTML = `<option value="">없음</option>` + opts.join("");
+  if(prevRow && [...rowSel.options].some(o=>o.value===prevRow)) rowSel.value = prevRow;
+  if(prevVal && [...valSel.options].some(o=>o.value===prevVal)) valSel.value = prevVal;
+  if(prevCol && [...colSel.options].some(o=>o.value===prevCol)) colSel.value = prevCol;
+}
+
+function runPivotTable(){
+  const rows = getLookupDataRows();
+  const wrap = document.getElementById("pivotResultWrap");
+  const table = document.getElementById("pivotResultTable");
+  if(rows.length === 0){ alert("먼저 위 참조표에 데이터를 붙여넣으세요."); return; }
+  const rowCol = parseInt(document.getElementById("pivotRowCol").value, 10);
+  const colColRaw = document.getElementById("pivotColCol").value;
+  const colCol = colColRaw ? parseInt(colColRaw, 10) : null;
+  const valCol = parseInt(document.getElementById("pivotValCol").value, 10);
+  const agg = document.getElementById("pivotAgg").value;
+
+  const cellData = {}; // rowKey -> colKey -> {sum, count}
+  const rowKeys = [], colKeys = [];
+  const seenRow = new Set(), seenCol = new Set();
+
+  rows.forEach(r=>{
+    const rk = (r[rowCol-1] || "").trim() || "(빈값)";
+    const ck = colCol ? ((r[colCol-1] || "").trim() || "(빈값)") : "값";
+    if(!seenRow.has(rk)){ seenRow.add(rk); rowKeys.push(rk); }
+    if(!seenCol.has(ck)){ seenCol.add(ck); colKeys.push(ck); }
+    if(!cellData[rk]) cellData[rk] = {};
+    if(!cellData[rk][ck]) cellData[rk][ck] = {sum:0, count:0};
+    const num = Number(String(r[valCol-1] || "0").replace(/,/g,""));
+    cellData[rk][ck].count++;
+    if(!isNaN(num)) cellData[rk][ck].sum += num;
+  });
+  rowKeys.sort((a,b)=>a.localeCompare(b,"ko"));
+  colKeys.sort((a,b)=>a.localeCompare(b,"ko"));
+
+  function aggValue(cell){
+    if(!cell) return 0;
+    if(agg === "count") return cell.count;
+    if(agg === "sum") return cell.sum;
+    return cell.count ? cell.sum / cell.count : 0;
+  }
+  function fmt(v){ return agg === "avg" ? commify(v.toFixed(1)) : commify(String(Math.round(v))); }
+
+  let html = `<thead><tr><th>${pivotColumnLabel(rowCol)}</th>`;
+  colKeys.forEach(ck => html += `<th>${ck}</th>`);
+  html += `<th>합계</th></tr></thead><tbody>`;
+
+  const colTotals = {}; colKeys.forEach(ck => colTotals[ck] = {sum:0, count:0});
+  let grandSum = 0, grandCount = 0;
+
+  rowKeys.forEach(rk=>{
+    html += `<tr><td>${rk}</td>`;
+    let rowSum = 0, rowCount = 0;
+    colKeys.forEach(ck=>{
+      const cell = (cellData[rk] && cellData[rk][ck]) || {sum:0, count:0};
+      html += `<td>${fmt(aggValue(cell))}</td>`;
+      rowSum += cell.sum; rowCount += cell.count;
+      colTotals[ck].sum += cell.sum; colTotals[ck].count += cell.count;
+    });
+    html += `<td>${fmt(aggValue({sum:rowSum, count:rowCount}))}</td></tr>`;
+    grandSum += rowSum; grandCount += rowCount;
+  });
+
+  html += `<tr><td>합계</td>`;
+  colKeys.forEach(ck => html += `<td>${fmt(aggValue(colTotals[ck]))}</td>`);
+  html += `<td>${fmt(aggValue({sum:grandSum, count:grandCount}))}</td></tr>`;
+  html += `</tbody>`;
+
+  table.innerHTML = html;
+  wrap.style.display = "";
+}
+
+document.getElementById("pivotRun").addEventListener("click", runPivotTable);
+
+async function copyPivotResults(){
+  const table = document.getElementById("pivotResultTable");
+  if(!table || !table.querySelector("tbody")){ alert("먼저 '피벗 테이블 만들기' 버튼으로 표를 만들어주세요."); return; }
+  const rows = [...table.querySelectorAll("tr")];
+  const text = rows.map(tr => [...tr.children].map(cell => cell.textContent).join("\t")).join("\n");
+  if(!text.trim()){ alert("복사할 피벗 테이블 결과가 없습니다."); return; }
+  try{
+    if(!navigator.clipboard) throw new Error("clipboard API 없음");
+    await navigator.clipboard.writeText(text);
+    showToast("피벗 테이블 결과가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+  }catch(err){
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
+    document.body.appendChild(ta); ta.select();
+    let execOk = false;
+    try{ execOk = document.execCommand("copy"); }catch(e2){ execOk = false; }
+    document.body.removeChild(ta);
+    if(execOk){
+      showToast("피벗 테이블 결과가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+    } else {
+      showCopyFallbackModal(text);
+    }
+  }
+}
+document.getElementById("pivotCopyResults").addEventListener("click", copyPivotResults);
 
 // 제목행 체크 시 그리드 1행을 시각적으로 구분해서 보여줌
 function refreshLookupHeaderRowStyle(){
@@ -1315,23 +1514,71 @@ function recomputeAllRows(){
   });
 }
 
+// 화면 분할모드 수동 오버라이드: null=자동판단, true=강제 켜기, false=강제 끄기
+let splitModeManualOverride = null;
+
 function updateLookupCardVisibility(){
-  const anyVlookupSelected = rowsInGrid().some(tr=>{
+  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블"];
+  let anyVlookupSelected = false;
+  let anyPivotSelected = false;
+  rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
     const fnSel = tr.querySelector(".fnSel");
-    if(catSel.value === "" || fnSel.value === "") return false;
+    if(catSel.value === "" || fnSel.value === "") return;
     const fnDef = CATEGORIES[catSel.value].functions[fnSel.value];
-    const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스"];
-    return fnDef && lookupFnKeys.includes(fnDef.key);
+    if(!fnDef) return;
+    if(lookupFnKeys.includes(fnDef.key)) anyVlookupSelected = true;
+    if(fnDef.key === "피벗테이블") anyPivotSelected = true;
   });
   document.getElementById("lookupCard").style.display = anyVlookupSelected ? "" : "none";
-  // 참조표 활용 함수가 선택되어 있고 참조표에 실제 데이터가 있을 때만 화면을 상/하로 나눠서
-  // 위쪽 목록은 짧게(내부 스크롤), 아래쪽엔 참조표가 항상 보이도록 함
-  document.body.classList.toggle("split-active", anyVlookupSelected && lookupTable.length > 0);
+  // 조회 함수 선택이 아예 없어지면 수동 오버라이드도 초기화(다음에 선택할 때 다시 자동판단)
+  if(!anyVlookupSelected) splitModeManualOverride = null;
+  // 참조표 활용 함수가 선택되어 있고(참조표에 데이터가 있거나 피벗 테이블 선택 시) 화면을 상/하로 나눠서
+  // 위쪽 목록은 짧게(내부 스크롤), 아래쪽엔 참조표가 항상 보이도록 함(수동으로 껐다 켰다도 가능)
+  const autoActive = anyVlookupSelected && (lookupTable.length > 0 || anyPivotSelected);
+  const finalActive = splitModeManualOverride !== null ? splitModeManualOverride : autoActive;
+  document.body.classList.toggle("split-active", finalActive);
+  // 피벗 테이블 선택 시엔 더 과감하게 정리: 위 목록 1행만, 사이드바도 숨김
+  document.body.classList.toggle("pivot-active", finalActive && anyPivotSelected);
+  updateSplitToggleButtonLabel();
+}
+
+function toggleSplitMode(){
+  const isActive = document.body.classList.contains("split-active");
+  splitModeManualOverride = !isActive;
+  document.body.classList.toggle("split-active", splitModeManualOverride);
+  updateSplitToggleButtonLabel();
+}
+
+// 조회(XLOOKUP 계열·피벗 테이블) 함수가 선택된 행만 구분을 비워서 초기 상태로 되돌리고,
+// 화면 분할·피벗 모드도 해제한 뒤 맨 위로 이동. 다른 행의 값은 그대로 둠.
+function restoreInitialScreen(){
+  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블"];
+  rowsInGrid().forEach(tr=>{
+    const catSel = tr.querySelector(".catSel");
+    const fnSel = tr.querySelector(".fnSel");
+    if(catSel.value === "" || fnSel.value === "") return;
+    const fnDef = CATEGORIES[catSel.value].functions[fnSel.value];
+    if(fnDef && lookupFnKeys.includes(fnDef.key)){
+      catSel.value = "";
+      catSel.dispatchEvent(new Event("change"));
+    }
+  });
+  splitModeManualOverride = null;
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function updateSplitToggleButtonLabel(){
+  const isActive = document.body.classList.contains("split-active");
+  const label = isActive ? "🔲 화면 분할모드 해제" : "🔳 화면 분할모드 켜기";
+  ["btnToggleSplit","btnToggleSplitBottom"].forEach(id=>{
+    const btn = document.getElementById(id);
+    if(btn) btn.textContent = label;
+  });
 }
 
 // 표에서 현재 선택된 함수들 중 가장 많은 입력값을 요구하는 개수까지만
-// 입력값2~입력값4 열을 화면에 표시하고, 나머지는 아예 숨김
+// 입력값2·입력값3 열을 화면에 표시하고, 나머지는 아예 숨김
 function updateValueColumnVisibility(){
   let maxNeeded = 1;
   const rows = rowsInGrid();
