@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0; --text:#334155; --title:#0f172a; --muted:#57616f;
@@ -1083,7 +1084,7 @@ const CATEGORIES = [
       fn:()=> "↓ 아래 참조표에 데이터를 넣고 '통합된 셀 해제하기' 버튼을 누르세요" },
     { key:"매크로사진일괄입력", label:"사진파일 일괄 입력",
       example:"폴더를 선택하면 사진마다 [파일명 행 + 사진 삽입] 다음에 빈 행 하나를 두고, 이걸 사진 개수만큼 아래로 반복해서 넣습니다",
-      note:"아래 '📷 사진파일 일괄 입력' 섹션에서 '폴더에서 사진 넣기' 버튼을 누르고 사진이 들어있는 폴더를 선택하세요. 버튼 앞의 '파일 이름'(확장자 제외/포함)과 '사진 셀모양'(채우지 않기=작은 썸네일 / 셀에 채우기=칸 전체를 채우는 큰 이미지)을 먼저 골라두면 그 설정대로 들어갑니다. 폴더 안의 이미지 파일들을 파일명 순서대로, 1열에 파일명·2열에 사진을 넣은 행을 만들고 그 다음에 빈 행을 하나 끼워 넣는 방식으로 참조표 맨 아래부터 쭉 채워줍니다. '결과를 엑셀 파일로 다운로드' 버튼을 누르면 사진이 실제로 보이는 엑셀 파일(.xls)로 저장됩니다(열 때 '파일 형식이 다릅니다' 경고가 뜨면 '예'를 누르면 됩니다). 사진대지·증빙자료 정리처럼 사진을 순서대로 문서화할 때 유용합니다.",
+      note:"아래 '📷 사진파일 일괄 입력' 섹션에서 '폴더에서 사진 넣기' 버튼을 누르고 사진이 들어있는 폴더를 선택하세요. 버튼 앞의 '파일 이름'(확장자 제외/포함)과 '사진 셀모양'(채우지 않기=작은 썸네일 / 셀에 채우기=칸 전체를 채우는 큰 이미지)을 먼저 골라두면 그 설정대로 들어갑니다. 폴더 안의 이미지 파일들을 파일명 순서대로, 1열에 파일명·2열에 사진을 넣은 행을 만들고 그 다음에 빈 행을 하나 끼워 넣는 방식으로 참조표 맨 아래부터 쭉 채워줍니다. '결과를 엑셀 파일로 다운로드' 버튼을 누르면 사진이 셀 안에 실제로 삽입된 정식 엑셀 파일(.xlsx)로 저장됩니다(엑셀에서 열자마자 바로 사진이 보이며, '연결된 이미지' 오류 없이 파일 자체에 포함되어 있습니다). 사진대지·증빙자료 정리처럼 사진을 순서대로 문서화할 때 유용합니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
       fn:()=> "↓ 아래 참조표 아래쪽의 '사진파일 일괄 입력'에서 폴더를 선택하세요" },
   ]},
@@ -2118,42 +2119,119 @@ document.getElementById("photoFolderInput").addEventListener("change", async (e)
 // 사진 목록을 실제 사진이 보이는 엑셀 파일로 다운로드
 // (SheetJS 무료버전은 셀에 이미지를 직접 넣는 기능이 없어서, 엑셀이 열 수 있는
 //  HTML 표 형식으로 만들어 .xls로 저장하는 방식을 씁니다 — 열 때 "형식이 다릅니다" 경고가 뜨면 '예'를 누르면 됩니다.)
-function downloadPhotoResultsAsExcel(){
+// xlsx 내부에 실제 이미지를 삽입(엑셀이 "링크된 이미지" 오류 없이 바로 표시)
+async function buildXlsxWithImages(aoa, imageDataByRow){
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = aoa[0].map((_, ci)=> imageDataByRow.some(info=>info && info.colIdx===ci) ? {wch:20} : {wch:16});
+  ws["!rows"] = aoa.map((_, ri)=> imageDataByRow[ri] ? {hpt:60} : undefined);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "사진목록");
+  const arrayBuffer = XLSX.write(wb, { type:"array", bookType:"xlsx" });
+  const zip = await JSZip.loadAsync(arrayBuffer);
+
+  const drawingRels = [];
+  const drawingShapes = [];
+  let imgCounter = 1;
+
+  imageDataByRow.forEach((info, rowIdx)=>{
+    if(!info) return;
+    const { colIdx, dataUrl } = info;
+    const commaIdx = dataUrl.indexOf(",");
+    const base64 = dataUrl.slice(commaIdx+1);
+    const ext = dataUrl.includes("image/png") ? "png" : "jpeg";
+    zip.file(`xl/media/image${imgCounter}.${ext}`, base64, { base64:true });
+    const rId = `rId${imgCounter}`;
+    drawingRels.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.${ext}"/>`);
+    const widthEmu = 950000, heightEmu = 700000;
+    drawingShapes.push(`<xdr:oneCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${widthEmu}" cy="${heightEmu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${widthEmu}" cy="${heightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`);
+    imgCounter++;
+  });
+
+  if(drawingShapes.length === 0){
+    return new Blob([arrayBuffer], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  }
+
+  const drawingXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${drawingShapes.join("")}</xdr:wsDr>`;
+  zip.file("xl/drawings/drawing1.xml", drawingXml);
+  zip.file("xl/drawings/_rels/drawing1.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${drawingRels.join("")}</Relationships>`);
+
+  const sheetPath = "xl/worksheets/sheet1.xml";
+  let sheetXml = await zip.file(sheetPath).async("string");
+  if(!sheetXml.includes("xmlns:r=")){
+    sheetXml = sheetXml.replace("<worksheet ", '<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+  }
+  sheetXml = sheetXml.replace("</worksheet>", '<drawing r:id="rIdDrawing1"/></worksheet>');
+  zip.file(sheetPath, sheetXml);
+
+  const relsPath = "xl/worksheets/_rels/sheet1.xml.rels";
+  const relsFile = zip.file(relsPath);
+  let relsXml;
+  if(relsFile){
+    relsXml = await relsFile.async("string");
+    relsXml = relsXml.replace("</Relationships>", `<Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`);
+  } else {
+    relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`;
+  }
+  zip.file(relsPath, relsXml);
+
+  const ctPath = "[Content_Types].xml";
+  let ctXml = await zip.file(ctPath).async("string");
+  let additions = "";
+  if(!ctXml.includes('Extension="png"')) additions += '<Default Extension="png" ContentType="image/png"/>';
+  if(!ctXml.includes('Extension="jpeg"')) additions += '<Default Extension="jpeg" ContentType="image/jpeg"/>';
+  if(!ctXml.includes("drawing1.xml")) additions += '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>';
+  if(additions) ctXml = ctXml.replace("</Types>", additions + "</Types>");
+  zip.file(ctPath, ctXml);
+
+  return await zip.generateAsync({ type:"blob", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+async function downloadPhotoResultsAsExcel(){
+  if(typeof JSZip === "undefined"){ alert("엑셀 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요."); return; }
   if(lookupTable.length === 0){ alert("먼저 사진을 넣어주세요."); return; }
   const body = document.getElementById("lookupGridBody");
   const rows = [...body.children];
-  let tableRows = "";
+  const aoa = [];
+  const imageDataByRow = [];
+  let hasAnyContent = false;
   rows.forEach(tr=>{
     const cells = [...tr.children];
     const isRowEmpty = cells.every(td=>{ const inp = td.querySelector("input"); return !inp || inp.value.trim()===""; });
     if(isRowEmpty) return;
-    let rowHtml = "<tr>";
-    cells.forEach(td=>{
+    hasAnyContent = true;
+    const rowVals = [];
+    let imgInfo = null;
+    cells.forEach((td, colIdx)=>{
       const img = td.querySelector("img.lookup-photo-thumb");
       if(img){
-        rowHtml += `<td><img src="${img.src}" width="140"></td>`;
+        rowVals.push("");
+        imgInfo = { colIdx, dataUrl: img.src };
       } else {
         const inp = td.querySelector("input");
-        rowHtml += `<td>${inp ? (inp.value || "") : ""}</td>`;
+        rowVals.push(inp ? (inp.value || "") : "");
       }
     });
-    rowHtml += "</tr>";
-    tableRows += rowHtml;
+    aoa.push(rowVals);
+    imageDataByRow.push(imgInfo);
   });
-  if(!tableRows){ alert("다운로드할 내용이 없습니다."); return; }
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-    <head><meta charset="UTF-8"></head>
-    <body><table border="1">${tableRows}</table></body></html>`;
-  const blob = new Blob(["\ufeff"+html], { type:"application/vnd.ms-excel" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "사진목록.xls";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast("사진 목록을 엑셀 파일로 다운로드했습니다.");
+  if(!hasAnyContent){ alert("다운로드할 내용이 없습니다."); return; }
+
+  showToast("엑셀 파일을 생성하는 중입니다...");
+  try{
+    const blob = await buildXlsxWithImages(aoa, imageDataByRow);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "사진목록.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("사진이 포함된 엑셀 파일을 다운로드했습니다.");
+  }catch(err){
+    console.error("엑셀 생성 오류:", err);
+    alert("엑셀 파일 생성 중 오류가 발생했습니다. 사진 개수를 줄여서 다시 시도해보세요.");
+  }
 }
 document.getElementById("photoExportExcel").addEventListener("click", downloadPhotoResultsAsExcel);
 
