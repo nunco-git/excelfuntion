@@ -317,7 +317,7 @@
         <button class="btn primary" id="addRow">+ 행 추가</button>
         <span class="row-add-hint">① 구분 ② 세부 기능에서 원하는 함수 선택 → 입력값1에 변환할 값이나 기준값을 입력(복사·붙여넣기 가능), 우측 상단 설명문을 보면서 입력값2·3에 적당한 값을 입력하면서 원하는 결과값 찾기</span>
         <span style="flex:1"></span>
-        <span class="text-join-group">
+        <span class="text-join-group" id="textJoinGroup" style="display:none;">
           <span class="text-join-label">텍스트 합치기 연결글자</span>
           <input type="text" id="textJoin1" class="text-join-input" placeholder="연결글자1" title="텍스트 합치기: 값1과 값2 사이에 넣을 글자">
           <input type="text" id="textJoin2" class="text-join-input" placeholder="연결글자2" title="텍스트 합치기: 값2와 값3 사이에 넣을 글자">
@@ -1467,6 +1467,7 @@ document.getElementById("clearAll").addEventListener("click", ()=>{
   document.body.classList.remove("split-active","pivot-active","macro-active","show-pivot-section");
   updateLookupCardVisibility();
   updateValueColumnVisibility();
+  updateResultColumnVisibility();
 });
 // ---------- XLOOKUP 참조표 (실제 편집 가능한 그리드) ----------
 let lookupCols = 0;
@@ -1950,14 +1951,33 @@ function updateSplitToggleButtonLabel(){
 // 입력값2·입력값3 열을 화면에 표시하고, 나머지는 아예 숨김
 // 텍스트 나누기 등 multiResult 함수의 실제 조각 개수에 맞춰 결과값2~8 열을 표시/숨김
 function updateResultColumnVisibility(){
-  let maxExtra = 0;
   const rows = rowsInGrid();
+  let anySplitSelected = false;
+  let anyJoinSelected = false;
   rows.forEach(tr=>{
-    const extras = tr.querySelectorAll(".fresult-extra");
-    for(let i=extras.length-1;i>=0;i--){
-      if(extras[i].value !== ""){ maxExtra = Math.max(maxExtra, i+1); break; }
-    }
+    const catSel = tr.querySelector(".catSel");
+    const fnSel = tr.querySelector(".fnSel");
+    if(catSel.value === "" || fnSel.value === "") return;
+    const fnDef = CATEGORIES[catSel.value].functions[fnSel.value];
+    if(!fnDef) return;
+    if(fnDef.key === "텍스트나누기") anySplitSelected = true;
+    if(fnDef.key === "텍스트합치기") anyJoinSelected = true;
   });
+
+  // 텍스트 합치기 연결글자 입력칸: 텍스트 합치기 함수를 선택했을 때만 표시
+  const joinGroup = document.getElementById("textJoinGroup");
+  if(joinGroup) joinGroup.style.display = anyJoinSelected ? "" : "none";
+
+  // 텍스트 나누기 추가 결과열: 텍스트 나누기 함수를 선택했을 때만, 실제 조각 개수만큼 표시
+  let maxExtra = 0;
+  if(anySplitSelected){
+    rows.forEach(tr=>{
+      const extras = tr.querySelectorAll(".fresult-extra");
+      for(let i=extras.length-1;i>=0;i--){
+        if(extras[i].value !== ""){ maxExtra = Math.max(maxExtra, i+1); break; }
+      }
+    });
+  }
   for(let i=0;i<MAX_RESULT_EXTRA;i++){
     const show = i < maxExtra;
     const disp = show ? "" : "none";
