@@ -6,6 +6,7 @@
 <title>스마트 엑셀함수 변환기</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0; --text:#334155; --title:#0f172a; --muted:#57616f;
@@ -13,7 +14,7 @@
     --green-bg:#f0fdf4; --green-border:#bbf7d0; --green-text:#166534; --green-strong:#15803d;
     --green-btn:#10b981;
     --detail-bg:#fdf4ff; --detail-border:#f0abfc; --detail-text:#a21caf; --detail-strong:#86198f;
-    --col-cat:#0891b2; --col-fn:#7c3aed; --col-val2:#e11d48; --col-val3:#0d9488;
+    --col-cat:#0891b2; --col-fn:#7c3aed; --col-val2:#e11d48; --col-val3:#0d9488; --col-val4:#ca8a04;
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
@@ -43,6 +44,7 @@
   body.pivot-active #lookupCard{max-height:64vh;}
   body.pivot-active #lookupTitleSuffix{display:none;}
   body.pivot-active #lookupXlookupDesc{display:none;}
+  body.macro-active #pivotSection{display:none;}
 
   .top-section{display:flex;gap:14px;align-items:stretch;margin:0 0 20px;flex-wrap:wrap;}
 
@@ -123,6 +125,7 @@
   thead th.col-fn{color:var(--col-fn);}
   thead th.col-val2{color:var(--col-val2);}
   thead th.col-val3{color:var(--col-val3);}
+  thead th.col-val4{color:var(--col-val4);}
 
   tbody td{border:1px solid var(--line);padding:0;vertical-align:middle;font-size:13px;background:#fff;}
   tbody td.idx{text-align:center;color:var(--muted);background:#f8fafc;font-size:12px;}
@@ -311,7 +314,7 @@
         <colgroup>
           <col class="idx"><col class="cat"><col class="fn">
           <col class="val-main">
-          <col class="val-sub" id="colVal2"><col class="val-sub" id="colVal3">
+          <col class="val-sub" id="colVal2"><col class="val-sub" id="colVal3"><col class="val-sub" id="colVal4">
           <col class="result"><col class="del">
         </colgroup>
         <thead>
@@ -322,7 +325,8 @@
             <th class="val">③ 입력값1</th>
             <th class="val col-val2" id="thVal2">④ 입력값2</th>
             <th class="val col-val3" id="thVal3">⑤ 입력값3</th>
-            <th class="result">⑥ 결과값</th>
+            <th class="val col-val4" id="thVal4">⑥ 입력값4</th>
+            <th class="result">⑦ 결과값</th>
             <th></th>
           </tr>
         </thead>
@@ -372,7 +376,7 @@
       </table>
     </div>
 
-    <div class="pivot-section">
+    <div class="pivot-section" id="pivotSection">
       <h2 class="pivot-title">📊 피벗 테이블</h2>
       <p class="lookup-desc">
         위 참조표 데이터를 기준으로 그룹별 집계표를 만듭니다. <strong>행 그룹(표의 세로쪽 구분)</strong>에 고른 열의 값마다 표의 세로 방향으로 한 행씩 묶고, <strong>열 그룹(표의 가로쪽 구분)</strong>을 고르면 그 값마다 표의 가로 방향으로 열을 나눠 교차표를 만듭니다(고르지 않으면 값 하나만 계산). <strong>값 열</strong>은 합계·평균을 낼 대상 열이고, 개수만 셀 때는 아무 열이나 선택해도 됩니다.
@@ -393,6 +397,16 @@
       </div>
       <div class="lookup-preview-wrap" id="pivotResultWrap" style="display:none;">
         <table class="lookup-grid pivot-result-table" id="pivotResultTable"></table>
+      </div>
+    </div>
+
+    <div class="pivot-section">
+      <h2 class="pivot-title">📄 열 기준 시트 나누기</h2>
+      <div class="lookup-actions">
+        <span class="pivot-field"><span class="pivot-field-label">기준 열</span><select id="splitSheetCol"></select></span>
+        <button class="btn primary" id="splitSheetRun">복수 시트 엑셀 파일(1개) 만들기</button>
+        <button class="btn" id="splitFilesRun">복수 엑셀 파일 만들기</button>
+        <button class="btn" id="splitPrintRun">시트별로 나눠서 일괄 인쇄/PDF 저장</button>
       </div>
     </div>
   </div>
@@ -452,6 +466,37 @@ function parseDateFlexible(s){
 
 // MID+FIND에서 시작 구분자만 넣으면 자동으로 짝이 되는 종료 구분자를 찾을 때 사용
 const BRACKET_PAIRS = {"(":")", "[":"]", "{":"}", "<":">", "（":"）", "「":"」", "『":"』"};
+
+// 사용자가 입력한 예시 문자열의 형식(구분자, 자릿수, 한글 여부 등)을 그대로 따라 날짜를 포맷
+function formatDateLikeExample(y, m, d, example){
+  const ex = (example||"").trim();
+  if(/년/.test(ex) && /월/.test(ex) && /일/.test(ex)){
+    const yMatch = ex.match(/(\d+)\s*년/);
+    const mMatch = ex.match(/년\s*(\d+)\s*월/);
+    const dMatch = ex.match(/월\s*(\d+)\s*일/);
+    const yLen = yMatch ? yMatch[1].length : 4;
+    const mLen = mMatch ? mMatch[1].length : 2;
+    const dLen = dMatch ? dMatch[1].length : 2;
+    const yStr = yLen <= 2 ? String(y).slice(-2) : String(y);
+    const mStr = mLen >= 2 ? String(m).padStart(2,"0") : String(m);
+    const dStr = dLen >= 2 ? String(d).padStart(2,"0") : String(d);
+    return `${yStr}년 ${mStr}월 ${dStr}일`;
+  }
+  const sepMatch = ex.match(/[.\-\/]/);
+  const sep = sepMatch ? sepMatch[0] : "-";
+  const hasTrailingSep = new RegExp(`\\${sep}\\s*$`).test(ex);
+  const parts = ex.split(/[.\-\/]/).filter(Boolean);
+  if(parts.length < 3){
+    return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  }
+  const yLen = parts[0].length, mLen = parts[1].length, dLen = parts[2].length;
+  const yStr = yLen <= 2 ? String(y).slice(-2) : String(y);
+  const mStr = mLen >= 2 ? String(m).padStart(2,"0") : String(m);
+  const dStr = dLen >= 2 ? String(d).padStart(2,"0") : String(d);
+  let result = `${yStr}${sep}${mStr}${sep}${dStr}`;
+  if(hasTrailingSep) result += sep;
+  return result;
+}
 
 function commify(numStr){
   const neg = numStr.startsWith("-");
@@ -603,8 +648,10 @@ const CATEGORIES = [
         const parts=s.split(sep);
         if(idx>parts.length) throw `구분자로 나눈 값이 ${parts.length}개뿐입니다`;
         return parts[idx-1]; } },
-    { key:"텍스트합치기", label:"텍스트 합치기", example:"부여군 / 농업정책과 / - → 부여군-농업정책과", note:"두 값을 구분자로 이어붙입니다. 엑셀 CONCATENATE(또는 &)와 같은 역할입니다. 성과 이름, 부서명과 담당업무처럼 서로 다른 열에 나뉘어 있는 값을 한 칸으로 합칠 때 씁니다. 값1·값2는 각 행마다 다른 값을 복사해서 붙여넣으면 되고, 구분자가 매번 같다면(예: 항상 '-') 1행에만 입력하면 아래 행까지 자동으로 채워집니다(행마다 수정도 가능). 구분자 없이 그냥 붙이고 싶어도 이 칸은 비워둘 수 없으니, 표시가 필요 없다면 나중에 '특정 문자 치환'으로 구분자를 지운 값으로 한 번 더 바꿔주면 됩니다.", params:["값1","값2","구분자"],
+    { key:"텍스트합치기", label:"텍스트 합치기(2개)", example:"부여군 / 농업정책과 / - → 부여군-농업정책과", note:"두 값을 구분자로 이어붙입니다. 엑셀 CONCATENATE(또는 &)와 같은 역할입니다. 성과 이름, 부서명과 담당업무처럼 서로 다른 열에 나뉘어 있는 값을 한 칸으로 합칠 때 씁니다. 값1·값2는 각 행마다 다른 값을 복사해서 붙여넣으면 되고, 구분자가 매번 같다면(예: 항상 '-') 1행에만 입력하면 아래 행까지 자동으로 채워집니다(행마다 수정도 가능). 구분자 없이 그냥 붙이고 싶어도 이 칸은 비워둘 수 없으니, 표시가 필요 없다면 나중에 '특정 문자 치환'으로 구분자를 지운 값으로 한 번 더 바꿔주면 됩니다. 3개 이상 합쳐야 하면 '텍스트 합치기(3개)'를 쓰세요.", params:["값1","값2","구분자"],
       fn:([a,b,sep])=> a + sep + b },
+    { key:"텍스트합치기다중", label:"텍스트 합치기(3개)", example:"부여군 / 농업정책과 / 주무관 / - → 부여군-농업정책과-주무관", note:"세 값을 같은 구분자로 이어붙입니다. 부서명·직급·이름처럼 여러 열에 나뉜 값을 한 번에 합칠 때 씁니다. 값1~값3은 각 행마다 다른 값을 복사해서 붙여넣고, 구분자가 매번 같다면 1행에만 입력하면 아래까지 자동으로 채워집니다. 4개 이상 합쳐야 한다면, 이 함수로 3개를 먼저 합친 결과값을 다시 다른 행의 값1로 복사해 넣고 나머지 값과 한 번 더 합치면 됩니다(체이닝).", params:["값1","값2","값3","구분자"],
+      fn:([a,b,c,sep])=> a + sep + b + sep + c },
   ]},
   { name:"날짜 / 시간", functions:[
     { key:"날짜형식변환", label:"날짜 형식 변환 (YYYY-MM-DD)", example:"20240305 → 2024-03-05", note:"8자리(20240305)·6자리(240305) 숫자는 물론, 2015.5.2 / 2015.05.20. / 15.5.2. / 15-05-02 처럼 점·하이픈·슬래시로 구분되고 연도가 2자리든 4자리든, 앞자리 0이 있든 없든, 끝에 점이 붙어 있든 상관없이 인식해서 표준 형식(YYYY-MM-DD)으로 한 번에 통일해줍니다.", params:["날짜"],
@@ -690,6 +737,139 @@ const CATEGORIES = [
       fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return commify(String(Math.floor(num))); } },
     { key:"십원단위절사", label:"10원 단위 미만 절사", example:"1234567.67 → 1,234,560", note:"10원 미만(1의 자리, 소수점 이하 포함)을 모두 잘라냅니다(반올림 아님). 정산 시 10원 단위로 끊어서 처리해야 하는 경우에 씁니다.", params:["값"],
       fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return commify(String(Math.floor(num/10)*10)); } },
+  ]},
+  { name:"랭킹, 최대, 최소", functions:[
+    { key:"최대값구하기", label:"최대값 구하기", example:"85 / 92 / 78 → 92", note:"입력한 값(최대 3개) 중 가장 큰 값을 찾습니다. 엑셀 MAX 함수와 같은 역할입니다. 값이 2개뿐이면 나머지 칸에 하이픈(-)만 입력하세요(계산에서 제외됩니다).", params:["값1","값2","값3"],
+      fn:([a,b,c])=>{ const nums=[a,b,c].filter(v=>v.trim()!==""&&v.trim()!=="-").map(v=>Number(v.replace(/,/g,"")));
+        if(nums.some(isNaN)) throw "숫자로 입력하거나 사용하지 않는 값은 -로 입력하세요";
+        if(nums.length===0) throw "값을 1개 이상 입력하세요";
+        return commify(String(Math.max(...nums))); } },
+    { key:"최소값구하기", label:"최소값 구하기", example:"85 / 92 / 78 → 78", note:"입력한 값(최대 3개) 중 가장 작은 값을 찾습니다. 엑셀 MIN 함수와 같은 역할입니다. 값이 2개뿐이면 나머지 칸에 하이픈(-)만 입력하세요(계산에서 제외됩니다).", params:["값1","값2","값3"],
+      fn:([a,b,c])=>{ const nums=[a,b,c].filter(v=>v.trim()!==""&&v.trim()!=="-").map(v=>Number(v.replace(/,/g,"")));
+        if(nums.some(isNaN)) throw "숫자로 입력하거나 사용하지 않는 값은 -로 입력하세요";
+        if(nums.length===0) throw "값을 1개 이상 입력하세요";
+        return commify(String(Math.min(...nums))); } },
+    { key:"랭킹오름차순", label:"랭킹(오름차순)", example:"찾을 값 60 / 값 열 번호 2 → 참조표 2열 값 중 60의 등수(작은 값이 1등)", note:"아래 'XLOOKUP 참조표'의 지정한 열에서, 찾을 값보다 작은 값이 몇 개인지 세어 등수를 매깁니다(값이 작을수록 1등에 가까움 — 예: 처리 소요일수, 오차 등 '작을수록 좋은' 지표에 적합). 같은 값이 여러 개면 같은 등수를 공유합니다(공동 순위).", usesLookupTable:true, params:["찾을 값","값 열 번호"],
+      fn:([val, colStr])=>{ const col=resolveColumnRef(colStr); const rows=getLookupDataRows();
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const t=Number(String(val).replace(/,/g,"")); if(isNaN(t)) throw "찾을 값은 숫자로 입력하세요";
+        let better=0;
+        rows.forEach(r=>{ const v=Number(String(r[col-1]||"").replace(/,/g,"")); if(!isNaN(v)&&v<t) better++; });
+        return `${better+1}등`; } },
+    { key:"랭킹내림차순", label:"랭킹(내림차순)", example:"찾을 값 90 / 값 열 번호 2 → 참조표 2열 값 중 90의 등수(큰 값이 1등)", note:"아래 'XLOOKUP 참조표'의 지정한 열에서, 찾을 값보다 큰 값이 몇 개인지 세어 등수를 매깁니다(값이 클수록 1등 — 시험점수·매출·실적처럼 '클수록 좋은' 지표에 적합). 같은 값이 여러 개면 같은 등수를 공유합니다(공동 순위).", usesLookupTable:true, params:["찾을 값","값 열 번호"],
+      fn:([val, colStr])=>{ const col=resolveColumnRef(colStr); const rows=getLookupDataRows();
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const t=Number(String(val).replace(/,/g,"")); if(isNaN(t)) throw "찾을 값은 숫자로 입력하세요";
+        let better=0;
+        rows.forEach(r=>{ const v=Number(String(r[col-1]||"").replace(/,/g,"")); if(!isNaN(v)&&v>t) better++; });
+        return `${better+1}등`; } },
+    { key:"랭킹상위등수", label:"랭킹(상위 OO등)", example:"찾을 값 90 / 값 열 번호 2 / 상위 몇 등까지 3 → 1등 (상위 3등 안에 듦)", note:"내림차순(값이 클수록 1등) 기준으로 등수를 매긴 뒤, 그 등수가 '상위 몇 등까지'(입력값3)보다 안쪽인지 판별합니다. 안에 들면 등수를, 벗어나면 'OO등 밖'을 반환합니다. 우수 대상자·시상 대상자처럼 상위 몇 명만 골라내야 할 때 유용합니다.", usesLookupTable:true, params:["찾을 값","값 열 번호","상위 몇 등까지"],
+      fn:([val, colStr, topNStr])=>{ const col=resolveColumnRef(colStr); const rows=getLookupDataRows();
+        const topN=parseInt(topNStr,10); if(isNaN(topN)||topN<1) throw "상위 몇 등까지는 1 이상 숫자로 입력하세요";
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const t=Number(String(val).replace(/,/g,"")); if(isNaN(t)) throw "찾을 값은 숫자로 입력하세요";
+        let better=0;
+        rows.forEach(r=>{ const v=Number(String(r[col-1]||"").replace(/,/g,"")); if(!isNaN(v)&&v>t) better++; });
+        const rank=better+1;
+        return rank<=topN ? `${rank}등 (상위 ${topN}등 안에 듦)` : `${topN}등 밖`; } },
+    { key:"다중랭킹", label:"다중랭킹", example:"찾을 값 1002 / 기준 열 번호 1 / 정렬 기준 목록 2:desc,3:asc → 2열 내림차순 우선, 같으면 3열 오름차순으로 정렬했을 때 1열이 1002인 행의 등수", note:"여러 열을 우선순위 순서대로 적용해 정렬한 뒤(1순위로 먼저 비교, 같으면 2순위로 비교…), 지정한 행(기준 열에서 찾을 값과 일치하는 행)이 몇 등인지 계산합니다. 정렬 기준 목록은 '열번호:asc' 또는 '열번호:desc'를 쉼표로 최대 4개까지 이어서 입력하세요(desc=값이 클수록 앞순위, asc=값이 작을수록 앞순위). 참조표 1행을 '제목행'으로 체크했다면 열 번호 대신 이름도 쓸 수 있습니다.", usesLookupTable:true, params:["찾을 값","기준 열 번호","정렬 기준 목록(예: 2:desc,3:asc)"],
+      fn:([val, keyColStr, criteriaStr])=>{ const keyCol=resolveColumnRef(keyColStr); const rows=getLookupDataRows();
+        if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
+        const parts=criteriaStr.split(",").map(s=>s.trim()).filter(Boolean);
+        if(parts.length===0) throw "정렬 기준을 1개 이상 입력하세요";
+        if(parts.length>4) throw "정렬 기준은 최대 4개까지 입력할 수 있습니다";
+        const criteria=parts.map(p=>{
+          const idx=p.indexOf(":"); if(idx===-1) throw `정렬 기준 형식이 올바르지 않습니다: "${p}" (예: 2:desc)`;
+          const col=resolveColumnRef(p.slice(0,idx).trim());
+          const dir=p.slice(idx+1).trim().toLowerCase();
+          if(dir!=="asc"&&dir!=="desc") throw "정렬 방향은 asc 또는 desc로 입력하세요";
+          return {col, dir};
+        });
+        const sorted=[...rows].sort((a,b)=>{
+          for(const c of criteria){
+            const av=Number(String(a[c.col-1]||"").replace(/,/g,"")), bv=Number(String(b[c.col-1]||"").replace(/,/g,""));
+            let cmp;
+            if(!isNaN(av)&&!isNaN(bv)) cmp=av-bv;
+            else cmp=String(a[c.col-1]||"").localeCompare(String(b[c.col-1]||""),"ko");
+            if(c.dir==="desc") cmp=-cmp;
+            if(cmp!==0) return cmp;
+          }
+          return 0;
+        });
+        const idx=sorted.findIndex(r=>(r[keyCol-1]||"").trim()===val.trim());
+        if(idx===-1) throw "찾을 값을 참조표에서 찾을 수 없습니다";
+        return `${idx+1}등`; } },
+  ]},
+  { name:"주민등록번호", functions:[
+    { key:"주민번호성별판별", label:"성별 판별", example:"9001011234567 → 남성", note:"주민등록번호 뒤 7자리의 첫 번째 숫자(성별 구분자)로 성별을 판별합니다. 1·3·5·7·9는 남성, 2·4·6·8·0은 여성입니다.", params:["주민등록번호"],
+      fn:([v])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "주민등록번호 13자리를 입력하세요";
+        const g=digits[6];
+        if("13579".includes(g)) return "남성";
+        if("24680".includes(g)) return "여성";
+        throw "성별을 판별할 수 없습니다"; } },
+    { key:"주민번호생년월일전환", label:"생년월일 전환", example:"9001011234567 / 2015-05-02 → 1990-01-01", note:"주민등록번호 앞 6자리(생년월일)와 성별 구분자(1900년대·2000년대·1800년대 구분)를 조합해 생년월일을 계산합니다. 입력값2에는 원하는 출력 형식을 '예시'로 입력하세요 — 예를 들어 '2015-05-02'라고 입력하면 결과도 그 모양(하이픈 구분, 4자리 연도, 2자리 월일)대로 나오고, '15.5.2'라고 입력하면 그 모양대로(2자리 연도, 자릿수 안 채움) 나옵니다. '2015년 5월 2일'처럼 한글 형식도 입력한 그대로 따라갑니다.", params:["주민등록번호","원하는 형식 예시(예: 2015-05-02)"],
+      fn:([v, example])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "주민등록번호 13자리를 입력하세요";
+        const yy=digits.slice(0,2), mm=digits.slice(2,4), dd=digits.slice(4,6), g=digits[6];
+        let century;
+        if("1256".includes(g)) century=1900;
+        else if("3478".includes(g)) century=2000;
+        else if(g==="9"||g==="0") century=1800;
+        else throw "유효하지 않은 주민등록번호입니다";
+        const year=century+parseInt(yy,10);
+        const dt=new Date(`${year}-${mm}-${dd}T00:00:00`);
+        if(isNaN(dt.getTime())) throw "유효하지 않은 생년월일입니다";
+        return formatDateLikeExample(year, parseInt(mm,10), parseInt(dd,10), example); } },
+    { key:"주민번호만나이계산", label:"만 나이 계산", example:"9001011234567 → 만 36세", note:"주민등록번호에서 생년월일을 추출해 오늘 날짜 기준 만 나이를 계산합니다. 생일이 지났는지 여부까지 반영됩니다.", params:["주민등록번호"],
+      fn:([v])=>{ const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "주민등록번호 13자리를 입력하세요";
+        const yy=digits.slice(0,2), mm=digits.slice(2,4), dd=digits.slice(4,6), g=digits[6];
+        let century;
+        if("1256".includes(g)) century=1900;
+        else if("3478".includes(g)) century=2000;
+        else if(g==="9"||g==="0") century=1800;
+        else throw "유효하지 않은 주민등록번호입니다";
+        const year=century+parseInt(yy,10);
+        const dt=new Date(`${year}-${mm}-${dd}T00:00:00`);
+        if(isNaN(dt.getTime())) throw "유효하지 않은 생년월일입니다";
+        const today=new Date();
+        let age=today.getFullYear()-dt.getFullYear();
+        const beforeBday=(today.getMonth()<dt.getMonth())||(today.getMonth()===dt.getMonth()&&today.getDate()<dt.getDate());
+        if(beforeBday) age--;
+        if(age<0) throw "미래 날짜입니다";
+        return `만 ${age}세`; } },
+    { key:"주민번호나이이상", label:"만 몇 세 이상 판별", example:"9001011234567 / 65 → 아니오 (만 36세)", note:"주민등록번호로 계산한 만 나이가 기준 나이 이상인지 예/아니오로 알려줍니다. 노인복지·경로우대 대상자 판별처럼 나이 기준 조건이 있는 명단 작업에 유용합니다.", params:["주민등록번호","기준 나이"],
+      fn:([v, ageStr])=>{ const targetAge=parseInt(ageStr,10); if(isNaN(targetAge)||targetAge<0) throw "기준 나이는 0 이상 숫자로 입력하세요";
+        const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "주민등록번호 13자리를 입력하세요";
+        const yy=digits.slice(0,2), mm=digits.slice(2,4), dd=digits.slice(4,6), g=digits[6];
+        let century;
+        if("1256".includes(g)) century=1900;
+        else if("3478".includes(g)) century=2000;
+        else if(g==="9"||g==="0") century=1800;
+        else throw "유효하지 않은 주민등록번호입니다";
+        const year=century+parseInt(yy,10);
+        const dt=new Date(`${year}-${mm}-${dd}T00:00:00`);
+        if(isNaN(dt.getTime())) throw "유효하지 않은 생년월일입니다";
+        const today=new Date();
+        let age=today.getFullYear()-dt.getFullYear();
+        const beforeBday=(today.getMonth()<dt.getMonth())||(today.getMonth()===dt.getMonth()&&today.getDate()<dt.getDate());
+        if(beforeBday) age--;
+        return `${age>=targetAge?"예":"아니오"} (만 ${age}세)`; } },
+    { key:"주민번호나이미만", label:"만 몇 세 미만 판별", example:"9001011234567 / 65 → 예 (만 36세)", note:"주민등록번호로 계산한 만 나이가 기준 나이 미만인지 예/아니오로 알려줍니다. 아동수당 등 나이 상한 기준으로 명단을 거를 때 유용합니다.", params:["주민등록번호","기준 나이"],
+      fn:([v, ageStr])=>{ const targetAge=parseInt(ageStr,10); if(isNaN(targetAge)||targetAge<0) throw "기준 나이는 0 이상 숫자로 입력하세요";
+        const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "주민등록번호 13자리를 입력하세요";
+        const yy=digits.slice(0,2), mm=digits.slice(2,4), dd=digits.slice(4,6), g=digits[6];
+        let century;
+        if("1256".includes(g)) century=1900;
+        else if("3478".includes(g)) century=2000;
+        else if(g==="9"||g==="0") century=1800;
+        else throw "유효하지 않은 주민등록번호입니다";
+        const year=century+parseInt(yy,10);
+        const dt=new Date(`${year}-${mm}-${dd}T00:00:00`);
+        if(isNaN(dt.getTime())) throw "유효하지 않은 생년월일입니다";
+        const today=new Date();
+        let age=today.getFullYear()-dt.getFullYear();
+        const beforeBday=(today.getMonth()<dt.getMonth())||(today.getMonth()===dt.getMonth()&&today.getDate()<dt.getDate());
+        if(beforeBday) age--;
+        return `${age<targetAge?"예":"아니오"} (만 ${age}세)`; } },
   ]},
   { name:"개인정보 마스킹", functions:[
     { key:"이름마스킹", label:"이름 가운데 마스킹", example:"홍길동 / * → 홍*동", note:"이름 가운데 글자만 가려 개인정보를 보호하면서도 누구인지는 알아볼 수 있게 합니다. 공개 문서·게시물에 이름을 실을 때 씁니다.", params:["값","마스킹문자"],
@@ -818,6 +998,23 @@ const CATEGORIES = [
       isPivotMode:true,
       params:[],
       fn:()=> "↓ 아래 참조표에 데이터를 넣고 피벗 테이블에서 설정하세요" },
+  ]},
+  { name:"매크로", functions:[
+    { key:"매크로시트만들기", label:"특정 열 기준 시트 만들기",
+      example:"참조표를 기준 열의 값별로 나눠, 값마다 시트가 하나씩 있는 엑셀 파일(.xlsx) 1개를 만듭니다",
+      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래에 나타나는 참조표에 데이터를 붙여넣은 뒤, '📄 열 기준 시트 나누기' 섹션에서 기준 열을 고르고 '복수 시트 엑셀 파일(1개) 만들기' 버튼을 누르면 값마다 시트가 나뉜 엑셀 파일 하나가 다운로드됩니다. 예를 들어 기준 열을 '부서'로 고르면 부서마다 시트가 나뉩니다.",
+      usesLookupTable:true, isPivotMode:true, params:[],
+      fn:()=> "↓ 아래 참조표에 데이터를 넣고 '열 기준 시트 나누기'에서 설정하세요" },
+    { key:"매크로파일만들기", label:"특정 열 기준 파일 만들기",
+      example:"참조표를 기준 열의 값별로 나눠, 값마다 별도의 엑셀 파일(.xlsx)을 각각 만듭니다",
+      note:"'시트 만들기'와 다르게, 값마다 하나의 엑셀 파일 안에 시트로 모으는 게 아니라 값마다 완전히 별도의 파일을 각각 만들어 순서대로 다운로드합니다. 아래 참조표에 데이터를 붙여넣고, '📄 열 기준 시트 나누기' 섹션에서 기준 열을 고른 뒤 '복수 엑셀 파일 만들기' 버튼을 누르세요. 파일 개수가 많으면 브라우저가 '여러 파일을 다운로드하려고 합니다' 알림을 띄울 수 있으니 허용해주세요.",
+      usesLookupTable:true, isPivotMode:true, params:[],
+      fn:()=> "↓ 아래 참조표에 데이터를 넣고 '열 기준 시트 나누기'의 '복수 엑셀 파일 만들기' 버튼을 누르세요" },
+    { key:"매크로개별인쇄", label:"특정 열 기준 일괄 인쇄/PDF 저장",
+      example:"참조표를 기준 열의 값별로 나눠, 인쇄 대화상자 1번으로 설정한 프린터에 전체를 한꺼번에 인쇄하거나 PDF로 저장합니다",
+      note:"아래 참조표에 데이터를 붙여넣고 '📄 열 기준 시트 나누기' 섹션에서 기준 열을 고른 뒤 '시트별로 나눠서 일괄 인쇄/PDF 저장' 버튼을 누르세요. 인쇄 대화상자가 한 번 열리고, 프린터를 고르면 종이로, 'PDF로 저장'을 고르면 하나의 PDF 파일로(그룹마다 페이지만 나뉜 채) 저장됩니다.",
+      usesLookupTable:true, isPivotMode:true, params:[],
+      fn:()=> "↓ 아래 참조표에 데이터를 넣고 '열 기준 시트 나누기'의 '시트별로 나눠서 일괄 인쇄/PDF 저장' 버튼을 누르세요" },
   ]},
 ];
 const MAX_PARAMS = Math.max(...CATEGORIES.flatMap(c=>c.functions.map(f=>f.params.length))); // 3
@@ -1336,6 +1533,18 @@ function populatePivotSelectors(){
   if(prevRow && [...rowSel.options].some(o=>o.value===prevRow)) rowSel.value = prevRow;
   if(prevVal && [...valSel.options].some(o=>o.value===prevVal)) valSel.value = prevVal;
   if(prevCol && [...colSel.options].some(o=>o.value===prevCol)) colSel.value = prevCol;
+  populateSplitSheetColumnSelector();
+}
+
+// "열 기준 시트 나누기" 매크로 기능의 기준 열 선택창: 항상 1행(제목행) 내용을 실제 이름으로 표시
+function populateSplitSheetColumnSelector(){
+  const splitSel = document.getElementById("splitSheetCol");
+  if(!splitSel) return;
+  const prevSplit = splitSel.value;
+  const { header } = getMacroHeaderAndData();
+  const opts = header.map((name, i)=>`<option value="${i+1}">${name}</option>`);
+  splitSel.innerHTML = opts.join("");
+  if(prevSplit && [...splitSel.options].some(o=>o.value===prevSplit)) splitSel.value = prevSplit;
 }
 
 function runPivotTable(){
@@ -1432,6 +1641,133 @@ async function copyPivotResults(){
 }
 document.getElementById("pivotCopyResults").addEventListener("click", copyPivotResults);
 
+// ---------- 열 기준 시트 나누기 (멀티시트 엑셀 생성) ----------
+function sanitizeSheetName(name){
+  // 엑셀 시트명 규칙: \/*?[]: 사용 불가, 31자 이내
+  let n = String(name || "(빈값)").replace(/[\\\/\*\?\[\]:]/g, "_").trim();
+  if(!n) n = "(빈값)";
+  return n.slice(0, 31);
+}
+
+// "열 기준 시트 나누기" 매크로 기능 전용: 체크박스 상태와 상관없이 항상 1행을 제목행으로,
+// 나머지를 데이터로 취급(그룹 나누기 대상에서 1행이 빠지고, 1행 내용이 모든 결과물의 머리글로 들어감)
+function getMacroHeaderAndData(){
+  if(lookupTable.length === 0) return { header: [], data: [] };
+  const header = lookupTable[0].map((v,i)=> (v && v.trim()) || `${i+1}열`);
+  const data = lookupTable.slice(1);
+  return { header, data };
+}
+
+function groupLookupRowsByColumn(col){
+  const { data } = getMacroHeaderAndData();
+  const groups = {};
+  const order = [];
+  data.forEach(r=>{
+    const key = (r[col-1] || "").trim() || "(빈값)";
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(r);
+  });
+  return { groups, order };
+}
+
+function runSplitSheets(){
+  const { data, header } = getMacroHeaderAndData();
+  if(data.length === 0){ alert("먼저 위 참조표에 데이터를 붙여넣으세요."); return; }
+  if(typeof XLSX === "undefined"){
+    alert("엑셀 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.");
+    return;
+  }
+  const col = parseInt(document.getElementById("splitSheetCol").value, 10);
+  const headerRow = header; // 1행(제목행) 내용을 항상 포함
+  const { groups, order } = groupLookupRowsByColumn(col);
+
+  const wb = XLSX.utils.book_new();
+  const usedNames = new Set();
+  order.forEach(key=>{
+    let sheetName = sanitizeSheetName(key);
+    let finalName = sheetName;
+    let n = 2;
+    while(usedNames.has(finalName)){ finalName = sanitizeSheetName(`${sheetName}${n}`); n++; }
+    usedNames.add(finalName);
+    const aoa = [headerRow, ...groups[key]];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, finalName);
+  });
+
+  XLSX.writeFile(wb, "시트나누기결과.xlsx");
+  showToast(`${order.length}개 시트로 나눠서 다운로드했습니다.`);
+}
+document.getElementById("splitSheetRun").addEventListener("click", runSplitSheets);
+
+// ---------- 열 기준 파일 개별로 만들기 (그룹마다 별도의 .xlsx 파일) ----------
+function runSplitFilesIndividual(){
+  const { data, header } = getMacroHeaderAndData();
+  if(data.length === 0){ alert("먼저 위 참조표에 데이터를 붙여넣으세요."); return; }
+  if(typeof XLSX === "undefined"){
+    alert("엑셀 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.");
+    return;
+  }
+  const col = parseInt(document.getElementById("splitSheetCol").value, 10);
+  const headerRow = header;
+  const { groups, order } = groupLookupRowsByColumn(col);
+
+  order.forEach(key=>{
+    const wb = XLSX.utils.book_new();
+    const aoa = [headerRow, ...groups[key]];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, sanitizeSheetName(key));
+    XLSX.writeFile(wb, `${sanitizeSheetName(key)}.xlsx`);
+  });
+  showToast(`${order.length}개 파일을 개별로 다운로드했습니다.`);
+}
+document.getElementById("splitFilesRun").addEventListener("click", runSplitFilesIndividual);
+
+document.getElementById("splitPrintRun").addEventListener("click", runSplitPrint);
+
+// ---------- 열 기준 그룹별 일괄 인쇄 (PDF/종이 모두) ----------
+function runSplitPrint(){
+  const { data, header } = getMacroHeaderAndData();
+  if(data.length === 0){ alert("먼저 위 참조표에 데이터를 붙여넣으세요."); return; }
+  const col = parseInt(document.getElementById("splitSheetCol").value, 10);
+  const headerRow = header;
+  const { groups, order } = groupLookupRowsByColumn(col);
+  const groupLabel = headerRow[col-1] || `${col}열`;
+
+  let sectionsHtml = order.map((key, i)=>{
+    const rowsHtml = groups[key].map(r=>{
+      return "<tr>" + headerRow.map((_,ci)=>`<td>${r[ci] || ""}</td>`).join("") + "</tr>";
+    }).join("");
+    return `
+      <section class="print-group"${i>0 ? ' style="page-break-before:always; break-before:page;"' : ""}>
+        <h2>${groupLabel}: ${key}</h2>
+        <table>
+          <thead><tr>${headerRow.map(h=>`<th>${h}</th>`).join("")}</tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </section>`;
+  }).join("");
+
+  const win = window.open("", "_blank");
+  if(!win){ alert("팝업이 차단되어 인쇄 창을 열 수 없습니다. 브라우저의 팝업 차단을 해제해주세요."); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>시트별 일괄 인쇄</title>
+    <style>
+      @page{ size:A4; margin:15mm; }
+      body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;padding:0;margin:0;}
+      h2{font-size:16px;margin:0 0 10px;}
+      table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:24px;}
+      th,td{border:1px solid #333;padding:6px 10px;text-align:left;}
+      th{background:#f0f0f0;font-weight:700;}
+      .print-group{padding:20px;break-inside:avoid;}
+      @media print{
+        .print-group{page-break-inside:avoid; break-inside:avoid;}
+      }
+    </style></head><body>${sectionsHtml}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); }, 300);
+  showToast(`${order.length}개 시트로 나눠서 인쇄 창을 열었습니다.`);
+}
+
 // 제목행 체크 시 그리드 1행을 시각적으로 구분해서 보여줌
 function refreshLookupHeaderRowStyle(){
   const body = document.getElementById("lookupGridBody");
@@ -1475,9 +1811,11 @@ function recomputeAllRows(){
 let splitModeManualOverride = null;
 
 function updateLookupCardVisibility(){
-  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블"];
+  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블","랭킹오름차순","랭킹내림차순","랭킹상위등수","다중랭킹","매크로시트만들기","매크로파일만들기","매크로개별인쇄"];
+  const macroFnKeys = ["매크로시트만들기","매크로파일만들기","매크로개별인쇄"];
   let anyVlookupSelected = false;
   let anyPivotSelected = false;
+  let anyMacroSelected = false;
   rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
     const fnSel = tr.querySelector(".fnSel");
@@ -1485,7 +1823,8 @@ function updateLookupCardVisibility(){
     const fnDef = CATEGORIES[catSel.value].functions[fnSel.value];
     if(!fnDef) return;
     if(lookupFnKeys.includes(fnDef.key)) anyVlookupSelected = true;
-    if(fnDef.key === "피벗테이블") anyPivotSelected = true;
+    if(fnDef.isPivotMode) anyPivotSelected = true;
+    if(macroFnKeys.includes(fnDef.key)) anyMacroSelected = true;
   });
   document.getElementById("lookupCard").style.display = anyVlookupSelected ? "" : "none";
   // 조회 함수 선택이 아예 없어지면 수동 오버라이드도 초기화(다음에 선택할 때 다시 자동판단)
@@ -1497,6 +1836,8 @@ function updateLookupCardVisibility(){
   document.body.classList.toggle("split-active", finalActive);
   // 피벗 테이블 선택 시엔 더 과감하게 정리: 위 목록 1행만, 사이드바도 숨김
   document.body.classList.toggle("pivot-active", finalActive && anyPivotSelected);
+  // 매크로 함수 선택 시엔 피벗 테이블 섹션은 관련 없으므로 숨김
+  document.body.classList.toggle("macro-active", finalActive && anyMacroSelected);
   updateSplitToggleButtonLabel();
 }
 
@@ -1510,7 +1851,7 @@ function toggleSplitMode(){
 // 조회(XLOOKUP 계열·피벗 테이블) 함수가 선택된 행만 구분을 비워서 초기 상태로 되돌리고,
 // 화면 분할·피벗 모드도 해제한 뒤 맨 위로 이동. 다른 행의 값은 그대로 둠.
 function restoreInitialScreen(){
-  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블"];
+  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블","랭킹오름차순","랭킹내림차순","랭킹상위등수","다중랭킹","매크로시트만들기","매크로파일만들기","매크로개별인쇄"];
   rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
     const fnSel = tr.querySelector(".fnSel");
