@@ -2177,7 +2177,7 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
       const w = naturalW || 4, h = naturalH || 3;
       const initCx = CELL_BOX_EMU.w;
       const initCy = Math.round(CELL_BOX_EMU.w * (h / w));
-      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${initCx}" cy="${initCy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
+      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="0"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${initCx}" cy="${initCy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
     } else {
       // 원본 비율 유지: editAs="oneCell"로 지정해서 셀과 함께 이동은 하되(행이 추가/삭제되면 따라 움직임),
       // 크기는 원본 가로세로 비율 그대로 고정되어 늘어나거나 찌그러지지 않습니다.
@@ -2185,7 +2185,7 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
       const box = computeContainBox(w, h, CELL_BOX_EMU.w, CELL_BOX_EMU.h);
       const cx = Math.max(1, Math.round(box.w));
       const cy = Math.max(1, Math.round(box.h));
-      drawingShapes.push(`<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
+      drawingShapes.push(`<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
     }
     imgCounter++;
   });
