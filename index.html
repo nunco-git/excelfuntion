@@ -6,7 +6,6 @@
 <title>스마트 엑셀함수 변환기</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0; --text:#334155; --title:#0f172a; --muted:#57616f;
@@ -99,16 +98,6 @@
   .btn.ghost{color:var(--muted);}
   .btn.success{background:var(--green-btn);border-color:var(--green-btn);color:#fff;font-weight:600;}
   .btn.success:hover{background:#0ea371;}
-  .btn.fill-cat,.btn.fill-fn,.btn.fill-val2,.btn.fill-val3{
-    background:var(--accent-bg);border-color:var(--line);font-weight:700;}
-  .btn.fill-cat{color:var(--col-cat);}
-  .btn.fill-cat:hover{background:#dbeafe;}
-  .btn.fill-fn{color:var(--col-fn);}
-  .btn.fill-fn:hover{background:#dbeafe;}
-  .btn.fill-val2{color:var(--col-val2);}
-  .btn.fill-val2:hover{background:#dbeafe;}
-  .btn.fill-val3{color:var(--col-val3);}
-  .btn.fill-val3:hover{background:#dbeafe;}
   .row-add-group{display:flex;align-items:center;gap:0;border:1px solid var(--line);
     border-radius:8px;background:#fff;overflow:hidden;}
   #addRowCount{width:66px;border:none;outline:none;font-size:12.5px;font-family:inherit;
@@ -126,7 +115,7 @@
   colgroup col.result{width:27%;}
   colgroup col.del{width:36px;}
 
-  thead th{background:#f8fafc;color:var(--muted);font-size:12px;font-weight:700;
+  thead th{background:#f8fafc;color:var(--muted);font-size:.79rem;font-weight:700;
     padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);}
   thead th.idx{text-align:center;}
   thead th.result{color:var(--accent);}
@@ -313,12 +302,9 @@
           <input type="number" id="addRowCount" min="1" max="500" value="10">
         </span>
         <button class="btn primary" id="addRow">+ 행 추가</button>
-        <span class="row-add-hint">필요한 만큼 행 추가 → ① 구분 ② 세부 기능에서 원하는 함수 선택 → 입력값1에 변환하거나 기준이 되는 값 입력(복사·붙여넣기 가능)</span>
+        <span class="row-add-hint">① 구분 ② 세부 기능에서 원하는 함수 선택 → 입력값1에 변환할 값이나 기준값을 입력(복사·붙여넣기 가능), 우측 상단 설명문을 보면서 입력값2·3에 적당한 값을 입력하면서 원하는 결과값 찾기</span>
         <span style="flex:1"></span>
-        <button class="btn fill-val2" id="fillVal1All">① 입력값2 채우기</button>
-        <button class="btn fill-val3" id="fillVal2All">② 입력값3 채우기</button>
-        <button class="btn" id="copyResults">③ 결과값 복사</button>
-        <button class="btn success" id="downloadXlsx">엑셀로 다운로드</button>
+        <button class="btn primary" id="copyResults">결과값 복사</button>
       </div>
       <div class="table-scroll">
       <table>
@@ -350,7 +336,7 @@
         <h2>사용 가능한 기능</h2>
         <div id="fnList"></div>
         <div class="side-note">
-          입력값이 2개 이상 필요한 기능은 입력값2·입력값3 열까지 함께 입력해야 결과가 계산됩니다. 필요한 입력값 개수는 기능마다 달라서, 그보다 많은 열은 화면에 표시되지 않습니다.
+          입력값이 2개 이상 필요한 기능은 입력값2·입력값3 열까지 함께 입력해야 결과가 계산됩니다. 필요한 입력값 개수는 기능마다 달라서, 그보다 많은 열은 화면에 표시되지 않습니다. 입력값2·입력값3은 보통 모든 행에 같은 값을 쓰므로, 1행에 입력하면 아래 행까지 자동으로 채워지고 필요하면 행마다 다시 수정할 수 있습니다.
         </div>
       </div>
     </div>
@@ -617,7 +603,7 @@ const CATEGORIES = [
         const parts=s.split(sep);
         if(idx>parts.length) throw `구분자로 나눈 값이 ${parts.length}개뿐입니다`;
         return parts[idx-1]; } },
-    { key:"텍스트합치기", label:"텍스트 합치기", example:"부여군 / 농업정책과 / - → 부여군-농업정책과", note:"두 값을 구분자로 이어붙입니다. 엑셀 CONCATENATE(또는 &)와 같은 역할입니다. 성과 이름, 부서명과 담당업무처럼 서로 다른 열에 나뉘어 있는 값을 한 칸으로 합칠 때 씁니다. 값1·값2는 각 행마다 다른 값을 복사해서 붙여넣으면 되고, 구분자가 매번 같다면(예: 항상 '-') 1행에만 입력한 뒤 채우기 버튼으로 나머지 행에 채우면 편리합니다. 구분자 없이 그냥 붙이고 싶어도 이 칸은 비워둘 수 없으니, 표시가 필요 없다면 나중에 '특정 문자 치환'으로 구분자를 지운 값으로 한 번 더 바꿔주면 됩니다.", params:["값1","값2","구분자"],
+    { key:"텍스트합치기", label:"텍스트 합치기", example:"부여군 / 농업정책과 / - → 부여군-농업정책과", note:"두 값을 구분자로 이어붙입니다. 엑셀 CONCATENATE(또는 &)와 같은 역할입니다. 성과 이름, 부서명과 담당업무처럼 서로 다른 열에 나뉘어 있는 값을 한 칸으로 합칠 때 씁니다. 값1·값2는 각 행마다 다른 값을 복사해서 붙여넣으면 되고, 구분자가 매번 같다면(예: 항상 '-') 1행에만 입력하면 아래 행까지 자동으로 채워집니다(행마다 수정도 가능). 구분자 없이 그냥 붙이고 싶어도 이 칸은 비워둘 수 없으니, 표시가 필요 없다면 나중에 '특정 문자 치환'으로 구분자를 지운 값으로 한 번 더 바꿔주면 됩니다.", params:["값1","값2","구분자"],
       fn:([a,b,sep])=> a + sep + b },
   ]},
   { name:"날짜 / 시간", functions:[
@@ -765,7 +751,7 @@ const CATEGORIES = [
       } },
     { key:"카운트이프", label:"COUNTIF (조건 개수 세기)",
       example:"조건값 부여읍 / 조건 열 번호 3 → 참조표 3열이 '부여읍'인 행 개수",
-      note:"아래 'XLOOKUP 참조표'에서 지정한 열의 값이 조건에 맞는 행이 몇 개인지 셉니다. 조건값에 '부여읍'처럼 그냥 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <> 를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100). 참조표를 먼저 붙여넣어야 사용할 수 있습니다. 참조표 1행을 '제목행'으로 체크했다면 조건 열 번호에 '부서'처럼 열 이름을 그대로 입력해도 됩니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호(입력값2)는 1행에만 입력한 뒤 '입력값2 채우기' 버튼으로 나머지 행에 채우면 편리합니다.",
+      note:"아래 'XLOOKUP 참조표'에서 지정한 열의 값이 조건에 맞는 행이 몇 개인지 셉니다. 조건값에 '부여읍'처럼 그냥 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <> 를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100). 참조표를 먼저 붙여넣어야 사용할 수 있습니다. 참조표 1행을 '제목행'으로 체크했다면 조건 열 번호에 '부서'처럼 열 이름을 그대로 입력해도 됩니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호(입력값2)는 1행에만 입력하면 아래 행까지 자동으로 채워집니다(행마다 수정도 가능).",
       usesLookupTable:true,
       params:["조건값","조건 열 번호"],
       fn:([condStr, colNumStr])=>{
@@ -789,7 +775,7 @@ const CATEGORIES = [
       } },
     { key:"섬이프", label:"SUMIF (조건에 맞는 값 합계)",
       example:"조건값 부여읍 / 조건 열 번호 3 / 합계 열 번호 5 → 3열이 '부여읍'인 행들의 5열 값 합계",
-      note:"아래 'XLOOKUP 참조표'에서 조건에 맞는 행들만 찾아, 그 행들의 다른 열(합계 열 번호) 값을 모두 더합니다. 예를 들어 3열이 '부여읍'인 행들의 5열(집행금액) 합계를 구하고 싶으면 조건값에 부여읍, 조건 열 번호에 3, 합계 열 번호에 5를 넣으면 됩니다. 참조표 1행을 '제목행'으로 체크했다면 열 번호 대신 '부서', '집행금액' 같은 열 이름을 그대로 써도 됩니다. 조건값에는 COUNTIF와 같은 비교연산자(>, <, >=, <=, <>)도 쓸 수 있습니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호·합계 열 번호(입력값2·입력값3)는 1행에만 입력한 뒤 채우기 버튼으로 나머지 행에 채우면 편리합니다.",
+      note:"아래 'XLOOKUP 참조표'에서 조건에 맞는 행들만 찾아, 그 행들의 다른 열(합계 열 번호) 값을 모두 더합니다. 예를 들어 3열이 '부여읍'인 행들의 5열(집행금액) 합계를 구하고 싶으면 조건값에 부여읍, 조건 열 번호에 3, 합계 열 번호에 5를 넣으면 됩니다. 참조표 1행을 '제목행'으로 체크했다면 열 번호 대신 '부서', '집행금액' 같은 열 이름을 그대로 써도 됩니다. 조건값에는 COUNTIF와 같은 비교연산자(>, <, >=, <=, <>)도 쓸 수 있습니다. 조건값(입력값1)은 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 조건 열 번호·합계 열 번호(입력값2·입력값3)는 1행에만 입력하면 아래 행까지 자동으로 채워집니다(행마다 수정도 가능).",
       usesLookupTable:true,
       params:["조건값","조건 열 번호","합계 열 번호"],
       fn:([condStr, colNumStr, sumColStr])=>{
@@ -808,7 +794,7 @@ const CATEGORIES = [
       } },
     { key:"섬이프스", label:"SUMIFS (여러 조건에 맞는 값 합계)",
       example:"조건 목록 1:부여읍,4:>=5 / 합계 열 번호 5 → 조건을 모두 만족하는 행들의 5열 값 합계",
-      note:"SUMIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록에는 COUNTIFS와 같은 방식으로 '열번호:조건값'을 쉼표로 이어서 입력하고, 합계 열 번호에는 더할 값이 있는 열을 입력하세요. 참조표 1행을 '제목행'으로 체크했다면 '부서:부여읍,금액:>=5'처럼 열 이름으로 조건을 쓰고, 합계 열 번호에도 '집행금액'처럼 이름을 그대로 입력할 수 있습니다. 조건 목록(입력값1)이 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 합계 열 번호(입력값2)는 1행에만 입력한 뒤 '입력값2 채우기' 버튼으로 나머지 행에 채우면 편리합니다.",
+      note:"SUMIF에서 조건을 2개 이상 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 조건 목록에는 COUNTIFS와 같은 방식으로 '열번호:조건값'을 쉼표로 이어서 입력하고, 합계 열 번호에는 더할 값이 있는 열을 입력하세요. 참조표 1행을 '제목행'으로 체크했다면 '부서:부여읍,금액:>=5'처럼 열 이름으로 조건을 쓰고, 합계 열 번호에도 '집행금액'처럼 이름을 그대로 입력할 수 있습니다. 조건 목록(입력값1)이 행마다 다르면 여러 값을 복사해서 한 번에 붙여넣고, 합계 열 번호(입력값2)는 1행에만 입력하면 아래 행까지 자동으로 채워집니다(행마다 수정도 가능).",
       usesLookupTable:true,
       params:["조건 목록","합계 열 번호"],
       fn:([condListStr, sumColStr])=>{
@@ -884,6 +870,7 @@ function showFnDetail(fnDef, catName){
 // ---------- 그리드 로직 ----------
 const grid = document.getElementById("grid");
 let rowCount = 0;
+let isBulkPasting = false; // 여러 행 붙여넣는 동안에는 1행 자동채우기가 끼어들지 않게 함
 
 function rowsInGrid(){ return [...grid.children]; }
 
@@ -1001,7 +988,21 @@ function addRow(){
   });
 
   pvals.forEach((input, idx)=>{
-    input.addEventListener("input", recompute);
+    input.addEventListener("input", ()=>{
+      recompute();
+      // 입력값2·입력값3(idx 1,2)은 행마다 같은 값을 쓰는 경우가 많아, 1행에 입력하면
+      // 아래 행 전체에 자동으로 채워짐(붙여넣기 처리 중에는 개입하지 않음). 이후 각 행에서 수정 가능.
+      if(!isBulkPasting && idx >= 1 && !input.disabled && rowsInGrid().indexOf(tr) === 0){
+        const rows = rowsInGrid();
+        for(let i=1;i<rows.length;i++){
+          const target = rows[i].querySelectorAll(".pval")[idx];
+          if(target && !target.disabled){
+            target.value = input.value;
+            target.dispatchEvent(new Event("input"));
+          }
+        }
+      }
+    });
     input.addEventListener("paste", (e)=>{
       if(catSel.value === "" || fnSel.value === "") return;
       const clipData = (e.clipboardData || window.clipboardData);
@@ -1012,6 +1013,7 @@ function addRow(){
       if(lines.length > 1 && lines[lines.length-1] === "") lines = lines.slice(0,-1);
       if(lines.length <= 1) return;
       e.preventDefault();
+      isBulkPasting = true;
       const rows = rowsInGrid();
       const startIdx = rows.indexOf(tr);
       const srcCat = catSel.value, srcFn = fnSel.value;
@@ -1029,6 +1031,7 @@ function addRow(){
         tInput.value = line.split("\t")[0];
         tInput.dispatchEvent(new Event("input"));
       });
+      isBulkPasting = false;
       showToast(`${lines.length}개 값을 붙여넣었습니다.`);
     });
   });
@@ -1134,34 +1137,7 @@ function fillAllFromFirst(type){
   }
 }
 // fillAllFromFirst("cat")/("fn")은 이제 버튼이 아니라 1행 값 변경 시 자동으로 호출됩니다 (아래 addRow 내부 참고).
-
-// ---------- 첫 행 기준 입력값1/입력값2 전체 채우기 ----------
-function fillValueAllFromFirst(colIdx){
-  const rows = rowsInGrid();
-  if(rows.length < 2) return;
-  const firstInput = rows[0].querySelectorAll(".pval")[colIdx];
-  if(!firstInput || firstInput.disabled || firstInput.value === ""){
-    alert(`첫 번째 행에서 입력값${colIdx+1} 값을 먼저 입력하세요.`);
-    return;
-  }
-  const val = firstInput.value;
-  let filled = 0;
-  for(let i=1;i<rows.length;i++){
-    const input = rows[i].querySelectorAll(".pval")[colIdx];
-    if(input && !input.disabled){
-      input.value = val;
-      input.dispatchEvent(new Event("input"));
-      filled++;
-    }
-  }
-  if(filled === 0){
-    showToast("해당 열을 사용하는 행이 없어 채울 곳이 없습니다.");
-  } else {
-    showToast(`입력값${colIdx+1} 값을 ${filled}개 행에 채웠습니다.`);
-  }
-}
-document.getElementById("fillVal1All").addEventListener("click", ()=> fillValueAllFromFirst(1));
-document.getElementById("fillVal2All").addEventListener("click", ()=> fillValueAllFromFirst(2));
+// 입력값2·입력값3도 마찬가지로 1행 입력 시 addRow 내부의 pval input 리스너에서 자동으로 아래 행까지 채워집니다.
 
 // ---------- 토스트 ----------
 let toastTimer = null;
@@ -1226,29 +1202,10 @@ document.getElementById("addRow").addEventListener("click", ()=>{
   for(let i=0;i<n;i++) addRow();
 });
 document.getElementById("clearAll").addEventListener("click", ()=>{
-  if(confirm("모든 행을 삭제할까요?")){ grid.innerHTML=""; rowCount=0; addRow(); }
+  grid.innerHTML=""; rowCount=0; addRow();
+  updateLookupCardVisibility();
+  updateValueColumnVisibility();
 });
-document.getElementById("downloadXlsx").addEventListener("click", ()=>{
-  const rows = [["기능구분","세부기능","입력값1","입력값2","입력값3","결과값"]];
-  rowsInGrid().forEach(tr=>{
-    const catSel = tr.querySelector(".catSel");
-    const fnSel = tr.querySelector(".fnSel");
-    const catName = catSel.value !== "" ? CATEGORIES[catSel.value].name : "";
-    const fnName = (catSel.value !== "" && fnSel.value !== "") ? CATEGORIES[catSel.value].functions[fnSel.value].label : "";
-    const pvals = [...tr.querySelectorAll(".pval")].map(i=>i.value);
-    rows.push([catName, fnName, pvals[0]||"", pvals[1]||"", pvals[2]||"", tr.querySelector(".fresult").value]);
-  });
-  if(typeof XLSX === "undefined"){
-    alert("엑셀 다운로드 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.");
-    return;
-  }
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"] = [{wch:12},{wch:22},{wch:16},{wch:12},{wch:12},{wch:22}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "함수변환결과");
-  XLSX.writeFile(wb, "함수변환결과.xlsx");
-});
-
 // ---------- XLOOKUP 참조표 (실제 편집 가능한 그리드) ----------
 let lookupCols = 0;
 
