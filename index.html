@@ -45,6 +45,8 @@
   body.pivot-active #lookupTitleSuffix{display:none;}
   body.pivot-active #lookupXlookupDesc{display:none;}
   body.macro-active #pivotSection{display:none;}
+  #pivotSection{display:none;}
+  body.show-pivot-section #pivotSection{display:block;}
 
   .top-section{display:flex;gap:14px;align-items:stretch;margin:0 0 20px;flex-wrap:wrap;}
 
@@ -105,6 +107,12 @@
   #addRowCount{width:66px;border:none;outline:none;font-size:12.5px;font-family:inherit;
     padding:6px 10px;color:var(--text);background:transparent;}
   .row-add-hint{font-size:.79rem;color:var(--muted);line-height:1.4;}
+  .text-join-group{display:flex;align-items:center;gap:6px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;padding:4px 8px;}
+  .text-join-label{font-size:.75rem;color:var(--muted);white-space:nowrap;}
+  .text-join-input{width:78px;border:1px solid var(--line);border-radius:6px;
+    padding:5px 8px;font-size:.79rem;font-family:inherit;color:var(--text);}
+  .text-join-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg);}
   .divider{width:1px;height:18px;background:var(--line);margin:0 2px;}
 
   .table-scroll{overflow-x:auto;}
@@ -156,6 +164,8 @@
   input.pval{padding-top:2px;}
 
   td.result-cell{background:transparent;}
+  th.result-extra, td.result-extra{background:var(--accent-bg);}
+  td.result-extra .cell{color:#1d4ed8;font-weight:600;background:transparent;pointer-events:none;}
   td.result-cell .cell{color:#1d4ed8;font-weight:600;background:transparent;pointer-events:none;}
   td.result-cell.err .cell{color:var(--danger);font-weight:500;}
   td.result-cell.empty .cell{color:#cbd5e1;font-weight:400;}
@@ -307,6 +317,11 @@
         <button class="btn primary" id="addRow">+ 행 추가</button>
         <span class="row-add-hint">① 구분 ② 세부 기능에서 원하는 함수 선택 → 입력값1에 변환할 값이나 기준값을 입력(복사·붙여넣기 가능), 우측 상단 설명문을 보면서 입력값2·3에 적당한 값을 입력하면서 원하는 결과값 찾기</span>
         <span style="flex:1"></span>
+        <span class="text-join-group">
+          <span class="text-join-label">텍스트 합치기 연결글자</span>
+          <input type="text" id="textJoin1" class="text-join-input" placeholder="연결글자1" title="텍스트 합치기: 값1과 값2 사이에 넣을 글자">
+          <input type="text" id="textJoin2" class="text-join-input" placeholder="연결글자2" title="텍스트 합치기: 값2와 값3 사이에 넣을 글자">
+        </span>
         <button class="btn primary" id="copyResults">결과값 복사</button>
       </div>
       <div class="table-scroll">
@@ -315,7 +330,12 @@
           <col class="idx"><col class="cat"><col class="fn">
           <col class="val-main">
           <col class="val-sub" id="colVal2"><col class="val-sub" id="colVal3"><col class="val-sub" id="colVal4">
-          <col class="result"><col class="del">
+          <col class="result">
+          <col class="result-extra" id="colResult2"><col class="result-extra" id="colResult3">
+          <col class="result-extra" id="colResult4"><col class="result-extra" id="colResult5">
+          <col class="result-extra" id="colResult6"><col class="result-extra" id="colResult7">
+          <col class="result-extra" id="colResult8">
+          <col class="del">
         </colgroup>
         <thead>
           <tr>
@@ -327,6 +347,13 @@
             <th class="val col-val3" id="thVal3">⑤ 입력값3</th>
             <th class="val col-val4" id="thVal4">⑥ 입력값4</th>
             <th class="result">⑦ 결과값</th>
+            <th class="result result-extra" id="thResult2">결과값2</th>
+            <th class="result result-extra" id="thResult3">결과값3</th>
+            <th class="result result-extra" id="thResult4">결과값4</th>
+            <th class="result result-extra" id="thResult5">결과값5</th>
+            <th class="result result-extra" id="thResult6">결과값6</th>
+            <th class="result result-extra" id="thResult7">결과값7</th>
+            <th class="result result-extra" id="thResult8">결과값8</th>
             <th></th>
           </tr>
         </thead>
@@ -566,7 +593,7 @@ function numberToKorean(n){
       for(let i=0;i<4;i++){
         let digit = g % 10;
         if(digit > 0){
-          groupStr = ((digit===1 && i>0) ? "" : nums[digit]) + units[i] + groupStr;
+          groupStr = nums[digit] + units[i] + groupStr;
         }
         g = Math.floor(g/10);
       }
@@ -642,16 +669,18 @@ const CATEGORIES = [
       fn:([v])=> v.trim().replace(/\s+/g," ") },
     { key:"문자열길이", label:"문자열 길이 세기", example:"부여군 → 3", note:"글자 수 제한이 있는 서식(예: 20자 이내)에 맞는지 확인할 때 유용합니다.", params:["값"],
       fn:([v])=> String(v.length) },
-    { key:"텍스트나누기", label:"텍스트 나누기", example:"부여군,농업정책과,주무관 / , / 2 → 농업정책과", note:"값을 지정한 구분자로 쪼갠 뒤, 몇 번째 조각을 가져올지 정합니다. 엑셀 '텍스트 나누기' 기능과 같은 역할이지만, 여러 셀로 퍼뜨리지 않고 원하는 한 조각만 바로 뽑아옵니다. 예를 들어 '부여군,농업정책과,주무관'처럼 쉼표로 나열된 값에서 2번째 조각(농업정책과)만 뽑을 수 있습니다.", params:["값","구분자","가져올 번째"],
-      fn:([s,sep,idxStr])=>{ if(!sep) throw "구분자를 입력하세요";
-        const idx=parseInt(idxStr,10); if(isNaN(idx)||idx<1) throw "가져올 번째는 1 이상 숫자로 입력하세요";
-        const parts=s.split(sep);
-        if(idx>parts.length) throw `구분자로 나눈 값이 ${parts.length}개뿐입니다`;
-        return parts[idx-1]; } },
-    { key:"텍스트합치기", label:"텍스트 합치기(2개)", example:"부여군 / 농업정책과 / - → 부여군-농업정책과", note:"두 값을 구분자로 이어붙입니다. 엑셀 CONCATENATE(또는 &)와 같은 역할입니다. 성과 이름, 부서명과 담당업무처럼 서로 다른 열에 나뉘어 있는 값을 한 칸으로 합칠 때 씁니다. 값1·값2는 각 행마다 다른 값을 복사해서 붙여넣으면 되고, 구분자가 매번 같다면(예: 항상 '-') 1행에만 입력하면 아래 행까지 자동으로 채워집니다(행마다 수정도 가능). 구분자 없이 그냥 붙이고 싶어도 이 칸은 비워둘 수 없으니, 표시가 필요 없다면 나중에 '특정 문자 치환'으로 구분자를 지운 값으로 한 번 더 바꿔주면 됩니다. 3개 이상 합쳐야 하면 '텍스트 합치기(3개)'를 쓰세요.", params:["값1","값2","구분자"],
-      fn:([a,b,sep])=> a + sep + b },
-    { key:"텍스트합치기다중", label:"텍스트 합치기(3개)", example:"부여군 / 농업정책과 / 주무관 / - → 부여군-농업정책과-주무관", note:"세 값을 같은 구분자로 이어붙입니다. 부서명·직급·이름처럼 여러 열에 나뉜 값을 한 번에 합칠 때 씁니다. 값1~값3은 각 행마다 다른 값을 복사해서 붙여넣고, 구분자가 매번 같다면 1행에만 입력하면 아래까지 자동으로 채워집니다. 4개 이상 합쳐야 한다면, 이 함수로 3개를 먼저 합친 결과값을 다시 다른 행의 값1로 복사해 넣고 나머지 값과 한 번 더 합치면 됩니다(체이닝).", params:["값1","값2","값3","구분자"],
-      fn:([a,b,c,sep])=> a + sep + b + sep + c },
+    { key:"텍스트나누기", label:"텍스트 나누기", example:"부여군,농업정책과,주무관 / , → 결과값에 부여군, 결과값2에 농업정책과, 결과값3에 주무관", note:"값을 지정한 구분자로 전부 쪼개서, 조각 개수만큼 결과값 열이 오른쪽으로 자동으로 늘어나며 각 조각이 나뉘어 담깁니다. 엑셀 '텍스트 나누기(구분 기호 기준)' 기능과 같은 역할입니다. 최대 8조각까지 지원합니다.", multiResult:true, maxResultCount:8, params:["값","구분자"],
+      fn:([s,sep])=>{ if(!sep) throw "구분자를 입력하세요";
+        return s.split(sep).map(p=>p.trim()); } },
+    { key:"텍스트합치기", label:"텍스트 합치기", example:"부여군 / 농업정책과 / 주무관 → 부여군-농업정책과-주무관", note:"최대 세 값을 이어붙입니다. 엑셀 CONCATENATE(또는 &)와 같은 역할입니다. 부서명·직급·이름처럼 여러 열에 나뉜 값을 한 칸으로 합칠 때 씁니다. 값 사이에 넣을 연결글자는 표 위 툴바의 '결과값 복사' 버튼 왼쪽에 있는 '연결글자1'(값1-값2 사이), '연결글자2'(값2-값3 사이) 칸에 입력하세요(비워두면 그냥 붙습니다). 값1만 입력해도 바로 결과가 보이고, 값2·값3을 채워 나갈수록 실시간으로 이어집니다. 값3이 필요 없으면 비워두면 됩니다.", allowPartial:true, params:["값1","값2","값3"],
+      fn:([a,b,c])=>{
+        const j1 = (document.getElementById("textJoin1") && document.getElementById("textJoin1").value) || "";
+        const j2 = (document.getElementById("textJoin2") && document.getElementById("textJoin2").value) || "";
+        let result = a || "";
+        if(b) result += j1 + b;
+        if(c) result += j2 + c;
+        return result;
+      } },
   ]},
   { name:"날짜 / 시간", functions:[
     { key:"날짜형식변환", label:"날짜 형식 변환 (YYYY-MM-DD)", example:"20240305 → 2024-03-05", note:"8자리(20240305)·6자리(240305) 숫자는 물론, 2015.5.2 / 2015.05.20. / 15.5.2. / 15-05-02 처럼 점·하이픈·슬래시로 구분되고 연도가 2자리든 4자리든, 앞자리 0이 있든 없든, 끝에 점이 붙어 있든 상관없이 인식해서 표준 형식(YYYY-MM-DD)으로 한 번에 통일해줍니다.", params:["날짜"],
@@ -685,12 +714,12 @@ const CATEGORIES = [
     { key:"날짜차이", label:"날짜 차이 계산(일수)", example:"2024-01-01 / 2024-03-05 → 64일", note:"두 날짜 사이의 총 일수를 계산합니다. 사업기간·계약기간의 총 일수를 구할 때 유용합니다.", params:["시작일","종료일"],
       fn:([a,b])=>{ const d1=parseDateFlexible(a).dt, d2=parseDateFlexible(b).dt;
         return `${Math.round((d2-d1)/86400000)}일`; } },
-    { key:"날짜더하기", label:"N일 이후 날짜 계산", example:"2024-03-05 / 30 → 2024-04-04", note:"공사기간·계약만료일처럼 특정 날짜로부터 며칠 뒤(또는 며칠 전)의 날짜를 구할 때 유용합니다. 일수에 음수를 넣으면 그만큼 이전 날짜가 계산됩니다.", params:["기준일","일수"],
+    { key:"날짜더하기", label:"N일 이후 날짜 계산", example:"2025.05.02 / 20 → 2025.05.22 (입력한 형식 그대로 출력)", note:"공사기간·계약만료일처럼 특정 날짜로부터 며칠 뒤(또는 며칠 전)의 날짜를 구할 때 유용합니다. 일수에 음수를 넣으면 그만큼 이전 날짜가 계산됩니다. 결과는 기준일에 입력한 형식(점·하이픈 구분, 2자리·4자리 연도 등)을 그대로 따라갑니다 — 예를 들어 기준일을 '2025.05.02'로 입력하면 결과도 '2025.05.22'처럼 점으로 나옵니다.", params:["기준일","일수"],
       fn:([v,n])=>{ const {dt}=parseDateFlexible(v); const days=parseInt(n,10);
         if(isNaN(days)) throw "일수를 숫자로 입력하세요";
         const result=new Date(dt); result.setDate(result.getDate()+days);
         const y=result.getFullYear(), m=result.getMonth()+1, d=result.getDate();
-        return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; } },
+        return formatDateLikeExample(y, m, d, v); } },
     { key:"기간계산", label:"두 날짜 기간 계산(년/월/일)", example:"2020-01-01 / 2023-06-15 → 3년 5개월 14일", note:"단순 일수가 아니라 '몇 년 몇 개월 며칠'로 계산해줘서 근속기간·계약기간을 보고서에 바로 쓸 수 있는 형태로 만들어줍니다.", params:["시작일","종료일"],
       fn:([a,b])=>{ const d1=parseDateFlexible(a).dt, d2=parseDateFlexible(b).dt;
         if(d2 < d1) throw "종료일이 시작일보다 빠릅니다";
@@ -718,16 +747,16 @@ const CATEGORIES = [
         if(isNaN(num)||num<0) throw "0 이상 숫자 입력";
         if(num===0) return "영원정";
         return numberToKorean(num)+"원정"; } },
-    { key:"반올림", label:"반올림", example:"1234567.891 / 2 → 1,234,567.89", note:"소수점 자릿수를 지정해 반올림합니다. 금액을 원 단위 이하 절사 없이 정리할 때 씁니다.", params:["값","자리수"],
+    { key:"반올림", label:"반올림(ROUND)", example:"1234567.891 / 2 → 1,234,567.89", note:"엑셀 ROUND 함수와 동일합니다. 자리수에 양수(1,2,3...)를 넣으면 소수점 이하 자리를 반올림하고, 0을 넣으면 정수로, 음수(-1,-2,-3...)를 넣으면 십·백·천 단위로 반올림합니다.", params:["값","자리수"],
       fn:([s,n])=>{ const num=Number(s), digit=parseInt(n,10); if(isNaN(num)||isNaN(digit)) throw "숫자 확인 필요";
         return commify(num.toFixed(digit)); } },
-    { key:"내림", label:"내림(자리 지정)", example:"1234567 / -3 → 1,234,000  (자리수: 0=정수, -1=십, -2=백, -3=천단위)", note:"자리수에 음수를 넣으면 십·백·천 단위로 내림할 수 있어, 예산액을 천원 단위로 끊어 표시할 때 유용합니다.", params:["값","자리수"],
+    { key:"내림", label:"내림(ROUNDDOWN)", example:"1234567.891 / 2 → 1,234,567.89 / 자리수 -3 → 1,234,000", note:"엑셀 ROUNDDOWN 함수와 동일합니다. 자리수에 양수를 넣으면 소수점 이하 자리를 내림하고, 0을 넣으면 정수로, 음수를 넣으면 십·백·천 단위로 내림합니다. 예산액을 천원 단위로 끊어 표시할 때 등에 유용합니다.", params:["값","자리수"],
       fn:([v,d])=>{ const num=Number(v.trim()); const digits=parseInt(d,10);
         if(isNaN(num)) throw "숫자가 아닙니다"; if(isNaN(digits)) throw "자리수를 숫자로 입력하세요";
         const factor=Math.pow(10,digits); let scaled=Math.round(num*factor*1e6)/1e6;
         const result=Math.floor(scaled)/factor;
         return commify(digits>0 ? result.toFixed(digits) : String(result)); } },
-    { key:"올림", label:"올림(자리 지정)", example:"1234567 / -3 → 1,235,000  (자리수: 0=정수, -1=십, -2=백, -3=천단위)", note:"내림과 반대로 올림 처리합니다. 최소 집행 금액을 천원 단위로 올려 잡을 때 등에 씁니다.", params:["값","자리수"],
+    { key:"올림", label:"올림(ROUNDUP)", example:"1234567.891 / 2 → 1,234,567.90 / 자리수 -3 → 1,235,000", note:"엑셀 ROUNDUP 함수와 동일합니다. 자리수에 양수를 넣으면 소수점 이하 자리를 올림하고, 0을 넣으면 정수로, 음수를 넣으면 십·백·천 단위로 올림합니다. 최소 집행 금액을 천원 단위로 올려 잡을 때 등에 씁니다.", params:["값","자리수"],
       fn:([v,d])=>{ const num=Number(v.trim()); const digits=parseInt(d,10);
         if(isNaN(num)) throw "숫자가 아닙니다"; if(isNaN(digits)) throw "자리수를 숫자로 입력하세요";
         const factor=Math.pow(10,digits); let scaled=Math.round(num*factor*1e6)/1e6;
@@ -739,16 +768,20 @@ const CATEGORIES = [
       fn:([v])=>{ const num=Number(v.trim()); if(isNaN(num)) throw "숫자가 아닙니다"; return commify(String(Math.floor(num/10)*10)); } },
   ]},
   { name:"랭킹, 최대, 최소", functions:[
-    { key:"최대값구하기", label:"최대값 구하기", example:"85 / 92 / 78 → 92", note:"입력한 값(최대 3개) 중 가장 큰 값을 찾습니다. 엑셀 MAX 함수와 같은 역할입니다. 값이 2개뿐이면 나머지 칸에 하이픈(-)만 입력하세요(계산에서 제외됩니다).", params:["값1","값2","값3"],
-      fn:([a,b,c])=>{ const nums=[a,b,c].filter(v=>v.trim()!==""&&v.trim()!=="-").map(v=>Number(v.replace(/,/g,"")));
-        if(nums.some(isNaN)) throw "숫자로 입력하거나 사용하지 않는 값은 -로 입력하세요";
-        if(nums.length===0) throw "값을 1개 이상 입력하세요";
-        return commify(String(Math.max(...nums))); } },
-    { key:"최소값구하기", label:"최소값 구하기", example:"85 / 92 / 78 → 78", note:"입력한 값(최대 3개) 중 가장 작은 값을 찾습니다. 엑셀 MIN 함수와 같은 역할입니다. 값이 2개뿐이면 나머지 칸에 하이픈(-)만 입력하세요(계산에서 제외됩니다).", params:["값1","값2","값3"],
-      fn:([a,b,c])=>{ const nums=[a,b,c].filter(v=>v.trim()!==""&&v.trim()!=="-").map(v=>Number(v.replace(/,/g,"")));
-        if(nums.some(isNaN)) throw "숫자로 입력하거나 사용하지 않는 값은 -로 입력하세요";
-        if(nums.length===0) throw "값을 1개 이상 입력하세요";
-        return commify(String(Math.min(...nums))); } },
+    { key:"심사표", label:"심사표(최고·최저 제외 합계)", example:"85,90,90,70,60 → 245 (최고점 90 하나, 최저점 60 하나만 빼고 85+90+70 합산)", note:"여러 심사위원의 점수 중 최고점 1개와 최저점 1개를 제외한 나머지 점수의 합계를 계산합니다. 심사표·평가표에서 흔히 쓰는 방식입니다. 점수는 쉼표(,)로 구분해 입력하거나, 엑셀에서 여러 칸(최대 15개)을 한 번에 복사해서 붙여넣으면 자동으로 인식됩니다(탭으로 구분된 값도 인식). 최고점이나 최저점이 여러 개 있어도 각각 딱 1개씩만 제외합니다. 점수는 최소 3개 이상 입력해야 합니다.", params:["점수 목록(쉼표 또는 엑셀 복사 붙여넣기, 최대 15개)"],
+      fn:([v])=>{
+        const scores = v.split(/[\t,]+/).map(s=>s.trim()).filter(s=>s!=="").map(s=>Number(s.replace(/,/g,"")));
+        if(scores.some(isNaN)) throw "점수는 모두 숫자로 입력하세요";
+        if(scores.length > 15) throw "점수는 최대 15개까지 입력할 수 있습니다";
+        if(scores.length < 3) throw "점수는 최소 3개 이상 입력하세요(최고점·최저점을 빼고 남는 값이 있어야 합니다)";
+        const arr = [...scores];
+        const maxIdx = arr.indexOf(Math.max(...arr));
+        arr.splice(maxIdx,1);
+        const minIdx = arr.indexOf(Math.min(...arr));
+        arr.splice(minIdx,1);
+        const sum = arr.reduce((a,b)=>a+b,0);
+        return commify(String(sum));
+      } },
     { key:"랭킹오름차순", label:"랭킹(오름차순)", example:"찾을 값 60 / 값 열 번호 2 → 참조표 2열 값 중 60의 등수(작은 값이 1등)", note:"아래 'XLOOKUP 참조표'의 지정한 열에서, 찾을 값보다 작은 값이 몇 개인지 세어 등수를 매깁니다(값이 작을수록 1등에 가까움 — 예: 처리 소요일수, 오차 등 '작을수록 좋은' 지표에 적합). 같은 값이 여러 개면 같은 등수를 공유합니다(공동 순위).", usesLookupTable:true, params:["찾을 값","값 열 번호"],
       fn:([val, colStr])=>{ const col=resolveColumnRef(colStr); const rows=getLookupDataRows();
         if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
@@ -1071,6 +1104,8 @@ let isBulkPasting = false; // 여러 행 붙여넣는 동안에는 1행 자동�
 
 function rowsInGrid(){ return [...grid.children]; }
 
+const MAX_RESULT_EXTRA = 7; // 결과값2~결과값8
+
 function addRow(){
   rowCount++;
   const tr = document.createElement("tr");
@@ -1079,6 +1114,8 @@ function addRow(){
       <div class="param-label">-</div>
       <input class="cell pval" data-idx="${i}" disabled>
     </td>`).join("");
+  const resultExtraHtml = Array.from({length:MAX_RESULT_EXTRA}, (_,i)=>`
+    <td class="result-cell result-extra" data-extra-idx="${i}" style="display:none;"><input class="cell fresult-extra" readonly></td>`).join("");
   tr.innerHTML = `
     <td class="idx">${rowCount}</td>
     <td class="fillable catCell">
@@ -1094,6 +1131,7 @@ function addRow(){
     </td>
     ${valCellsHtml}
     <td class="result-cell empty"><input class="cell fresult" readonly></td>
+    ${resultExtraHtml}
     <td class="del"><button class="del-btn" title="행 삭제">✕</button></td>
   `;
   grid.appendChild(tr);
@@ -1104,6 +1142,7 @@ function addRow(){
   const pvals = valCells.map(c=>c.querySelector(".pval"));
   const resultCell = tr.querySelector(".result-cell");
   const resultInput = tr.querySelector(".fresult");
+  const resultExtraInputs = [...tr.querySelectorAll(".fresult-extra")];
   const delBtn = tr.querySelector(".del-btn");
 
   function currentFn(){
@@ -1114,19 +1153,33 @@ function addRow(){
   function recompute(){
     const fnDef = currentFn();
     resultCell.classList.remove("err","empty");
-    if(!fnDef){ resultInput.value=""; resultCell.classList.add("empty"); return; }
+    resultExtraInputs.forEach(inp=> inp.value = "");
+    if(!fnDef){ resultInput.value=""; resultCell.classList.add("empty"); updateResultColumnVisibility(); return; }
     const values = pvals.slice(0, fnDef.params.length).map(inp=>inp.value);
-    if(values.some(v=>v==="")){ resultInput.value=""; resultCell.classList.add("empty"); return; }
+    if(fnDef.allowPartial){
+      if(values.every(v=>v==="")){ resultInput.value=""; resultCell.classList.add("empty"); updateResultColumnVisibility(); return; }
+    } else {
+      if(values.some(v=>v==="")){ resultInput.value=""; resultCell.classList.add("empty"); updateResultColumnVisibility(); return; }
+    }
     try{
       let result = fnDef.fn(values);
-      if(CATEGORIES[catSel.value].name === "텍스트 편집" && typeof result === "string"){
-        result = result.trim();
+      if(fnDef.multiResult){
+        const pieces = Array.isArray(result) ? result : [result];
+        resultInput.value = pieces[0] !== undefined ? pieces[0] : "";
+        for(let i=0;i<MAX_RESULT_EXTRA;i++){
+          resultExtraInputs[i].value = pieces[i+1] !== undefined ? pieces[i+1] : "";
+        }
+      } else {
+        if(CATEGORIES[catSel.value].name === "텍스트 편집" && typeof result === "string"){
+          result = result.trim();
+        }
+        resultInput.value = result;
       }
-      resultInput.value = result;
     }catch(e){
       resultInput.value = typeof e === "string" ? "⚠ "+e : "⚠ 변환 오류";
       resultCell.classList.add("err");
     }
+    updateResultColumnVisibility();
   }
 
   function applyParamCells(fnDef){
@@ -1349,7 +1402,17 @@ function showToast(msg){
 // ---------- 결과값 전체 복사 ----------
 async function copyAllResults(){
   const rows = rowsInGrid();
-  const text = rows.map(r=> r.querySelector(".fresult").value || "").join("\n");
+  let maxExtraVisible = 0;
+  for(let i=MAX_RESULT_EXTRA-1;i>=0;i--){
+    const col = document.getElementById(`colResult${i+2}`);
+    if(col && col.style.display !== "none"){ maxExtraVisible = i+1; break; }
+  }
+  const text = rows.map(r=>{
+    const main = r.querySelector(".fresult").value || "";
+    if(maxExtraVisible === 0) return main;
+    const extras = [...r.querySelectorAll(".fresult-extra")].slice(0, maxExtraVisible).map(inp=>inp.value || "");
+    return [main, ...extras].join("\t");
+  }).join("\n");
   if(!text.trim()){ alert("복사할 결과값이 없습니다."); return; }
   try{
     if(!navigator.clipboard) throw new Error("clipboard API 없음");
@@ -1400,6 +1463,8 @@ document.getElementById("addRow").addEventListener("click", ()=>{
 });
 document.getElementById("clearAll").addEventListener("click", ()=>{
   grid.innerHTML=""; rowCount=0; addRow();
+  splitModeManualOverride = null;
+  document.body.classList.remove("split-active","pivot-active","macro-active","show-pivot-section");
   updateLookupCardVisibility();
   updateValueColumnVisibility();
 });
@@ -1806,6 +1871,8 @@ function recomputeAllRows(){
     });
   });
 }
+document.getElementById("textJoin1").addEventListener("input", recomputeAllRows);
+document.getElementById("textJoin2").addEventListener("input", recomputeAllRows);
 
 // 화면 분할모드 수동 오버라이드: null=자동판단, true=강제 켜기, false=강제 끄기
 let splitModeManualOverride = null;
@@ -1816,6 +1883,7 @@ function updateLookupCardVisibility(){
   let anyVlookupSelected = false;
   let anyPivotSelected = false;
   let anyMacroSelected = false;
+  let anyPivotTableSelected = false;
   rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
     const fnSel = tr.querySelector(".fnSel");
@@ -1825,6 +1893,7 @@ function updateLookupCardVisibility(){
     if(lookupFnKeys.includes(fnDef.key)) anyVlookupSelected = true;
     if(fnDef.isPivotMode) anyPivotSelected = true;
     if(macroFnKeys.includes(fnDef.key)) anyMacroSelected = true;
+    if(fnDef.key === "피벗테이블") anyPivotTableSelected = true;
   });
   document.getElementById("lookupCard").style.display = anyVlookupSelected ? "" : "none";
   // 조회 함수 선택이 아예 없어지면 수동 오버라이드도 초기화(다음에 선택할 때 다시 자동판단)
@@ -1838,6 +1907,8 @@ function updateLookupCardVisibility(){
   document.body.classList.toggle("pivot-active", finalActive && anyPivotSelected);
   // 매크로 함수 선택 시엔 피벗 테이블 섹션은 관련 없으므로 숨김
   document.body.classList.toggle("macro-active", finalActive && anyMacroSelected);
+  // 피벗 테이블 섹션은 "피벗 테이블 만들기" 함수를 선택했을 때만 표시
+  document.body.classList.toggle("show-pivot-section", anyPivotTableSelected);
   updateSplitToggleButtonLabel();
 }
 
@@ -1877,6 +1948,30 @@ function updateSplitToggleButtonLabel(){
 
 // 표에서 현재 선택된 함수들 중 가장 많은 입력값을 요구하는 개수까지만
 // 입력값2·입력값3 열을 화면에 표시하고, 나머지는 아예 숨김
+// 텍스트 나누기 등 multiResult 함수의 실제 조각 개수에 맞춰 결과값2~8 열을 표시/숨김
+function updateResultColumnVisibility(){
+  let maxExtra = 0;
+  const rows = rowsInGrid();
+  rows.forEach(tr=>{
+    const extras = tr.querySelectorAll(".fresult-extra");
+    for(let i=extras.length-1;i>=0;i--){
+      if(extras[i].value !== ""){ maxExtra = Math.max(maxExtra, i+1); break; }
+    }
+  });
+  for(let i=0;i<MAX_RESULT_EXTRA;i++){
+    const show = i < maxExtra;
+    const disp = show ? "" : "none";
+    const col = document.getElementById(`colResult${i+2}`);
+    const th = document.getElementById(`thResult${i+2}`);
+    if(col) col.style.display = disp;
+    if(th) th.style.display = disp;
+    rows.forEach(tr=>{
+      const td = tr.querySelector(`.result-extra[data-extra-idx="${i}"]`);
+      if(td) td.style.display = disp;
+    });
+  }
+}
+
 function updateValueColumnVisibility(){
   let maxNeeded = 1;
   const rows = rowsInGrid();
