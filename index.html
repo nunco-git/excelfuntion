@@ -459,24 +459,26 @@
     <div class="pivot-section" id="textSplitSection">
       <h2 class="pivot-title">🔀 텍스트 나누기</h2>
       <p class="lookup-desc">
-        참조표에서 <strong>나눌 열</strong>과 <strong>구분자</strong>를 고르고 계산하면, 그 열의 값을 전부 쪼개서 조각 개수만큼 참조표 오른쪽에 새 열이 생기고 각 조각이 나뉘어 들어갑니다.
+        참조표에서 <strong>나눌 열</strong>과 <strong>구분자</strong>를 고르고 나누면, 그 열의 값을 전부 쪼개서 조각 개수만큼 참조표 오른쪽에 새 열이 생기고 각 조각이 나뉘어 들어갑니다.
       </p>
       <div class="lookup-actions">
         <span class="pivot-field"><span class="pivot-field-label">나눌 열</span><select id="tsCol"></select></span>
         <span class="pivot-field"><span class="pivot-field-label">구분자</span><input type="text" id="tsSep" class="text-join-input" style="width:80px;"></span>
-        <button class="btn primary" id="tsRun">계산하기</button>
+        <button class="btn primary" id="tsRun">나누기</button>
+        <button class="btn" id="tsCopyResults">결과값 복사</button>
       </div>
     </div>
 
     <div class="pivot-section" id="textJoinSection">
       <h2 class="pivot-title">🔗 텍스트 합치기</h2>
       <p class="lookup-desc">
-        합칠 열을 순서대로 고르세요. 열과 열 사이마다 서로 다른 연결글자를 따로 입력할 수 있습니다(비워두면 그냥 붙습니다). 계산하면 참조표 오른쪽에 합쳐진 값이 새 열로 추가됩니다.
+        합칠 열을 순서대로 고르세요. 열과 열 사이마다 서로 다른 연결글자를 따로 입력할 수 있습니다(비워두면 그냥 붙습니다). 합치면 참조표 오른쪽에 합쳐진 값이 새 열로 추가됩니다.
       </p>
       <div class="lookup-actions" id="tjFieldsContainer"></div>
       <div class="lookup-actions">
         <button class="btn" id="tjAddCol">+ 열 추가</button>
-        <button class="btn primary" id="tjRun">계산하기</button>
+        <button class="btn primary" id="tjRun">합치기</button>
+        <button class="btn" id="tjCopyResults">결과값 복사</button>
       </div>
     </div>
 
@@ -756,12 +758,12 @@ const CATEGORIES = [
       fn:([v])=> String(v.length) },
     { key:"텍스트나누기", label:"텍스트 나누기",
       example:"참조표에서 나눌 열과 구분자를 고르면, 조각 개수만큼 참조표 오른쪽에 새 열이 생겨 나뉘어 담깁니다",
-      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔀 텍스트 나누기' 섹션에서 나눌 열과 구분자를 고르고 계산하면, 그 열의 값을 전부 쪼개서 조각 개수만큼 참조표 오른쪽에 새 열이 자동으로 생기고 각 조각이 나뉘어 들어갑니다. 행마다 조각 개수가 달라도 가장 많은 조각 수에 맞춰 열이 만들어집니다.",
+      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔀 텍스트 나누기' 섹션에서 나눌 열과 구분자를 고르고 '나누기' 버튼을 누르면, 그 열의 값을 전부 쪼개서 조각 개수만큼 참조표 오른쪽에 새 열이 자동으로 생기고 각 조각이 나뉘어 들어갑니다. 행마다 조각 개수가 달라도 가장 많은 조각 수에 맞춰 열이 만들어지며, '결과값 복사' 버튼으로 나뉜 열들을 한 번에 복사할 수 있습니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
       fn:()=> "↓ 아래 참조표에 데이터를 넣고 '텍스트 나누기'에서 나눌 열과 구분자를 고르세요" },
     { key:"텍스트합치기", label:"텍스트 합치기",
       example:"참조표에서 합칠 열들을 순서대로 고르고 열 사이마다 다른 연결글자를 입력하면, 참조표 오른쪽에 합쳐진 값이 새 열로 추가됩니다",
-      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔗 텍스트 합치기' 섹션에서 합칠 열을 순서대로 고르세요('+ 열 추가'로 최대 10개까지 늘릴 수 있습니다). 열과 열 사이마다 서로 다른 연결글자를 따로 입력할 수 있습니다(비워두면 그냥 붙습니다). 계산하면 참조표 오른쪽에 합쳐진 값이 새 열로 추가됩니다.",
+      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔗 텍스트 합치기' 섹션에서 합칠 열을 순서대로 고르세요('+ 열 추가'로 최대 10개까지 늘릴 수 있습니다). 열과 열 사이마다 서로 다른 연결글자를 따로 입력할 수 있습니다(비워두면 그냥 붙습니다). '합치기' 버튼을 누르면 참조표 오른쪽에 합쳐진 값이 새 열로 추가되며, '결과값 복사' 버튼으로 그 열을 바로 복사할 수 있습니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
       fn:()=> "↓ 아래 참조표에 데이터를 넣고 '텍스트 합치기'에서 합칠 열들을 고르세요" },
   ]},
@@ -818,19 +820,15 @@ const CATEGORIES = [
         return parts.join(" "); } },
   ]},
   { name:"숫자 / 금액", functions:[
-    { key:"단위변환", label:"단위 변환", example:"1234567 / 원→천 → 1,234 / 1234567 / 원→백만 → 1", note:"금액의 단위를 바꿔줍니다. 두 번째 칸에 아래 3가지 중 하나를 그대로 입력하세요 — '원→천'(원 단위 값을 천원 단위로), '원→백만'(원 단위 값을 백만원 단위로), '천→백만'(천원 단위 값을 백만원 단위로). 결과는 항상 정수로 나오며, 소수점 이하는 버림 처리됩니다. 값에 쉼표가 섞여 있어도(예: 1,234,567) 인식합니다.", params:["값","변환 방식(원→천 / 원→백만 / 천→백만)"],
-      fn:([v, modeStr])=>{
-        const num = Number(String(v).trim().replace(/,/g,""));
-        if(isNaN(num)) throw "값은 숫자로 입력하세요";
-        const mode = modeStr.trim().replace(/\s+/g,"");
-        let divisor;
-        if(mode.includes("원") && mode.includes("천")) divisor = 1000;
-        else if(mode.includes("원") && mode.includes("백만")) divisor = 1000000;
-        else if(mode.includes("천") && mode.includes("백만")) divisor = 1000;
-        else throw "변환 방식은 '원→천', '원→백만', '천→백만' 중 하나로 입력하세요";
-        const result = Math.trunc(Number((num / divisor).toPrecision(12)));
-        return commify(String(result));
-      } },
+    { key:"단위변환원천", label:"단위변환(원→천)", example:"1234567 → 1,234", note:"원 단위 금액을 천원 단위로 바꿔줍니다. 결과는 항상 정수로 나오며 소수점 이하는 버림 처리됩니다. 값에 쉼표가 섞여 있어도(예: 1,234,567) 인식합니다.", params:["값"],
+      fn:([v])=>{ const num = Number(String(v).trim().replace(/,/g,"")); if(isNaN(num)) throw "값은 숫자로 입력하세요";
+        return commify(String(Math.trunc(Number((num/1000).toPrecision(12))))); } },
+    { key:"단위변환원백만", label:"단위변환(원→백만)", example:"1234567 → 1", note:"원 단위 금액을 백만원 단위로 바꿔줍니다. 결과는 항상 정수로 나오며 소수점 이하는 버림 처리됩니다. 값에 쉼표가 섞여 있어도(예: 1,234,567) 인식합니다.", params:["값"],
+      fn:([v])=>{ const num = Number(String(v).trim().replace(/,/g,"")); if(isNaN(num)) throw "값은 숫자로 입력하세요";
+        return commify(String(Math.trunc(Number((num/1000000).toPrecision(12))))); } },
+    { key:"단위변환천백만", label:"단위변환(천→백만)", example:"1234 → 1", note:"천원 단위 금액을 백만원 단위로 바꿔줍니다. 결과는 항상 정수로 나오며 소수점 이하는 버림 처리됩니다. 값에 쉼표가 섞여 있어도 인식합니다.", params:["값"],
+      fn:([v])=>{ const num = Number(String(v).trim().replace(/,/g,"")); if(isNaN(num)) throw "값은 숫자로 입력하세요";
+        return commify(String(Math.trunc(Number((num/1000).toPrecision(12))))); } },
     { key:"한글금액변환", label:"한글 금액 변환", example:"1234000 → 일백이십삼만사천원정", note:"계약서·품의서 등 공문서에 쓰이는 '일금 ○○○원정' 형식의 한글 금액 표기를 자동으로 만들어줍니다.", params:["값"],
       fn:([v])=>{ const s=v.trim().replace(/,/g,""); const num=parseInt(s,10);
         if(isNaN(num)||num<0) throw "0 이상 숫자 입력";
@@ -1823,9 +1821,19 @@ function runTextSplit(){
     }
   }
   syncLookupTableFromGrid();
+  tsLastCols = Array.from({length:maxPieces}, (_,n)=> startColIdx+n+1); // 1-based 열 번호 기록
   showToast(`${maxPieces}개 조각으로 나눠서 새 열에 넣었습니다.`);
 }
 document.getElementById("tsRun").addEventListener("click", runTextSplit);
+
+let tsLastCols = null;
+function copyTextSplitResults(){
+  if(!tsLastCols || tsLastCols.length === 0){ alert("먼저 '나누기'를 실행하세요."); return; }
+  const rows = getLookupDataRows();
+  const text = rows.map(r => tsLastCols.map(c => r[c-1] || "").join("\t")).join("\n");
+  copyTextToClipboard(text, "나눈 결과가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+}
+document.getElementById("tsCopyResults").addEventListener("click", copyTextSplitResults);
 
 // ---------- 텍스트 합치기(참조표) ----------
 let tjColCount = 2;
@@ -1899,10 +1907,20 @@ function runTextJoin(){
     processedCount++;
   }
   syncLookupTableFromGrid();
+  tjLastCol = newColIdx;
   showToast(`${processedCount}개 행을 합쳐서 새 열에 넣었습니다.`);
 }
 document.getElementById("tjRun").addEventListener("click", runTextJoin);
 renderTextJoinFields();
+
+let tjLastCol = null;
+function copyTextJoinResults(){
+  if(!tjLastCol){ alert("먼저 '합치기'를 실행하세요."); return; }
+  const rows = getLookupDataRows();
+  const text = rows.map(r => r[tjLastCol-1] || "").join("\n");
+  copyTextToClipboard(text, "합친 결과가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+}
+document.getElementById("tjCopyResults").addEventListener("click", copyTextJoinResults);
 
 function runJudgingTable(){
   const { data } = getMacroHeaderAndData();
@@ -2117,6 +2135,28 @@ function runPivotTable(){
 }
 
 document.getElementById("pivotRun").addEventListener("click", runPivotTable);
+
+// 공용 클립보드 복사 헬퍼(자동 복사 실패 시 수동 복사 모달로 대체)
+async function copyTextToClipboard(text, successMsg){
+  if(!text.trim()){ alert("복사할 결과가 없습니다."); return; }
+  try{
+    if(!navigator.clipboard) throw new Error("clipboard API 없음");
+    await navigator.clipboard.writeText(text);
+    showToast(successMsg);
+  }catch(err){
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
+    document.body.appendChild(ta); ta.select();
+    let execOk = false;
+    try{ execOk = document.execCommand("copy"); }catch(e2){ execOk = false; }
+    document.body.removeChild(ta);
+    if(execOk){
+      showToast(successMsg);
+    } else {
+      showCopyFallbackModal(text);
+    }
+  }
+}
 
 async function copyPivotResults(){
   const table = document.getElementById("pivotResultTable");
