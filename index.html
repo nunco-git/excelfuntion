@@ -2173,7 +2173,11 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
     if(fitOption === "fill"){
       // 셀에 채우기: 셀 하나를 정확히 감싸는 twoCellAnchor(기본 editAs="twoCell")로 지정해서
       // 나중에 셀 크기(행 높이·열 너비)를 바꾸면 이미지도 그 크기에 맞춰 자동으로 늘어나거나 줄어듭니다.
-      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
+      // xfrm의 초기 크기도 명시해야 엑셀이 리사이즈 기준을 올바르게 잡습니다.
+      const w = naturalW || 4, h = naturalH || 3;
+      const initCx = CELL_BOX_EMU.w;
+      const initCy = Math.round(CELL_BOX_EMU.w * (h / w));
+      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${initCx}" cy="${initCy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
     } else {
       // 원본 비율 유지: editAs="oneCell"로 지정해서 셀과 함께 이동은 하되(행이 추가/삭제되면 따라 움직임),
       // 크기는 원본 가로세로 비율 그대로 고정되어 늘어나거나 찌그러지지 않습니다.
@@ -2230,14 +2234,22 @@ async function downloadPhotoResultsAsExcel(){
   if(lookupTable.length === 0){ alert("먼저 사진을 넣어주세요."); return; }
   const body = document.getElementById("lookupGridBody");
   const rows = [...body.children];
+
+  // 값이 있는 마지막 행을 찾아서, 그 뒤에 남은(한 번도 안 쓴) 빈 템플릿 행만 잘라냄.
+  // 중간에 있는 빈 구분행(사진 사이 여백)은 그대로 보존.
+  let lastContentIdx = -1;
+  rows.forEach((tr, idx)=>{
+    const cells = [...tr.children];
+    const hasContent = cells.some(td=>{ const inp = td.querySelector("input"); return inp && inp.value.trim() !== ""; });
+    if(hasContent) lastContentIdx = idx;
+  });
+  if(lastContentIdx === -1){ alert("다운로드할 내용이 없습니다."); return; }
+
   const aoa = [];
   const imageDataByRow = [];
-  let hasAnyContent = false;
-  rows.forEach(tr=>{
+  for(let i=0;i<=lastContentIdx;i++){
+    const tr = rows[i];
     const cells = [...tr.children];
-    const isRowEmpty = cells.every(td=>{ const inp = td.querySelector("input"); return !inp || inp.value.trim()===""; });
-    if(isRowEmpty) return;
-    hasAnyContent = true;
     const rowVals = [];
     let imgInfo = null;
     cells.forEach((td, colIdx)=>{
@@ -2258,8 +2270,7 @@ async function downloadPhotoResultsAsExcel(){
     });
     aoa.push(rowVals);
     imageDataByRow.push(imgInfo);
-  });
-  if(!hasAnyContent){ alert("다운로드할 내용이 없습니다."); return; }
+  }
 
   showToast("엑셀 파일을 생성하는 중입니다...");
   try{
