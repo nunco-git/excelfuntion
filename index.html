@@ -2215,13 +2215,29 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
         `</xdr:twoCellAnchor>`
       );
     } else {
-      // 원본 비율 유지 옵션은 기존 동작을 유지합니다.
+      // 원본 비율 유지: 셀 크기에 따라 사진도 함께 확대/축소하되
+      // 가로세로가 찌그러지지 않도록 '비율 유지 + 중앙 맞춤(crop)'으로 표시합니다.
+      // twoCellAnchor 자체는 셀의 가로/세로 비율 변화에 따라 그림을 늘려버릴 수 있으므로,
+      // 사진의 원본 비율을 유지한 상태에서 셀을 채우도록 중앙 부분을 잘라냅니다.
       const w = info.naturalW || 4, h = info.naturalH || 3;
       const boxW = 950000, boxH = 700000;
       const imgRatio = w / h;
       const boxRatio = boxW / boxH;
-      const cx = Math.max(1, Math.round(imgRatio > boxRatio ? boxW : boxH * imgRatio));
-      const cy = Math.max(1, Math.round(imgRatio > boxRatio ? boxW / imgRatio : boxH));
+
+      // srcRect는 0~100000 단위의 백분율입니다.
+      // 가로가 긴 사진은 좌우를, 세로가 긴 사진은 상하를 중앙 기준으로 crop합니다.
+      let srcL = 0, srcT = 0, srcR = 100000, srcB = 100000;
+      if (imgRatio > boxRatio) {
+        const visibleRatio = boxRatio / imgRatio;
+        const crop = Math.max(0, Math.min(49999, Math.round((1 - visibleRatio) * 50000)));
+        srcL = crop;
+        srcR = 100000 - crop;
+      } else if (imgRatio < boxRatio) {
+        const visibleRatio = imgRatio / boxRatio;
+        const crop = Math.max(0, Math.min(49999, Math.round((1 - visibleRatio) * 50000)));
+        srcT = crop;
+        srcB = 100000 - crop;
+      }
 
       drawingShapes.push(
         `<xdr:twoCellAnchor editAs="twoCell">` +
@@ -2244,6 +2260,7 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
             `</xdr:nvPicPr>` +
             `<xdr:blipFill>` +
               `<a:blip r:embed="${rId}"/>` +
+              `<a:srcRect l="${srcL}" t="${srcT}" r="${srcR}" b="${srcB}"/>` +
               `<a:stretch><a:fillRect/></a:stretch>` +
             `</xdr:blipFill>` +
             `<xdr:spPr>` +
