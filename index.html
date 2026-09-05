@@ -526,8 +526,8 @@
         </span>
         <span class="pivot-field"><span class="pivot-field-label">사진 셀모양</span>
           <select id="photoFitOption">
-            <option value="fill">셀에 채우기(셀 크기에 맞춰 자동 조절)</option>
-            <option value="contain">원본 비율 유지(셀 크기 변경 시 함께 조절)</option>
+            <option value="contain">원본 비율 유지(여백 있을 수 있음)</option>
+            <option value="fill">셀에 채우기(늘려서 꽉 채움)</option>
           </select>
         </span>
         <button class="btn primary" id="photoImportBtn">폴더에서 사진 넣기</button>
@@ -2093,7 +2093,7 @@ document.getElementById("photoFolderInput").addEventListener("change", async (e)
   files.sort((a,b)=> a.name.localeCompare(b.name, "ko", {numeric:true}));
 
   const nameOption = document.getElementById("photoNameOption").value; // "noext" | "withext"
-  const fitOption = document.getElementById("photoFitOption").value; // "contain" | "fill"
+  const fitOption = document.getElementById("photoFitOption").value; // "nofill" | "fill"
 
   while(lookupCols < 2) addLookupColumn();
 
@@ -2177,12 +2177,52 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
     );
 
     if(fitOption === "fill"){
-      // 셀에 맞춤: Excel의 "이동 및 크기 조정"에 해당하는 twoCellAnchor를 사용합니다.
-      // from/to 두 앵커가 각각 셀의 좌상단/우하단을 가리키므로
-      // 열 너비 또는 행 높이를 변경하면 이미지도 함께 확대/축소됩니다.
-      // a:xfrm은 Excel이 처음 열었을 때 사용할 초기 위치/크기만 지정합니다.
-      const initW = 950000;
-      const initH = 700000;
+      // 핵심: 사진을 해당 셀의 정확한 시작점(from)부터 다음 셀의 시작점(to)까지
+      // twoCellAnchor로 연결합니다.
+      // 따라서 Excel에서 행 높이나 열 너비를 변경하면 사진도 셀 크기에 맞춰
+      // 자동으로 확대/축소됩니다.
+      //
+      // xdr:spPr의 고정 ext(cx/cy)는 의도적으로 넣지 않습니다.
+      // 셀 경계(from/to)가 사진의 크기를 결정하도록 합니다.
+      drawingShapes.push(
+        `<xdr:twoCellAnchor editAs="twoCell">` +
+          `<xdr:from>` +
+            `<xdr:col>${colIdx}</xdr:col>` +
+            `<xdr:colOff>0</xdr:colOff>` +
+            `<xdr:row>${rowIdx}</xdr:row>` +
+            `<xdr:rowOff>0</xdr:rowOff>` +
+          `</xdr:from>` +
+          `<xdr:to>` +
+            `<xdr:col>${colIdx + 1}</xdr:col>` +
+            `<xdr:colOff>0</xdr:colOff>` +
+            `<xdr:row>${rowIdx + 1}</xdr:row>` +
+            `<xdr:rowOff>0</xdr:rowOff>` +
+          `</xdr:to>` +
+          `<xdr:pic>` +
+            `<xdr:nvPicPr>` +
+              `<xdr:cNvPr id="${imgCounter + 1}" name="Picture ${imgCounter}"/>` +
+              `<xdr:cNvPicPr><a:picLocks noChangeAspect="0"/></xdr:cNvPicPr>` +
+            `</xdr:nvPicPr>` +
+            `<xdr:blipFill>` +
+              `<a:blip r:embed="${rId}"/>` +
+              `<a:stretch><a:fillRect/></a:stretch>` +
+            `</xdr:blipFill>` +
+            `<xdr:spPr>` +
+              `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+            `</xdr:spPr>` +
+          `</xdr:pic>` +
+          `<xdr:clientData/>` +
+        `</xdr:twoCellAnchor>`
+      );
+    } else {
+      // 원본 비율 유지 옵션은 기존 동작을 유지합니다.
+      const w = info.naturalW || 4, h = info.naturalH || 3;
+      const boxW = 950000, boxH = 700000;
+      const imgRatio = w / h;
+      const boxRatio = boxW / boxH;
+      const cx = Math.max(1, Math.round(imgRatio > boxRatio ? boxW : boxH * imgRatio));
+      const cy = Math.max(1, Math.round(imgRatio > boxRatio ? boxW / imgRatio : boxH));
+
       drawingShapes.push(
         `<xdr:twoCellAnchor editAs="twoCell">` +
           `<xdr:from>` +
@@ -2207,47 +2247,6 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
               `<a:stretch><a:fillRect/></a:stretch>` +
             `</xdr:blipFill>` +
             `<xdr:spPr>` +
-              `<a:xfrm><a:off x="0" y="0"/><a:ext cx="${initW}" cy="${initH}"/></a:xfrm>` +
-              `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-            `</xdr:spPr>` +
-          `</xdr:pic>` +
-          `<xdr:clientData/>` +
-        `</xdr:twoCellAnchor>`
-      );
-    } else {
-      // 원본 비율 유지 옵션은 기존 동작을 유지합니다.
-      const w = info.naturalW || 4, h = info.naturalH || 3;
-      const boxW = 950000, boxH = 700000;
-      const imgRatio = w / h;
-      const boxRatio = boxW / boxH;
-      const cx = Math.max(1, Math.round(imgRatio > boxRatio ? boxW : boxH * imgRatio));
-      const cy = Math.max(1, Math.round(imgRatio > boxRatio ? boxW / imgRatio : boxH));
-
-      drawingShapes.push(
-        `<xdr:twoCellAnchor editAs="oneCell">` +
-          `<xdr:from>` +
-            `<xdr:col>${colIdx}</xdr:col>` +
-            `<xdr:colOff>0</xdr:colOff>` +
-            `<xdr:row>${rowIdx}</xdr:row>` +
-            `<xdr:rowOff>0</xdr:rowOff>` +
-          `</xdr:from>` +
-          `<xdr:to>` +
-            `<xdr:col>${colIdx + 1}</xdr:col>` +
-            `<xdr:colOff>0</xdr:colOff>` +
-            `<xdr:row>${rowIdx + 1}</xdr:row>` +
-            `<xdr:rowOff>0</xdr:rowOff>` +
-          `</xdr:to>` +
-          `<xdr:pic>` +
-            `<xdr:nvPicPr>` +
-              `<xdr:cNvPr id="${imgCounter + 1}" name="Picture ${imgCounter}"/>` +
-              `<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr>` +
-            `</xdr:nvPicPr>` +
-            `<xdr:blipFill>` +
-              `<a:blip r:embed="${rId}"/>` +
-              `<a:stretch><a:fillRect/></a:stretch>` +
-            `</xdr:blipFill>` +
-            `<xdr:spPr>` +
-              `<a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
               `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
             `</xdr:spPr>` +
           `</xdr:pic>` +
@@ -2279,12 +2278,10 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
   let relsXml;
   if(relsFile){
     relsXml = await relsFile.async("string");
-    if(!relsXml.includes('Id="rIdDrawing1"')){
-      relsXml = relsXml.replace(
-        "</Relationships>",
-        `<Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`
-      );
-    }
+    relsXml = relsXml.replace(
+      "</Relationships>",
+      `<Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`
+    );
   } else {
     relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`;
   }
