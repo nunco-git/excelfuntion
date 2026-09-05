@@ -2240,7 +2240,7 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
           `<xdr:pic>` +
             `<xdr:nvPicPr>` +
               `<xdr:cNvPr id="${imgCounter + 1}" name="Picture ${imgCounter}"/>` +
-              `<xdr:cNvPicPr/>` +
+              `<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr>` +
             `</xdr:nvPicPr>` +
             `<xdr:blipFill>` +
               `<a:blip r:embed="${rId}"/>` +
