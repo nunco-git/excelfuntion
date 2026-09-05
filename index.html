@@ -2127,22 +2127,32 @@ document.getElementById("photoFolderInput").addEventListener("change", async (e)
 // xlsx 내부에 실제 이미지를 삽입(엑셀이 "링크된 이미지" 오류 없이 바로 표시)
 async function buildXlsxWithImages(aoa, imageDataByRow){
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  const PHOTO_COL_WCH = 20; // 사진 열의 고정 너비(문자 단위) — 아래 행 높이 계산 시 이 값을 기준으로 함
-  ws["!cols"] = aoa[0].map((_, ci)=> imageDataByRow.some(info=>info && info.colIdx===ci) ? {wch:PHOTO_COL_WCH} : {wch:16});
+  const PHOTO_COL_WCH = 20; // 사진 열의 기본 너비(문자 단위)
+
+  // 사진이 들어가는 열은 사진 표시를 위해 고정 너비를 사용하고,
+  // 나머지 열은 기존 기본 너비를 유지합니다.
+  ws["!cols"] = aoa[0].map((_, ci)=>
+    imageDataByRow.some(info=>info && info.colIdx===ci)
+      ? {wch:PHOTO_COL_WCH}
+      : {wch:16}
+  );
+
+  // 사진 행의 높이는 셀 안에 사진이 들어갈 수 있도록 원본 비율을 고려합니다.
+  // 단, 실제 Excel에서 셀 크기가 변경되면 twoCellAnchor가 셀 경계를 따라가므로
+  // 사진도 함께 확대/축소됩니다.
   ws["!rows"] = aoa.map((_, ri)=>{
     const info = imageDataByRow[ri];
     if(!info) return undefined;
     if(info.fitOption === "fill"){
-      // 고정된 열 너비를 기준으로, 이 사진의 원본 비율과 정확히 맞는 행 높이를 계산
-      // (셀 모양 자체를 사진 비율과 일치시켜서, 늘어나도 찌그러지지 않게 함)
-      const colPx = PHOTO_COL_WCH * 7; // wch(문자 단위) -> 대략적인 픽셀 환산
+      const colPx = PHOTO_COL_WCH * 7;
       const w = info.naturalW || 4, h = info.naturalH || 3;
       const rowPx = colPx * (h / w);
-      const rowPt = Math.min(409, Math.max(15, rowPx * 0.75)); // px -> pt, 엑셀 행 높이 한도 내로 제한
+      const rowPt = Math.min(409, Math.max(15, rowPx * 0.75));
       return { hpt: rowPt };
     }
     return { hpt:70 };
   });
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "사진목록");
   const arrayBuffer = XLSX.write(wb, { type:"array", bookType:"xlsx" });
@@ -2151,41 +2161,99 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
   const drawingRels = [];
   const drawingShapes = [];
   let imgCounter = 1;
-  const CELL_BOX_EMU = { w: 950000, h: 700000 }; // 기본 셀 하나 크기(대략, 원본 비율 계산용)
-
-  function computeContainBox(imgW, imgH, boxW, boxH){
-    const imgRatio = imgW / imgH;
-    const boxRatio = boxW / boxH;
-    if(imgRatio > boxRatio) return { w: boxW, h: boxW / imgRatio };
-    return { w: boxH * imgRatio, h: boxH };
-  }
 
   imageDataByRow.forEach((info, rowIdx)=>{
     if(!info) return;
-    const { colIdx, dataUrl, fitOption, naturalW, naturalH } = info;
+    const { colIdx, dataUrl, fitOption } = info;
     const commaIdx = dataUrl.indexOf(",");
     const base64 = dataUrl.slice(commaIdx+1);
     const ext = dataUrl.includes("image/png") ? "png" : "jpeg";
+
     zip.file(`xl/media/image${imgCounter}.${ext}`, base64, { base64:true });
+
     const rId = `rId${imgCounter}`;
-    drawingRels.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.${ext}"/>`);
+    drawingRels.push(
+      `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.${ext}"/>`
+    );
 
     if(fitOption === "fill"){
-      // 셀에 채우기: 셀 하나를 정확히 감싸는 twoCellAnchor(기본 editAs="twoCell")로 지정해서
-      // 나중에 셀 크기(행 높이·열 너비)를 바꾸면 이미지도 그 크기에 맞춰 자동으로 늘어나거나 줄어듭니다.
-      // xfrm의 초기 크기도 명시해야 엑셀이 리사이즈 기준을 올바르게 잡습니다.
-      const w = naturalW || 4, h = naturalH || 3;
-      const initCx = CELL_BOX_EMU.w;
-      const initCy = Math.round(CELL_BOX_EMU.w * (h / w));
-      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="0"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${initCx}" cy="${initCy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
+      // 핵심: 사진을 해당 셀의 정확한 시작점(from)부터 다음 셀의 시작점(to)까지
+      // twoCellAnchor로 연결합니다.
+      // 따라서 Excel에서 행 높이나 열 너비를 변경하면 사진도 셀 크기에 맞춰
+      // 자동으로 확대/축소됩니다.
+      //
+      // xdr:spPr의 고정 ext(cx/cy)는 의도적으로 넣지 않습니다.
+      // 셀 경계(from/to)가 사진의 크기를 결정하도록 합니다.
+      drawingShapes.push(
+        `<xdr:twoCellAnchor editAs="twoCell">` +
+          `<xdr:from>` +
+            `<xdr:col>${colIdx}</xdr:col>` +
+            `<xdr:colOff>0</xdr:colOff>` +
+            `<xdr:row>${rowIdx}</xdr:row>` +
+            `<xdr:rowOff>0</xdr:rowOff>` +
+          `</xdr:from>` +
+          `<xdr:to>` +
+            `<xdr:col>${colIdx + 1}</xdr:col>` +
+            `<xdr:colOff>0</xdr:colOff>` +
+            `<xdr:row>${rowIdx + 1}</xdr:row>` +
+            `<xdr:rowOff>0</xdr:rowOff>` +
+          `</xdr:to>` +
+          `<xdr:pic>` +
+            `<xdr:nvPicPr>` +
+              `<xdr:cNvPr id="${imgCounter + 1}" name="Picture ${imgCounter}"/>` +
+              `<xdr:cNvPicPr><a:picLocks noChangeAspect="0"/></xdr:cNvPicPr>` +
+            `</xdr:nvPicPr>` +
+            `<xdr:blipFill>` +
+              `<a:blip r:embed="${rId}"/>` +
+              `<a:stretch><a:fillRect/></a:stretch>` +
+            `</xdr:blipFill>` +
+            `<xdr:spPr>` +
+              `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+            `</xdr:spPr>` +
+          `</xdr:pic>` +
+          `<xdr:clientData/>` +
+        `</xdr:twoCellAnchor>`
+      );
     } else {
-      // 원본 비율 유지: editAs="oneCell"로 지정해서 셀과 함께 이동은 하되(행이 추가/삭제되면 따라 움직임),
-      // 크기는 원본 가로세로 비율 그대로 고정되어 늘어나거나 찌그러지지 않습니다.
-      const w = naturalW || 4, h = naturalH || 3;
-      const box = computeContainBox(w, h, CELL_BOX_EMU.w, CELL_BOX_EMU.h);
-      const cx = Math.max(1, Math.round(box.w));
-      const cy = Math.max(1, Math.round(box.h));
-      drawingShapes.push(`<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
+      // 원본 비율 유지 옵션은 기존 동작을 유지합니다.
+      const w = info.naturalW || 4, h = info.naturalH || 3;
+      const boxW = 950000, boxH = 700000;
+      const imgRatio = w / h;
+      const boxRatio = boxW / boxH;
+      const cx = Math.max(1, Math.round(imgRatio > boxRatio ? boxW : boxH * imgRatio));
+      const cy = Math.max(1, Math.round(imgRatio > boxRatio ? boxW / imgRatio : boxH));
+
+      drawingShapes.push(
+        `<xdr:twoCellAnchor editAs="oneCell">` +
+          `<xdr:from>` +
+            `<xdr:col>${colIdx}</xdr:col>` +
+            `<xdr:colOff>0</xdr:colOff>` +
+            `<xdr:row>${rowIdx}</xdr:row>` +
+            `<xdr:rowOff>0</xdr:rowOff>` +
+          `</xdr:from>` +
+          `<xdr:to>` +
+            `<xdr:col>${colIdx + 1}</xdr:col>` +
+            `<xdr:colOff>0</xdr:colOff>` +
+            `<xdr:row>${rowIdx + 1}</xdr:row>` +
+            `<xdr:rowOff>0</xdr:rowOff>` +
+          `</xdr:to>` +
+          `<xdr:pic>` +
+            `<xdr:nvPicPr>` +
+              `<xdr:cNvPr id="${imgCounter + 1}" name="Picture ${imgCounter}"/>` +
+              `<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr>` +
+            `</xdr:nvPicPr>` +
+            `<xdr:blipFill>` +
+              `<a:blip r:embed="${rId}"/>` +
+              `<a:stretch><a:fillRect/></a:stretch>` +
+            `</xdr:blipFill>` +
+            `<xdr:spPr>` +
+              `<a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
+              `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+            `</xdr:spPr>` +
+          `</xdr:pic>` +
+          `<xdr:clientData/>` +
+        `</xdr:twoCellAnchor>`
+      );
     }
     imgCounter++;
   });
@@ -2211,7 +2279,10 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
   let relsXml;
   if(relsFile){
     relsXml = await relsFile.async("string");
-    relsXml = relsXml.replace("</Relationships>", `<Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`);
+    relsXml = relsXml.replace(
+      "</Relationships>",
+      `<Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`
+    );
   } else {
     relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`;
   }
