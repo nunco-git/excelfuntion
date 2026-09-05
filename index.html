@@ -242,9 +242,9 @@
     padding:6px 8px;font-size:12px;font-family:inherit;color:var(--text);box-sizing:border-box;}
   input.lookup-cell:focus{background:#eef2ff;box-shadow:inset 0 0 0 1.5px #4338ca;}
   img.lookup-photo-thumb{display:block;max-width:100px;max-height:70px;margin:4px auto;
-    border-radius:4px;border:1px solid var(--line);object-fit:cover;}
+    border-radius:4px;border:1px solid var(--line);object-fit:contain;background:#fff;}
   img.lookup-photo-thumb.fill-cell{max-width:none;max-height:none;width:100%;height:90px;
-    margin:0;border-radius:0;border:none;object-fit:cover;}
+    margin:0;border-radius:0;border:none;object-fit:fill;}
 
   .pivot-section{margin-top:20px;padding-top:16px;border-top:1.5px dashed #c7d2fe;}
   .pivot-section{display:none;}
@@ -515,7 +515,7 @@
     <div class="pivot-section" id="photoImportSection">
       <h2 class="pivot-title">📷 사진파일 일괄 입력</h2>
       <p class="lookup-desc">
-        폴더를 선택하면 그 안의 사진 파일들을 파일명 순서대로, <strong>1열에 파일명 · 2열에 사진</strong>을 넣은 행을 만들고 그 다음에 빈 행을 하나 끼워서, 참조표 맨 아래부터 사진 개수만큼 반복해서 채웁니다.
+        폴더를 선택하면 그 안의 사진 파일들을 파일명 순서대로, <strong>1열에 파일명 · 2열에 사진</strong>을 넣은 행을 만들고 그 다음에 빈 행을 하나 끼워서, 참조표 맨 아래부터 사진 개수만큼 반복해서 채웁니다. <strong>"셀에 채우기"</strong>로 넣으면 처음부터 그 사진의 원본 비율과 정확히 맞는 칸 크기로 만들어지고, 나중에 행 높이·열 너비를 함께(비례해서) 늘리거나 줄이면 사진도 그 크기에 맞춰 찌그러지지 않고 커지거나 작아집니다. 다만 열 너비 하나만 따로 바꾸면(같은 열의 다른 사진들과 폭을 공유하므로) 그 사진의 비율이 틀어질 수 있습니다 — 완전히 자동으로 항상 비율을 지키게 하려면 엑셀 매크로(VBA)가 필요한데, 이 앱은 매크로 없는 순수 파일만 만들 수 있어서 그 부분은 지원하지 않습니다. <strong>"원본 비율 유지"</strong>로 넣은 사진은 처음 크기 그대로 고정되어 항상 원본 비율을 유지합니다(행이 추가·삭제되면 같이 움직이지만, 크기 자체는 바뀌지 않습니다).
       </p>
       <div class="lookup-actions">
         <span class="pivot-field"><span class="pivot-field-label">파일 이름</span>
@@ -526,8 +526,8 @@
         </span>
         <span class="pivot-field"><span class="pivot-field-label">사진 셀모양</span>
           <select id="photoFitOption">
-            <option value="nofill">채우지 않기</option>
-            <option value="fill">셀에 채우기</option>
+            <option value="contain">원본 비율 유지(여백 있을 수 있음)</option>
+            <option value="fill">셀에 채우기(늘려서 꽉 채움)</option>
           </select>
         </span>
         <button class="btn primary" id="photoImportBtn">폴더에서 사진 넣기</button>
@@ -2063,6 +2063,11 @@ function insertImageIntoCell(td, dataUrl, fileName, fitOption){
   img.src = dataUrl;
   img.className = "lookup-photo-thumb" + (fitOption === "fill" ? " fill-cell" : "");
   img.alt = fileName || "사진";
+  img.dataset.fitOption = fitOption || "contain";
+  img.onload = ()=>{
+    img.dataset.naturalW = img.naturalWidth;
+    img.dataset.naturalH = img.naturalHeight;
+  };
   td.appendChild(img);
 }
 
@@ -2122,8 +2127,22 @@ document.getElementById("photoFolderInput").addEventListener("change", async (e)
 // xlsx 내부에 실제 이미지를 삽입(엑셀이 "링크된 이미지" 오류 없이 바로 표시)
 async function buildXlsxWithImages(aoa, imageDataByRow){
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = aoa[0].map((_, ci)=> imageDataByRow.some(info=>info && info.colIdx===ci) ? {wch:20} : {wch:16});
-  ws["!rows"] = aoa.map((_, ri)=> imageDataByRow[ri] ? {hpt:60} : undefined);
+  const PHOTO_COL_WCH = 20; // 사진 열의 고정 너비(문자 단위) — 아래 행 높이 계산 시 이 값을 기준으로 함
+  ws["!cols"] = aoa[0].map((_, ci)=> imageDataByRow.some(info=>info && info.colIdx===ci) ? {wch:PHOTO_COL_WCH} : {wch:16});
+  ws["!rows"] = aoa.map((_, ri)=>{
+    const info = imageDataByRow[ri];
+    if(!info) return undefined;
+    if(info.fitOption === "fill"){
+      // 고정된 열 너비를 기준으로, 이 사진의 원본 비율과 정확히 맞는 행 높이를 계산
+      // (셀 모양 자체를 사진 비율과 일치시켜서, 늘어나도 찌그러지지 않게 함)
+      const colPx = PHOTO_COL_WCH * 7; // wch(문자 단위) -> 대략적인 픽셀 환산
+      const w = info.naturalW || 4, h = info.naturalH || 3;
+      const rowPx = colPx * (h / w);
+      const rowPt = Math.min(409, Math.max(15, rowPx * 0.75)); // px -> pt, 엑셀 행 높이 한도 내로 제한
+      return { hpt: rowPt };
+    }
+    return { hpt:70 };
+  });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "사진목록");
   const arrayBuffer = XLSX.write(wb, { type:"array", bookType:"xlsx" });
@@ -2132,18 +2151,38 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
   const drawingRels = [];
   const drawingShapes = [];
   let imgCounter = 1;
+  const CELL_BOX_EMU = { w: 950000, h: 700000 }; // 기본 셀 하나 크기(대략, 원본 비율 계산용)
+
+  function computeContainBox(imgW, imgH, boxW, boxH){
+    const imgRatio = imgW / imgH;
+    const boxRatio = boxW / boxH;
+    if(imgRatio > boxRatio) return { w: boxW, h: boxW / imgRatio };
+    return { w: boxH * imgRatio, h: boxH };
+  }
 
   imageDataByRow.forEach((info, rowIdx)=>{
     if(!info) return;
-    const { colIdx, dataUrl } = info;
+    const { colIdx, dataUrl, fitOption, naturalW, naturalH } = info;
     const commaIdx = dataUrl.indexOf(",");
     const base64 = dataUrl.slice(commaIdx+1);
     const ext = dataUrl.includes("image/png") ? "png" : "jpeg";
     zip.file(`xl/media/image${imgCounter}.${ext}`, base64, { base64:true });
     const rId = `rId${imgCounter}`;
     drawingRels.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.${ext}"/>`);
-    const widthEmu = 950000, heightEmu = 700000;
-    drawingShapes.push(`<xdr:oneCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${widthEmu}" cy="${heightEmu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${widthEmu}" cy="${heightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`);
+
+    if(fitOption === "fill"){
+      // 셀에 채우기: 셀 하나를 정확히 감싸는 twoCellAnchor(기본 editAs="twoCell")로 지정해서
+      // 나중에 셀 크기(행 높이·열 너비)를 바꾸면 이미지도 그 크기에 맞춰 자동으로 늘어나거나 줄어듭니다.
+      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
+    } else {
+      // 원본 비율 유지: editAs="oneCell"로 지정해서 셀과 함께 이동은 하되(행이 추가/삭제되면 따라 움직임),
+      // 크기는 원본 가로세로 비율 그대로 고정되어 늘어나거나 찌그러지지 않습니다.
+      const w = naturalW || 4, h = naturalH || 3;
+      const box = computeContainBox(w, h, CELL_BOX_EMU.w, CELL_BOX_EMU.h);
+      const cx = Math.max(1, Math.round(box.w));
+      const cy = Math.max(1, Math.round(box.h));
+      drawingShapes.push(`<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
+    }
     imgCounter++;
   });
 
@@ -2205,7 +2244,13 @@ async function downloadPhotoResultsAsExcel(){
       const img = td.querySelector("img.lookup-photo-thumb");
       if(img){
         rowVals.push("");
-        imgInfo = { colIdx, dataUrl: img.src };
+        imgInfo = {
+          colIdx,
+          dataUrl: img.src,
+          fitOption: img.dataset.fitOption || "contain",
+          naturalW: parseInt(img.dataset.naturalW, 10) || img.naturalWidth || 4,
+          naturalH: parseInt(img.dataset.naturalH, 10) || img.naturalHeight || 3,
+        };
       } else {
         const inp = td.querySelector("input");
         rowVals.push(inp ? (inp.value || "") : "");
