@@ -511,6 +511,9 @@
         <span class="cs-val-to-group" id="csVal4ToGroup" style="display:none;">~<input type="text" id="csVal4To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions">
+        <label class="cs-colref-toggle" id="csPerRowGroup"><input type="checkbox" id="csPerRowMode"> 🔁 행마다 자기 값 기준으로 계산(예: =COUNTIF(F:F,F2)처럼 조건범위1의 각 셀 값이 그 열에 몇 번 나오는지)</label>
+      </div>
+      <div class="lookup-actions">
         <button class="btn" id="csAddCond" style="display:none;">+ 조건 추가</button>
         <span class="pivot-field" id="csSumColGroup" style="display:none;">
           <span class="pivot-field-label">합계범위</span><select id="csSumCol"></select>
@@ -1903,11 +1906,17 @@ function runCountSum(){
   const state = getActiveCountSumState();
   if(!state){ alert("먼저 표에서 COUNTIF·COUNTIFS·SUMIF·SUMIFS 중 하나를 선택하세요."); return; }
   if(state.error){ alert(state.error); return; }
-  const { needsSumCol, sumCol, conditions } = state;
-
-  const matchRows = rows.filter(row => conditions.every(c => c.matcher(row[c.col-1]||"", row)));
 
   const box = document.getElementById("csResultBox");
+  if(document.getElementById("csPerRowMode").checked){
+    box.textContent = "행마다 다른 값이 나옵니다 — 아래 '결과값 복사'를 눌러 참조표에 붙여넣어 확인하세요.";
+    box.style.display = "";
+    return;
+  }
+
+  const { needsSumCol, sumCol, conditions } = state;
+  const matchRows = rows.filter(row => conditions.every(c => c.matcher(row[c.col-1]||"", row)));
+
   if(needsSumCol){
     let sum = 0;
     matchRows.forEach(row=>{
@@ -1928,6 +1937,37 @@ function copyCountSumResults(){
 
   const state = getActiveCountSumState();
   if(!state || state.error){ alert("먼저 '계산하기'를 실행하세요."); return; }
+
+  const isMulti = (state.activeKey === "카운트이프스" || state.activeKey === "섬이프스");
+  const condCount = isMulti ? csConditionCount : 1;
+
+  // 행마다 자기 값 기준으로 계산: =COUNTIF(F:F,F2)처럼, 조건범위로 지정한 열(들)의
+  // "그 행 자신의 값"과 정확히 같은 값을 가진 행이 몇 개인지(또는 합계범위 값을 얼마나 더할지)
+  // 행마다 따로 계산합니다(같은 열이라도 값에 따라 행마다 결과가 다를 수 있습니다).
+  if(document.getElementById("csPerRowMode").checked){
+    const condCols = [];
+    for(let i=1;i<=condCount;i++) condCols.push(parseInt(document.getElementById(`csCol${i}`).value, 10));
+    const rows = getLookupDataRows();
+    const lines = [];
+    const colLabel = state.needsSumCol ? "SUMIF 결과(행별 합계)" : "COUNTIF 결과(행별 개수)";
+    if(lookupHasHeader && lookupTable.length > 0){
+      lines.push([...lookupTable[0], colLabel].join("\t"));
+    }
+    rows.forEach(row=>{
+      const matchingRows = rows.filter(other => condCols.every(c => String(other[c-1]||"").trim() === String(row[c-1]||"").trim()));
+      let resultVal;
+      if(state.needsSumCol){
+        let sum = 0;
+        matchingRows.forEach(r=>{ const n = Number(String(r[state.sumCol-1]||"0").replace(/,/g,"")); if(!isNaN(n)) sum += n; });
+        resultVal = commify(String(sum));
+      } else {
+        resultVal = matchingRows.length;
+      }
+      lines.push([...row, resultVal].join("\t"));
+    });
+    copyTextToClipboard(lines.join("\n"), "행마다 계산된 결과 열이 추가된 참조표가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+    return;
+  }
 
   // COUNTIF/COUNTIFS: 실제 엑셀에서 =COUNTIF(...)를 쓰고 아래로 채운 것처럼,
   // 모든 행에 똑같은 개수 결과값을 오른쪽 새 열에 넣어 복사합니다.
