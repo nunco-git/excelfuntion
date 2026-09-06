@@ -1826,9 +1826,8 @@ document.querySelectorAll(".cs-mode-select").forEach(sel=>{
   });
 });
 
-function runCountSum(){
-  const rows = getLookupDataRows();
-  if(rows.length === 0){ alert("먼저 위 참조표에 데이터를 붙여넣으세요."); return; }
+// 현재 UI에 설정된 활성 함수·조건들을 읽어옴(계산하기/복사하기에서 공용으로 사용)
+function getActiveCountSumState(){
   let activeKey = null;
   rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
@@ -1837,7 +1836,7 @@ function runCountSum(){
     const fnDef = CATEGORIES[catSel.value].functions[fnSel.value];
     if(fnDef && COUNTSUM_KEYS.includes(fnDef.key)) activeKey = fnDef.key;
   });
-  if(!activeKey){ alert("먼저 표에서 COUNTIF·COUNTIFS·SUMIF·SUMIFS 중 하나를 선택하세요."); return; }
+  if(!activeKey) return null;
 
   const isMulti = (activeKey === "카운트이프스" || activeKey === "섬이프스");
   const needsSumCol = (activeKey === "섬이프" || activeKey === "섬이프스");
@@ -1848,18 +1847,27 @@ function runCountSum(){
     const col = parseInt(document.getElementById(`csCol${i}`).value, 10);
     const mode = document.getElementById(`csMode${i}`).value;
     const val = document.getElementById(`csVal${i}`).value.trim();
-    if(!val){ alert(`조건 ${i}의 값을 입력하세요.`); return; }
+    if(!val) return { error: `조건 ${i}의 값을 입력하세요.` };
     let val2 = "";
     if(mode === "between"){
       val2 = document.getElementById(`csVal${i}To`).value.trim();
-      if(!val2){ alert(`조건 ${i}의 '~ 값'(최대값)을 입력하세요.`); return; }
+      if(!val2) return { error: `조건 ${i}의 '~ 값'(최대값)을 입력하세요.` };
     }
     conditions.push({ col, matcher: buildConditionMatcher(mode, val, val2) });
   }
   let sumCol;
-  if(needsSumCol){
-    sumCol = parseInt(document.getElementById("csSumCol").value, 10);
-  }
+  if(needsSumCol) sumCol = parseInt(document.getElementById("csSumCol").value, 10);
+
+  return { activeKey, isMulti, needsSumCol, sumCol, conditions };
+}
+
+function runCountSum(){
+  const rows = getLookupDataRows();
+  if(rows.length === 0){ alert("먼저 위 참조표에 데이터를 붙여넣으세요."); return; }
+  const state = getActiveCountSumState();
+  if(!state){ alert("먼저 표에서 COUNTIF·COUNTIFS·SUMIF·SUMIFS 중 하나를 선택하세요."); return; }
+  if(state.error){ alert(state.error); return; }
+  const { needsSumCol, sumCol, conditions } = state;
 
   const matchRows = rows.filter(row => conditions.every(c => c.matcher(row[c.col-1]||"")));
 
@@ -1881,7 +1889,51 @@ document.getElementById("csRun").addEventListener("click", runCountSum);
 function copyCountSumResults(){
   const box = document.getElementById("csResultBox");
   if(box.style.display === "none" || !box.textContent){ alert("먼저 '계산하기'를 실행하세요."); return; }
-  copyTextToClipboard(box.textContent, "결과값이 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+
+  const state = getActiveCountSumState();
+  if(!state || state.error){ alert("먼저 '계산하기'를 실행하세요."); return; }
+
+  // COUNTIF/COUNTIFS는 원본 참조표(계산에 실제로 쓰인 것과 같은 데이터)에 "조건적합" 표시 열을
+  // 오른쪽에 추가해서, 그대로 엑셀에 붙여넣어 데이터로 활용할 수 있게 복사합니다.
+  if(!state.needsSumCol){
+    const rows = getLookupDataRows();
+    const lines = [];
+    if(lookupHasHeader && lookupTable.length > 0){
+      lines.push([...lookupTable[0], "조건적합 여부"].join("\t"));
+    }
+    rows.forEach(row=>{
+      const isMatch = state.conditions.every(c => c.matcher(row[c.col-1]||"")) ? "조건적합" : "";
+      lines.push([...row, isMatch].join("\t"));
+    });
+    copyTextToClipboard(lines.join("\n"), "조건적합 표시가 추가된 참조표가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+    return;
+  }
+
+  // SUMIF/SUMIFS는 원본 참조표에 "합계에 포함된 값" 열을 오른쪽에 추가하고
+  // (조건에 안 맞는 행은 빈칸), 맨 아래에 전체 합계 행을 붙여서 복사합니다.
+  {
+    const rows = getLookupDataRows();
+    const lines = [];
+    if(lookupHasHeader && lookupTable.length > 0){
+      lines.push([...lookupTable[0], "합계에 포함된 값"].join("\t"));
+    }
+    let sum = 0;
+    rows.forEach(row=>{
+      const isMatch = state.conditions.every(c => c.matcher(row[c.col-1]||""));
+      let cellVal = "";
+      if(isMatch){
+        const raw = row[state.sumCol-1] || "";
+        cellVal = raw;
+        const num = Number(String(raw).replace(/,/g,""));
+        if(!isNaN(num)) sum += num;
+      }
+      lines.push([...row, cellVal].join("\t"));
+    });
+    const blankCols = Array((lookupCols || 1) - 1).fill("");
+    lines.push([...blankCols, "합계", commify(String(sum))].join("\t"));
+    copyTextToClipboard(lines.join("\n"), "합계에 포함된 값과 전체 합계가 추가된 참조표가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+    return;
+  }
 }
 document.getElementById("csCopyResults").addEventListener("click", copyCountSumResults);
 
