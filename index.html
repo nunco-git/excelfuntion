@@ -256,6 +256,7 @@
   body.show-judging-section #judgingSection{display:block;}
   body.show-textsplit-section #textSplitSection{display:block;}
   body.show-textjoin-section #textJoinSection{display:block;}
+  body.show-dynamiclist-section #dynamicListSection{display:block;}
   .cs-result-box{margin-top:12px;padding:12px 16px;background:#eef2ff;border:1px solid #c7d2fe;
     border-radius:8px;font-size:1rem;font-weight:700;color:#4338ca;}
   .pivot-title{font-size:.95rem;font-weight:800;color:#4338ca;margin:0 0 8px;}
@@ -498,6 +499,16 @@
         <span class="pivot-field"><span class="pivot-field-label">점수 끝 열</span><select id="judgeEndCol"></select></span>
         <button class="btn primary" id="judgeRun">계산하기</button>
         <button class="btn" id="judgeCopyResults">결과값 복사</button>
+      </div>
+    </div>
+
+    <div class="pivot-section" id="dynamicListSection">
+      <h2 class="pivot-title">🔗 동적 목록 구현</h2>
+      <p class="lookup-desc">
+        참조표에 1열부터 8열까지 단계별 목록 데이터를 입력하세요(예: 1열=시도, 2열=시군구, 3열=읍면동…). 한 행에 유효한 조합 하나씩 입력하면, 1열 선택값에 따라 2열 목록이 바뀌고 2열 선택값에 따라 3열 목록이 바뀌는 식으로 <strong>1열부터 8열까지 전부 연결된 계단식 드롭다운</strong>을 만들어줍니다. 다운로드한 엑셀 파일은 매크로 없이 '데이터 유효성 검사' 기능만으로 동작합니다.
+      </p>
+      <div class="lookup-actions">
+        <button class="btn primary" id="dynamicListDownload">엑셀 파일로 다운로드</button>
       </div>
     </div>
 
@@ -1087,6 +1098,11 @@ const CATEGORIES = [
       note:"아래 '📷 사진파일 일괄 입력' 섹션에서 '폴더에서 사진 넣기' 버튼을 누르고 사진이 들어있는 폴더를 선택하세요. 버튼 앞의 '파일 이름'(확장자 제외/포함)과 '사진 셀모양'(채우지 않기=작은 썸네일 / 셀에 채우기=칸 전체를 채우는 큰 이미지)을 먼저 골라두면 그 설정대로 들어갑니다. 폴더 안의 이미지 파일들을 파일명 순서대로, 1열에 파일명·2열에 사진을 넣은 행을 만들고 그 다음에 빈 행을 하나 끼워 넣는 방식으로 참조표 맨 아래부터 쭉 채워줍니다. '결과를 엑셀 파일로 다운로드' 버튼을 누르면 사진이 셀 안에 실제로 삽입된 정식 엑셀 파일(.xlsx)로 저장됩니다(엑셀에서 열자마자 바로 사진이 보이며, '연결된 이미지' 오류 없이 파일 자체에 포함되어 있습니다). 사진대지·증빙자료 정리처럼 사진을 순서대로 문서화할 때 유용합니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
       fn:()=> "↓ 아래 참조표 아래쪽의 '사진파일 일괄 입력'에서 폴더를 선택하세요" },
+    { key:"매크로동적목록", label:"동적 목록 구현",
+      example:"1열=시도, 2열=시군구, 3열=읍면동…처럼 참조표에 단계별 목록을 입력하면, 앞 열의 선택값에 따라 다음 열의 목록이 자동으로 바뀌는 계단식 드롭다운을 엑셀로 만들어줍니다(최대 8단계, 1→8열까지 전부 연결됨)",
+      note:"참조표에 1열부터 8열까지 단계별 목록 데이터를 입력하세요(예: 1열=시도, 2열=시군구, 3열=읍면동…). 한 행에 유효한 조합 하나씩(예: '충청남도, 부여군, 부여읍') 입력하면 됩니다. 아래 '🔗 동적 목록 구현' 섹션에서 '엑셀 파일로 다운로드'를 누르면, 1열 값을 고르면 2열 목록이 그 값에 맞게 바뀌고, 2열 값을 고르면 3열 목록이 바뀌는 식으로 1열부터 8열까지 전부 연결된 계단식(종속) 드롭다운이 있는 엑셀 파일이 만들어집니다. 엑셀의 '데이터 유효성 검사' 기능으로 정식 구현되므로, 다운로드한 파일을 열면 매크로 없이도 그대로 동작합니다(값을 만드는 데이터는 '목록데이터' 시트에 자동으로 정리되어 들어갑니다).",
+      usesLookupTable:true, isPivotMode:true, params:[],
+      fn:()=> "↓ 아래 참조표에 단계별 목록을 넣고 '동적 목록 구현'에서 다운로드하세요" },
   ]},
 ];
 const MAX_PARAMS = Math.max(...CATEGORIES.flatMap(c=>c.functions.map(f=>f.params.length))); // 3
@@ -2163,77 +2179,31 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
     const commaIdx = dataUrl.indexOf(",");
     const base64 = dataUrl.slice(commaIdx+1);
 
-    /*
-     * 중요:
-     * "원본 비율 유지"에서는 일반 JPG/PNG를 그대로 twoCellAnchor로 늘리면
-     * Excel이 셀 전체 비율로 그림을 변형할 수 있습니다.
-     *
-     * 따라서 원본 이미지를 SVG의 <image> 안에 넣고,
-     * SVG의 preserveAspectRatio="xMidYMid meet"로 감싼 뒤
-     * 그 SVG를 셀 전체에 twoCellAnchor로 배치합니다.
-     *
-     * 이렇게 하면:
-     *  - 셀 크기 변경 → 그림 영역도 셀을 따라 확대/축소
-     *  - 원본 이미지 가로세로 비율 → SVG 내부에서 계속 유지
-     *  - 셀과 사진 비율이 다르면 남는 공간은 여백으로 표시
-     */
-    let ext, mediaData, mediaPath, contentType;
-
     if(fitOption === "fill"){
-      ext = dataUrl.includes("image/png") ? "png" : "jpeg";
-      mediaPath = `xl/media/image${imgCounter}.${ext}`;
-      mediaData = base64;
-      contentType = ext === "png" ? "image/png" : "image/jpeg";
+      const ext = dataUrl.includes("image/png") ? "png" : "jpeg";
+      const mediaPath = `xl/media/image${imgCounter}.${ext}`;
+      zip.file(mediaPath, base64, { base64:true });
+      const rId = `rId${imgCounter}`;
+      drawingRels.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.${ext}"/>`);
+      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="0"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
     } else {
-      ext = "svg";
-      const sourceMime = dataUrl.includes("image/png") ? "image/png" : "image/jpeg";
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><image href="${dataUrl}" xlink:href="${dataUrl}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/></svg>`;
-      mediaPath = `xl/media/image${imgCounter}.svg`;
-      mediaData = svg;
-      contentType = "image/svg+xml";
+      // 원본 비율 유지: 엑셀은 SVG를 "기본 블립(폴백 래스터 이미지) + asvg:svgBlip 확장"
+      // 구조로 요구합니다. SVG만 단독으로 blip에 넣으면 엑셀이 인식하지 못해 안 보이거나
+      // 리사이즈가 적용되지 않습니다 — 반드시 두 이미지를 함께 넣어야 합니다.
+      const rasterExt = dataUrl.includes("image/png") ? "png" : "jpeg";
+      const rasterMediaPath = `xl/media/image${imgCounter}_fallback.${rasterExt}`;
+      zip.file(rasterMediaPath, base64, { base64:true });
+      const rIdRaster = `rId${imgCounter}a`;
+      drawingRels.push(`<Relationship Id="${rIdRaster}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}_fallback.${rasterExt}"/>`);
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><image href="${dataUrl}" xlink:href="${dataUrl}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/></svg>`;
+      const svgMediaPath = `xl/media/image${imgCounter}.svg`;
+      zip.file(svgMediaPath, svg);
+      const rIdSvg = `rId${imgCounter}b`;
+      drawingRels.push(`<Relationship Id="${rIdSvg}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.svg"/>`);
+
+      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rIdRaster}"><a:extLst><a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}"><asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="${rIdSvg}"/></a:ext></a:extLst></a:blip><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
     }
-
-    zip.file(mediaPath, mediaData, { base64: false });
-
-    const rId = `rId${imgCounter}`;
-    drawingRels.push(
-      `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.${ext}"/>`
-    );
-
-    // 두 옵션 모두 셀 크기를 따라가도록 twoCellAnchor를 사용합니다.
-    // fill: 셀 전체를 이미지로 채움
-    // contain: SVG 내부에서 원본 비율을 유지하여 셀 안에 맞춤
-    drawingShapes.push(
-      `<xdr:twoCellAnchor editAs="twoCell">` +
-        `<xdr:from>` +
-          `<xdr:col>${colIdx}</xdr:col>` +
-          `<xdr:colOff>0</xdr:colOff>` +
-          `<xdr:row>${rowIdx}</xdr:row>` +
-          `<xdr:rowOff>0</xdr:rowOff>` +
-        `</xdr:from>` +
-        `<xdr:to>` +
-          `<xdr:col>${colIdx + 1}</xdr:col>` +
-          `<xdr:colOff>0</xdr:colOff>` +
-          `<xdr:row>${rowIdx + 1}</xdr:row>` +
-          `<xdr:rowOff>0</xdr:rowOff>` +
-        `</xdr:to>` +
-        `<xdr:pic>` +
-          `<xdr:nvPicPr>` +
-            `<xdr:cNvPr id="${imgCounter + 1}" name="Picture ${imgCounter}"/>` +
-            `<xdr:cNvPicPr><a:picLocks noChangeAspect="${fitOption === "fill" ? "0" : "1"}"/></xdr:cNvPicPr>` +
-          `</xdr:nvPicPr>` +
-          `<xdr:blipFill>` +
-            `<a:blip r:embed="${rId}"/>` +
-            `<a:stretch><a:fillRect/></a:stretch>` +
-          `</xdr:blipFill>` +
-          `<xdr:spPr>` +
-            `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
-          `</xdr:spPr>` +
-        `</xdr:pic>` +
-        `<xdr:clientData/>` +
-      `</xdr:twoCellAnchor>`
-    );
-
     imgCounter++;
   });
 
@@ -2343,6 +2313,160 @@ async function downloadPhotoResultsAsExcel(){
   }
 }
 document.getElementById("photoExportExcel").addEventListener("click", downloadPhotoResultsAsExcel);
+
+// ---------- 동적 목록 구현(계단식 종속 드롭다운) ----------
+function sanitizeDefinedName(str){
+  let s = String(str).trim();
+  s = s.replace(/[ ()\-.,]/g, "_");
+  s = s.replace(/[^\p{L}\p{N}_]/gu, "_");
+  if(/^[0-9]/.test(s)) s = "N_" + s;
+  if(!s) s = "EMPTY";
+  return s.slice(0, 200);
+}
+
+function substituteChainFormula(cellRef){
+  const chars = [" ", "(", ")", "-", "."];
+  let expr = cellRef;
+  chars.forEach(ch=>{
+    const escaped = ch.replace(/"/g, '""');
+    expr = `SUBSTITUTE(${expr},"${escaped}","_")`;
+  });
+  return expr;
+}
+
+function colLetter(n){
+  let s = "";
+  n = n + 1;
+  while(n > 0){
+    const rem = (n - 1) % 26;
+    s = String.fromCharCode(65+rem) + s;
+    n = Math.floor((n-1)/26);
+  }
+  return s;
+}
+
+async function buildDynamicListXlsx(dataRows, maxLevels){
+  maxLevels = Math.min(maxLevels || 8, 8);
+
+  const level1Values = [];
+  const level1Seen = new Set();
+  const dependentMaps = {};
+  for(let lvl=2; lvl<=maxLevels; lvl++) dependentMaps[lvl] = new Map();
+
+  dataRows.forEach(row=>{
+    const v1 = (row[0]||"").trim();
+    if(v1 && !level1Seen.has(v1)){ level1Seen.add(v1); level1Values.push(v1); }
+    for(let lvl=2; lvl<=maxLevels; lvl++){
+      const parent = (row[lvl-2]||"").trim();
+      const child = (row[lvl-1]||"").trim();
+      if(!parent || !child) continue;
+      if(!dependentMaps[lvl].has(parent)) dependentMaps[lvl].set(parent, []);
+      const arr = dependentMaps[lvl].get(parent);
+      if(!arr.includes(child)) arr.push(child);
+    }
+  });
+
+  const namedLists = [];
+  namedLists.push({ name: "DL_L1_ALL", values: level1Values });
+  for(let lvl=2; lvl<=maxLevels; lvl++){
+    dependentMaps[lvl].forEach((childValues, parentVal)=>{
+      namedLists.push({ name: `DL_L${lvl}_${sanitizeDefinedName(parentVal)}`, values: childValues });
+    });
+  }
+
+  if(namedLists.length > 2000){
+    throw new Error("고유 조합이 너무 많습니다(2000개 초과). 데이터를 줄여서 다시 시도해주세요.");
+  }
+  if(level1Values.length === 0){
+    throw new Error("참조표 1열에 목록 데이터가 없습니다.");
+  }
+
+  const maxRows = Math.max(1, ...namedLists.map(l=>l.values.length));
+  const helperAoa = [];
+  for(let r=0;r<maxRows;r++){
+    helperAoa.push(namedLists.map(l=> l.values[r] !== undefined ? l.values[r] : ""));
+  }
+
+  const helperWs = XLSX.utils.aoa_to_sheet(helperAoa.length ? helperAoa : [[""]]);
+  const headerRow = Array.from({length:maxLevels}, (_,i)=>`${i+1}단계`);
+  const inputAoa = [headerRow, Array(maxLevels).fill("")];
+  const inputWs = XLSX.utils.aoa_to_sheet(inputAoa);
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, inputWs, "동적목록입력");
+  XLSX.utils.book_append_sheet(wb, helperWs, "목록데이터");
+
+  const arrayBuffer = XLSX.write(wb, { type:"array", bookType:"xlsx" });
+  const zip = await JSZip.loadAsync(arrayBuffer);
+
+  const workbookPath = "xl/workbook.xml";
+  let workbookXml = await zip.file(workbookPath).async("string");
+  const definedNameEntries = namedLists.map((l, idx)=>{
+    const col = colLetter(idx);
+    const rowCount = Math.max(1, l.values.length);
+    const ref = `'목록데이터'!$${col}$1:$${col}$${rowCount}`;
+    const safeName = l.name.replace(/&/g, "&amp;");
+    return `<definedName name="${safeName}">${ref}</definedName>`;
+  });
+  const definedNamesXml = `<definedNames>${definedNameEntries.join("")}</definedNames>`;
+  if(workbookXml.includes("<definedNames>")){
+    workbookXml = workbookXml.replace(/<definedNames>[\s\S]*?<\/definedNames>/, definedNamesXml);
+  } else if(workbookXml.includes("</sheets>")){
+    workbookXml = workbookXml.replace("</sheets>", "</sheets>" + definedNamesXml);
+  }
+  zip.file(workbookPath, workbookXml);
+
+  const sheet1Path = "xl/worksheets/sheet1.xml";
+  let sheet1Xml = await zip.file(sheet1Path).async("string");
+  const validations = [];
+  for(let lvl=1; lvl<=maxLevels; lvl++){
+    const col = colLetter(lvl-1);
+    const sqref = `${col}2`;
+    let formula1;
+    if(lvl === 1){
+      formula1 = "DL_L1_ALL";
+    } else {
+      const prevCol = colLetter(lvl-2);
+      const chain = substituteChainFormula(`${prevCol}2`);
+      formula1 = `INDIRECT("DL_L${lvl}_"&amp;${chain})`;
+    }
+    validations.push(`<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${sqref}"><formula1>${formula1}</formula1></dataValidation>`);
+  }
+  const dataValidationsXml = `<dataValidations count="${validations.length}">${validations.join("")}</dataValidations>`;
+  if(sheet1Xml.includes("<dataValidations")){
+    sheet1Xml = sheet1Xml.replace(/<dataValidations[\s\S]*?<\/dataValidations>/, dataValidationsXml);
+  } else if(sheet1Xml.includes("<pageMargins")){
+    sheet1Xml = sheet1Xml.replace("<pageMargins", dataValidationsXml + "<pageMargins");
+  } else {
+    sheet1Xml = sheet1Xml.replace("</worksheet>", dataValidationsXml + "</worksheet>");
+  }
+  zip.file(sheet1Path, sheet1Xml);
+
+  return await zip.generateAsync({ type:"blob", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+async function downloadDynamicListExcel(){
+  if(typeof JSZip === "undefined"){ alert("엑셀 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요."); return; }
+  const { data } = getMacroHeaderAndData();
+  if(data.length === 0){ alert("먼저 위 참조표에 1열부터 단계별 목록 데이터를 입력하세요."); return; }
+  showToast("동적 목록 엑셀 파일을 생성하는 중입니다...");
+  try{
+    const blob = await buildDynamicListXlsx(data, 8);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "동적목록.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("동적 목록이 포함된 엑셀 파일을 다운로드했습니다.");
+  }catch(err){
+    console.error("동적 목록 생성 오류:", err);
+    alert(err.message || "동적 목록 생성 중 오류가 발생했습니다.");
+  }
+}
+document.getElementById("dynamicListDownload").addEventListener("click", downloadDynamicListExcel);
 
 function runPivotTable(){
   const rows = getLookupDataRows();
@@ -2740,11 +2864,12 @@ function sectionIdForFnKey(key){
   if(key === "심사표") return "judging";
   if(key === "텍스트나누기") return "textsplit";
   if(key === "텍스트합치기") return "textjoin";
+  if(key === "매크로동적목록") return "dynamiclist";
   return null;
 }
 
 function updateLookupCardVisibility(){
-  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블","중복값찾기한셀","중복값찾기여러셀","매크로시트만들기","매크로파일만들기","매크로개별인쇄","매크로개별pdf","매크로통합셀해제","매크로사진일괄입력","심사표","텍스트나누기","텍스트합치기"];
+  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블","중복값찾기한셀","중복값찾기여러셀","매크로시트만들기","매크로파일만들기","매크로개별인쇄","매크로개별pdf","매크로통합셀해제","매크로사진일괄입력","매크로동적목록","심사표","텍스트나누기","텍스트합치기"];
   let anyVlookupSelected = false;
   let anyPivotSelected = false;
   const activeSections = new Set();
@@ -2787,6 +2912,7 @@ function updateLookupCardVisibility(){
   document.body.classList.toggle("show-judging-section", activeSections.has("judging"));
   document.body.classList.toggle("show-textsplit-section", activeSections.has("textsplit"));
   document.body.classList.toggle("show-textjoin-section", activeSections.has("textjoin"));
+  document.body.classList.toggle("show-dynamiclist-section", activeSections.has("dynamiclist"));
   if(activeCountSumKey) configureCountSumSection(activeCountSumKey);
   updateSplitToggleButtonLabel();
 }
@@ -2801,7 +2927,7 @@ function toggleSplitMode(){
 // 조회(XLOOKUP 계열·피벗 테이블) 함수가 선택된 행만 구분을 비워서 초기 상태로 되돌리고,
 // 화면 분할·피벗 모드도 해제한 뒤 맨 위로 이동. 다른 행의 값은 그대로 둠.
 function restoreInitialScreen(){
-  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블","중복값찾기한셀","중복값찾기여러셀","매크로시트만들기","매크로파일만들기","매크로개별인쇄","매크로개별pdf","매크로통합셀해제","매크로사진일괄입력","심사표","텍스트나누기","텍스트합치기"];
+  const lookupFnKeys = ["엑스룩업","카운트이프","카운트이프스","섬이프","섬이프스","피벗테이블","중복값찾기한셀","중복값찾기여러셀","매크로시트만들기","매크로파일만들기","매크로개별인쇄","매크로개별pdf","매크로통합셀해제","매크로사진일괄입력","매크로동적목록","심사표","텍스트나누기","텍스트합치기"];
   rowsInGrid().forEach(tr=>{
     const catSel = tr.querySelector(".catSel");
     const fnSel = tr.querySelector(".fnSel");
