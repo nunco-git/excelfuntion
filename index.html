@@ -55,8 +55,7 @@
   .top-col-title{flex:0 0 20%;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:8px;text-align:center;background:linear-gradient(160deg,#fff7ed 0%,#ffedd5 100%);
     border:1px solid #fed7aa;border-radius:12px;padding:14px 10px;box-shadow:0 1px 3px rgba(194,65,12,.06);
-    min-width:0;transition:border-color .2s ease,box-shadow .2s ease,transform .15s ease;}
-  .top-col-title:hover{border-color:#fdba74;box-shadow:0 6px 16px rgba(194,65,12,.12);transform:translateY(-1px);}
+    min-width:0;}
   .title-icon{font-size:2rem;line-height:1;filter:drop-shadow(0 1px 1px rgba(194,65,12,.15));}
   .title-main{margin:0;color:#9a3412;font-size:1.8rem;font-weight:400;font-family:'Jua','Pretendard Variable',sans-serif;line-height:1.25;letter-spacing:-0.1px;}
   .title-security-badge{background:#dcfce7;color:#166534;font-size:.76rem;padding:4px 8px;border-radius:4px;font-weight:600;}
@@ -72,9 +71,7 @@
   .security-banner{background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);border:1px solid var(--green-border);
     border-radius:14px;padding:14px 16px;color:var(--green-text);font-size:.88rem;font-weight:400;
     line-height:1.5;box-shadow:0 1px 3px rgba(16,24,40,.04),0 1px 2px rgba(16,24,40,.03);
-    display:flex;flex-direction:column;justify-content:center;
-    transition:border-color .2s ease,box-shadow .2s ease,transform .15s ease;}
-  .security-banner:hover{border-color:#86efac;box-shadow:0 6px 16px rgba(22,163,74,.12);transform:translateY(-1px);}
+    display:flex;flex-direction:column;justify-content:center;}
   .security-banner-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
   .security-banner strong.head{font-size:.95rem;font-weight:800;color:var(--green-strong);letter-spacing:-.2px;}
   .btn-reset{padding:5px 14px;background:#fff;border:1.5px solid var(--danger);color:var(--danger);
@@ -94,9 +91,7 @@
   .side{display:flex;flex-direction:column;min-height:0;}
   @media (max-width:960px){.layout{grid-template-columns:1fr;} .top-section{flex-direction:column;} .top-col-title{flex:1 1 auto;}}
 
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;
-    transition:border-color .2s ease,box-shadow .2s ease,transform .15s ease;}
-  .card:hover{border-color:#cbd5e1;box-shadow:0 6px 16px rgba(15,23,42,.08);transform:translateY(-1px);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
 
   .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
     padding:12px 14px;border-bottom:1px solid var(--line);background:#f8fafc;}
@@ -117,6 +112,7 @@
   .text-join-group{display:flex;align-items:center;gap:6px;border:1px solid var(--line);
     border-radius:8px;background:#fff;padding:4px 8px;}
   .text-join-label{font-size:.75rem;color:var(--muted);white-space:nowrap;}
+  .cs-colref-toggle{font-size:.75rem;color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center;gap:3px;}
   .text-join-input{width:78px;border:1px solid var(--line);border-radius:6px;
     padding:5px 8px;font-size:.79rem;font-family:inherit;color:var(--text);}
   .text-join-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg);}
@@ -198,7 +194,6 @@
     font-size:11.5px;color:var(--muted);line-height:1.6;}
 
   .fn-detail-card{background:var(--detail-bg);border:1.5px solid var(--detail-border);}
-  .fn-detail-card:hover{border-color:#e879f9;box-shadow:0 6px 16px rgba(162,28,175,.14);}
   .fn-detail-card h2{color:var(--detail-strong);font-size:.95rem;font-weight:800;
     margin:0 0 8px;padding:14px 14px 0;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;
     text-overflow:ellipsis;}
@@ -318,7 +313,7 @@
           <li><span class="feat-icon">🌐</span><span><strong>외부 서버 전송 ZERO</strong> <span class="feat-desc">: 입력값과 계산 결과가 브라우저 안에서만 처리</span></span></li>
           <li><span class="feat-icon">⚡</span><span><strong>실시간 자동 계산</strong> <span class="feat-desc">: 값 입력 즉시 결과 표시, 별도 실행 버튼 불필요</span></span></li>
           <li><span class="feat-icon">📋</span><span><strong>엑셀과 그대로 연동</strong> <span class="feat-desc">: 여러 셀 복사·붙여넣기, 결과값도 엑셀로 바로 복사</span></span></li>
-          <li><span class="feat-icon">🧮</span><span><strong>엑셀함수 쉽게 활용</strong> <span class="feat-desc">: 쉬운 설명과 예시문으로 누구나 엑셀 함수 활용 가능</span></span></li>
+          <li><span class="feat-icon">🧮</span><span><strong>엑셀함수 쉽게 활용</strong> <span class="feat-desc">: 쉬운 설명과 예시문을 보면 누구나 엑셀 함수 활용 가능</span></span></li>
         </ul>
       </div>
     </div>
@@ -445,7 +440,7 @@
     <div class="pivot-section" id="countSumSection">
       <h2 class="pivot-title" id="countSumTitle">🔢 조건부 집계</h2>
       <p class="lookup-desc">
-        <strong>조건범위</strong>(조건을 확인할 열)를 고르고, 조건 방식(정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요(이 기준값이 엑셀 COUNTIF·SUMIF의 "조건"에 해당합니다). SUMIF·SUMIFS는 <strong>합계범위</strong>(더할 값이 있는 열)도 추가로 고릅니다. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다.
+        <strong>조건범위</strong>(조건을 확인할 열)를 고르고, 조건 방식(정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요(이 기준값이 엑셀 COUNTIF·SUMIF의 "조건"에 해당합니다). SUMIF·SUMIFS는 <strong>합계범위</strong>(더할 값이 있는 열)도 추가로 고릅니다. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다. 고정된 값 대신 <strong>"열번호로 비교"</strong>를 체크하고 값 칸에 열 번호를 입력하면, 같은 행에 있는 그 열의 값과 비교합니다(예: "실적 열이 목표 열보다 큰 행 개수"처럼 두 열을 행마다 비교할 때 유용).
       </p>
       <div class="lookup-actions" id="csCond1Group">
         <span class="pivot-field-label">조건범위1</span><select id="csCol1"></select>
@@ -461,6 +456,7 @@
           <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal1" class="text-join-input" style="width:70px;" placeholder="값">
+        <label class="cs-colref-toggle"><input type="checkbox" id="csValIsCol1"> 열번호로 비교</label>
         <span class="cs-val-to-group" id="csVal1ToGroup" style="display:none;">~<input type="text" id="csVal1To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond2Group" style="display:none;">
@@ -477,6 +473,7 @@
           <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal2" class="text-join-input" style="width:70px;" placeholder="값">
+        <label class="cs-colref-toggle"><input type="checkbox" id="csValIsCol2"> 열번호로 비교</label>
         <span class="cs-val-to-group" id="csVal2ToGroup" style="display:none;">~<input type="text" id="csVal2To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond3Group" style="display:none;">
@@ -493,6 +490,7 @@
           <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal3" class="text-join-input" style="width:70px;" placeholder="값">
+        <label class="cs-colref-toggle"><input type="checkbox" id="csValIsCol3"> 열번호로 비교</label>
         <span class="cs-val-to-group" id="csVal3ToGroup" style="display:none;">~<input type="text" id="csVal3To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond4Group" style="display:none;">
@@ -509,6 +507,7 @@
           <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal4" class="text-join-input" style="width:70px;" placeholder="값">
+        <label class="cs-colref-toggle"><input type="checkbox" id="csValIsCol4"> 열번호로 비교</label>
         <span class="cs-val-to-group" id="csVal4ToGroup" style="display:none;">~<input type="text" id="csVal4To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions">
@@ -1810,10 +1809,13 @@ document.getElementById("csAddCond").addEventListener("click", ()=>{
 });
 
 // 조건 방식(정확히 일치/이상/이하/범위/포함/포함안함)과 입력값으로 매칭 함수를 만듦
-function buildConditionMatcher(mode, val1, val2){
-  const v1 = (val1||"").trim();
-  const v2 = (val2||"").trim();
-  return function(cellValue){
+// val1IsCol/val2IsCol이 true면 val1/val2를 "열 번호"로 보고, 매칭 시점에 그 행의 해당 열 값을 실시간으로 가져와 비교합니다.
+function buildConditionMatcher(mode, val1, val2, val1IsCol, val2IsCol){
+  const rawV1 = (val1||"").trim();
+  const rawV2 = (val2||"").trim();
+  return function(cellValue, fullRow){
+    const v1 = val1IsCol ? String((fullRow && fullRow[parseInt(rawV1,10)-1]) || "").trim() : rawV1;
+    const v2 = val2IsCol ? String((fullRow && fullRow[parseInt(rawV2,10)-1]) || "").trim() : rawV2;
     const cellStr = String(cellValue||"").trim();
     const cellNum = Number(cellStr.replace(/,/g,""));
     if(mode === "count" || mode === "sum") return cellStr !== ""; // 값이 있으면(빈칸이 아니면) 무조건 포함
@@ -1844,6 +1846,19 @@ document.querySelectorAll(".cs-mode-select").forEach(sel=>{
   });
 });
 
+for(let i=1;i<=4;i++){
+  const cb = document.getElementById(`csValIsCol${i}`);
+  const valInput = document.getElementById(`csVal${i}`);
+  const valToInput = document.getElementById(`csVal${i}To`);
+  if(!cb) continue;
+  cb.addEventListener("change", ()=>{
+    const ph = cb.checked ? "비교할 열번호" : "값";
+    const phTo = cb.checked ? "~ 열번호" : "~ 값";
+    if(valInput) valInput.placeholder = ph;
+    if(valToInput) valToInput.placeholder = phTo;
+  });
+}
+
 // 현재 UI에 설정된 활성 함수·조건들을 읽어옴(계산하기/복사하기에서 공용으로 사용)
 function getActiveCountSumState(){
   let activeKey = null;
@@ -1865,13 +1880,16 @@ function getActiveCountSumState(){
     const col = parseInt(document.getElementById(`csCol${i}`).value, 10);
     const mode = document.getElementById(`csMode${i}`).value;
     const val = document.getElementById(`csVal${i}`).value.trim();
+    const isCol = document.getElementById(`csValIsCol${i}`).checked;
     if(mode !== "count" && mode !== "sum" && !val) return { error: `조건 ${i}의 값을 입력하세요.` };
+    if(isCol && val && !/^\d+$/.test(val)) return { error: `조건 ${i}에서 '열번호로 비교'를 체크했다면 값 칸에 열 번호(숫자)를 입력하세요.` };
     let val2 = "";
     if(mode === "between"){
       val2 = document.getElementById(`csVal${i}To`).value.trim();
       if(!val2) return { error: `조건 ${i}의 '~ 값'(최대값)을 입력하세요.` };
+      if(isCol && !/^\d+$/.test(val2)) return { error: `조건 ${i}에서 '열번호로 비교'를 체크했다면 '~ 값' 칸에도 열 번호(숫자)를 입력하세요.` };
     }
-    conditions.push({ col, matcher: buildConditionMatcher(mode, val, val2) });
+    conditions.push({ col, matcher: buildConditionMatcher(mode, val, val2, isCol, isCol) });
   }
   let sumCol;
   if(needsSumCol) sumCol = parseInt(document.getElementById("csSumCol").value, 10);
@@ -1887,7 +1905,7 @@ function runCountSum(){
   if(state.error){ alert(state.error); return; }
   const { needsSumCol, sumCol, conditions } = state;
 
-  const matchRows = rows.filter(row => conditions.every(c => c.matcher(row[c.col-1]||"")));
+  const matchRows = rows.filter(row => conditions.every(c => c.matcher(row[c.col-1]||"", row)));
 
   const box = document.getElementById("csResultBox");
   if(needsSumCol){
@@ -1915,7 +1933,7 @@ function copyCountSumResults(){
   // 모든 행에 똑같은 개수 결과값을 오른쪽 새 열에 넣어 복사합니다.
   if(!state.needsSumCol){
     const rows = getLookupDataRows();
-    const matchCount = rows.filter(row => state.conditions.every(c => c.matcher(row[c.col-1]||""))).length;
+    const matchCount = rows.filter(row => state.conditions.every(c => c.matcher(row[c.col-1]||"", row))).length;
     const lines = [];
     if(lookupHasHeader && lookupTable.length > 0){
       lines.push([...lookupTable[0], "COUNTIF 결과(개수)"].join("\t"));
@@ -1933,7 +1951,7 @@ function copyCountSumResults(){
     const rows = getLookupDataRows();
     let sum = 0;
     rows.forEach(row=>{
-      if(state.conditions.every(c => c.matcher(row[c.col-1]||""))){
+      if(state.conditions.every(c => c.matcher(row[c.col-1]||"", row))){
         const num = Number(String(row[state.sumCol-1]||"0").replace(/,/g,""));
         if(!isNaN(num)) sum += num;
       }
