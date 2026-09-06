@@ -2187,22 +2187,27 @@ async function buildXlsxWithImages(aoa, imageDataByRow){
       drawingRels.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.${ext}"/>`);
       drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="0"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
     } else {
-      // 원본 비율 유지: 엑셀은 SVG를 "기본 블립(폴백 래스터 이미지) + asvg:svgBlip 확장"
-      // 구조로 요구합니다. SVG만 단독으로 blip에 넣으면 엑셀이 인식하지 못해 안 보이거나
-      // 리사이즈가 적용되지 않습니다 — 반드시 두 이미지를 함께 넣어야 합니다.
-      const rasterExt = dataUrl.includes("image/png") ? "png" : "jpeg";
-      const rasterMediaPath = `xl/media/image${imgCounter}_fallback.${rasterExt}`;
-      zip.file(rasterMediaPath, base64, { base64:true });
-      const rIdRaster = `rId${imgCounter}a`;
-      drawingRels.push(`<Relationship Id="${rIdRaster}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}_fallback.${rasterExt}"/>`);
+      // 원본 비율 유지: SVG로 감싸서 셀 크기에 맞춰 자동으로 리사이즈하면서 비율도 지키는 방법을
+      // 시도했지만, 실제 엑셀에서는 SVG 확장을 무시하고 폴백 이미지를 셀에 꽉 채워버려
+      // "셀에 채우기"와 똑같이 나오는 문제가 있었습니다(엑셀이 일반적인 사진 삽입 시에는
+      // SVG 확장을 렌더링에 반영하지 않는 것으로 보입니다).
+      // 그래서 "자동 크기조절"은 포기하고, 대신 처음부터 사진 비율에 딱 맞는 고정 크기로
+      // 넣어서 절대 찌그러지지 않도록 하는 확실한 방식으로 되돌립니다.
+      const ext = dataUrl.includes("image/png") ? "png" : "jpeg";
+      const mediaPath = `xl/media/image${imgCounter}.${ext}`;
+      zip.file(mediaPath, base64, { base64:true });
+      const rId = `rId${imgCounter}`;
+      drawingRels.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.${ext}"/>`);
 
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><image href="${dataUrl}" xlink:href="${dataUrl}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/></svg>`;
-      const svgMediaPath = `xl/media/image${imgCounter}.svg`;
-      zip.file(svgMediaPath, svg);
-      const rIdSvg = `rId${imgCounter}b`;
-      drawingRels.push(`<Relationship Id="${rIdSvg}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imgCounter}.svg"/>`);
+      const w = info.naturalW || 4, h = info.naturalH || 3;
+      const CELL_BOX_EMU = { w: 950000, h: 700000 };
+      const imgRatio = w / h, boxRatio = CELL_BOX_EMU.w / CELL_BOX_EMU.h;
+      let cx, cy;
+      if(imgRatio > boxRatio){ cx = CELL_BOX_EMU.w; cy = Math.round(CELL_BOX_EMU.w / imgRatio); }
+      else { cy = CELL_BOX_EMU.h; cx = Math.round(CELL_BOX_EMU.h * imgRatio); }
+      cx = Math.max(1, cx); cy = Math.max(1, cy);
 
-      drawingShapes.push(`<xdr:twoCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${colIdx+1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx+1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rIdRaster}"><a:extLst><a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}"><asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" r:embed="${rIdSvg}"/></a:ext></a:extLst></a:blip><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`);
+      drawingShapes.push(`<xdr:oneCellAnchor><xdr:from><xdr:col>${colIdx}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${rowIdx}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${cx}" cy="${cy}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${imgCounter+1}" name="Picture ${imgCounter}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`);
     }
     imgCounter++;
   });
@@ -2331,7 +2336,9 @@ function substituteChainFormula(cellRef){
     const escaped = ch.replace(/"/g, '""');
     expr = `SUBSTITUTE(${expr},"${escaped}","_")`;
   });
-  return expr;
+  // sanitizeDefinedName은 숫자로 시작하는 값 앞에 "N_"을 붙이므로, 수식에서도 똑같이 붙여야
+  // 이름이 서로 어긋나지 않습니다(예: 값이 "1구역"이면 이름은 "N_1구역"이 됨).
+  return `IF(ISNUMBER(VALUE(LEFT(${cellRef},1))),"N_","")&amp;${expr}`;
 }
 
 function colLetter(n){
@@ -2447,7 +2454,9 @@ async function buildDynamicListXlsx(dataRows, maxLevels){
 
 async function downloadDynamicListExcel(){
   if(typeof JSZip === "undefined"){ alert("엑셀 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요."); return; }
-  const { data } = getMacroHeaderAndData();
+  // 다른 매크로 기능과 달리 이 기능은 헤더 개념이 필요 없으므로,
+  // "1행은 제목행" 체크박스를 켰을 때만 1행을 건너뛰고, 기본값(체크 안 함)이면 1행도 데이터로 사용합니다.
+  const data = getLookupDataRows();
   if(data.length === 0){ alert("먼저 위 참조표에 1열부터 단계별 목록 데이터를 입력하세요."); return; }
   showToast("동적 목록 엑셀 파일을 생성하는 중입니다...");
   try{
