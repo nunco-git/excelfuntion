@@ -440,12 +440,13 @@
     <div class="pivot-section" id="countSumSection">
       <h2 class="pivot-title" id="countSumTitle">🔢 조건부 집계</h2>
       <p class="lookup-desc">
-        <strong>조건범위</strong>(조건을 확인할 열)를 고르고, 조건 방식(정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요(이 기준값이 엑셀 COUNTIF·SUMIF의 "조건"에 해당합니다). SUMIF·SUMIFS는 <strong>합계범위</strong>(더할 값이 있는 열)도 추가로 고릅니다. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다. 고정된 값 대신 <strong>"열번호로 비교"</strong>를 체크하고 값 칸에 열 번호를 입력하면, 같은 행에 있는 그 열의 값과 비교합니다(예: "실적 열이 목표 열보다 큰 행 개수"처럼 두 열을 행마다 비교할 때 유용).
+        <strong>조건범위</strong>(조건을 확인할 열)를 고르고, 조건 방식(🔁 자기 값 기준 계산·정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요(이 기준값이 엑셀 COUNTIF·SUMIF의 "조건"에 해당합니다). SUMIF·SUMIFS는 <strong>합계범위</strong>(더할 값이 있는 열)도 추가로 고릅니다. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다. <strong>"🔁 자기 값 기준 계산"</strong>을 고르면 값 입력 없이, 실제 엑셀 =COUNTIF(F:F,F2)처럼 그 열의 각 행이 같은 값을 몇 번 가지는지 행마다 계산합니다.
       </p>
       <div class="lookup-actions" id="csCond1Group">
         <span class="pivot-field-label">조건범위1</span><select id="csCol1"></select>
         <span class="pivot-field-label">조건 방식</span>
         <select class="cs-mode-select" id="csMode1">
+          <option value="selfref">🔁 자기 값 기준 계산(예: =COUNTIF(F:F,F2))</option>
           <option value="eq">정확히 일치</option>
           <option value="gte">이상</option>
           <option value="lte">이하</option>
@@ -456,13 +457,13 @@
           <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal1" class="text-join-input" style="width:70px;" placeholder="값">
-        <label class="cs-colref-toggle"><input type="checkbox" id="csValIsCol1"> 열번호로 비교</label>
         <span class="cs-val-to-group" id="csVal1ToGroup" style="display:none;">~<input type="text" id="csVal1To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond2Group" style="display:none;">
         <span class="pivot-field-label">조건범위2</span><select id="csCol2"></select>
         <span class="pivot-field-label">조건 방식</span>
         <select class="cs-mode-select" id="csMode2">
+          <option value="selfref">🔁 자기 값 기준 계산(예: =COUNTIF(F:F,F2))</option>
           <option value="eq">정확히 일치</option>
           <option value="gte">이상</option>
           <option value="lte">이하</option>
@@ -473,13 +474,13 @@
           <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal2" class="text-join-input" style="width:70px;" placeholder="값">
-        <label class="cs-colref-toggle"><input type="checkbox" id="csValIsCol2"> 열번호로 비교</label>
         <span class="cs-val-to-group" id="csVal2ToGroup" style="display:none;">~<input type="text" id="csVal2To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond3Group" style="display:none;">
         <span class="pivot-field-label">조건범위3</span><select id="csCol3"></select>
         <span class="pivot-field-label">조건 방식</span>
         <select class="cs-mode-select" id="csMode3">
+          <option value="selfref">🔁 자기 값 기준 계산(예: =COUNTIF(F:F,F2))</option>
           <option value="eq">정확히 일치</option>
           <option value="gte">이상</option>
           <option value="lte">이하</option>
@@ -490,13 +491,13 @@
           <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal3" class="text-join-input" style="width:70px;" placeholder="값">
-        <label class="cs-colref-toggle"><input type="checkbox" id="csValIsCol3"> 열번호로 비교</label>
         <span class="cs-val-to-group" id="csVal3ToGroup" style="display:none;">~<input type="text" id="csVal3To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond4Group" style="display:none;">
         <span class="pivot-field-label">조건범위4</span><select id="csCol4"></select>
         <span class="pivot-field-label">조건 방식</span>
         <select class="cs-mode-select" id="csMode4">
+          <option value="selfref">🔁 자기 값 기준 계산(예: =COUNTIF(F:F,F2))</option>
           <option value="eq">정확히 일치</option>
           <option value="gte">이상</option>
           <option value="lte">이하</option>
@@ -507,11 +508,7 @@
           <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal4" class="text-join-input" style="width:70px;" placeholder="값">
-        <label class="cs-colref-toggle"><input type="checkbox" id="csValIsCol4"> 열번호로 비교</label>
         <span class="cs-val-to-group" id="csVal4ToGroup" style="display:none;">~<input type="text" id="csVal4To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
-      </div>
-      <div class="lookup-actions">
-        <label class="cs-colref-toggle" id="csPerRowGroup"><input type="checkbox" id="csPerRowMode"> 🔁 행마다 자기 값 기준으로 계산(예: =COUNTIF(F:F,F2)처럼 조건범위1의 각 셀 값이 그 열에 몇 번 나오는지)</label>
       </div>
       <div class="lookup-actions">
         <button class="btn" id="csAddCond" style="display:none;">+ 조건 추가</button>
@@ -1812,13 +1809,10 @@ document.getElementById("csAddCond").addEventListener("click", ()=>{
 });
 
 // 조건 방식(정확히 일치/이상/이하/범위/포함/포함안함)과 입력값으로 매칭 함수를 만듦
-// val1IsCol/val2IsCol이 true면 val1/val2를 "열 번호"로 보고, 매칭 시점에 그 행의 해당 열 값을 실시간으로 가져와 비교합니다.
-function buildConditionMatcher(mode, val1, val2, val1IsCol, val2IsCol){
-  const rawV1 = (val1||"").trim();
-  const rawV2 = (val2||"").trim();
-  return function(cellValue, fullRow){
-    const v1 = val1IsCol ? String((fullRow && fullRow[parseInt(rawV1,10)-1]) || "").trim() : rawV1;
-    const v2 = val2IsCol ? String((fullRow && fullRow[parseInt(rawV2,10)-1]) || "").trim() : rawV2;
+function buildConditionMatcher(mode, val1, val2){
+  const v1 = (val1||"").trim();
+  const v2 = (val2||"").trim();
+  return function(cellValue){
     const cellStr = String(cellValue||"").trim();
     const cellNum = Number(cellStr.replace(/,/g,""));
     if(mode === "count" || mode === "sum") return cellStr !== ""; // 값이 있으면(빈칸이 아니면) 무조건 포함
@@ -1843,24 +1837,11 @@ document.querySelectorAll(".cs-mode-select").forEach(sel=>{
     const idx = sel.id.replace("csMode","");
     const toGroup = document.getElementById(`csVal${idx}ToGroup`);
     const valInput = document.getElementById(`csVal${idx}`);
-    const noValueNeeded = (sel.value === "count" || sel.value === "sum");
+    const noValueNeeded = (sel.value === "count" || sel.value === "sum" || sel.value === "selfref");
     if(toGroup) toGroup.style.display = (sel.value === "between") ? "" : "none";
     if(valInput) valInput.style.display = noValueNeeded ? "none" : "";
   });
 });
-
-for(let i=1;i<=4;i++){
-  const cb = document.getElementById(`csValIsCol${i}`);
-  const valInput = document.getElementById(`csVal${i}`);
-  const valToInput = document.getElementById(`csVal${i}To`);
-  if(!cb) continue;
-  cb.addEventListener("change", ()=>{
-    const ph = cb.checked ? "비교할 열번호" : "값";
-    const phTo = cb.checked ? "~ 열번호" : "~ 값";
-    if(valInput) valInput.placeholder = ph;
-    if(valToInput) valToInput.placeholder = phTo;
-  });
-}
 
 // 현재 UI에 설정된 활성 함수·조건들을 읽어옴(계산하기/복사하기에서 공용으로 사용)
 function getActiveCountSumState(){
@@ -1882,17 +1863,18 @@ function getActiveCountSumState(){
   for(let i=1;i<=condCount;i++){
     const col = parseInt(document.getElementById(`csCol${i}`).value, 10);
     const mode = document.getElementById(`csMode${i}`).value;
+    if(mode === "selfref"){
+      conditions.push({ col, mode, matcher: null });
+      continue;
+    }
     const val = document.getElementById(`csVal${i}`).value.trim();
-    const isCol = document.getElementById(`csValIsCol${i}`).checked;
     if(mode !== "count" && mode !== "sum" && !val) return { error: `조건 ${i}의 값을 입력하세요.` };
-    if(isCol && val && !/^\d+$/.test(val)) return { error: `조건 ${i}에서 '열번호로 비교'를 체크했다면 값 칸에 열 번호(숫자)를 입력하세요.` };
     let val2 = "";
     if(mode === "between"){
       val2 = document.getElementById(`csVal${i}To`).value.trim();
       if(!val2) return { error: `조건 ${i}의 '~ 값'(최대값)을 입력하세요.` };
-      if(isCol && !/^\d+$/.test(val2)) return { error: `조건 ${i}에서 '열번호로 비교'를 체크했다면 '~ 값' 칸에도 열 번호(숫자)를 입력하세요.` };
     }
-    conditions.push({ col, matcher: buildConditionMatcher(mode, val, val2, isCol, isCol) });
+    conditions.push({ col, mode, matcher: buildConditionMatcher(mode, val, val2) });
   }
   let sumCol;
   if(needsSumCol) sumCol = parseInt(document.getElementById("csSumCol").value, 10);
@@ -1908,7 +1890,7 @@ function runCountSum(){
   if(state.error){ alert(state.error); return; }
 
   const box = document.getElementById("csResultBox");
-  if(document.getElementById("csPerRowMode").checked){
+  if(state.conditions.some(c => c.mode === "selfref")){
     box.textContent = "행마다 다른 값이 나옵니다 — 아래 '결과값 복사'를 눌러 참조표에 붙여넣어 확인하세요.";
     box.style.display = "";
     return;
@@ -1938,23 +1920,23 @@ function copyCountSumResults(){
   const state = getActiveCountSumState();
   if(!state || state.error){ alert("먼저 '계산하기'를 실행하세요."); return; }
 
-  const isMulti = (state.activeKey === "카운트이프스" || state.activeKey === "섬이프스");
-  const condCount = isMulti ? csConditionCount : 1;
-
-  // 행마다 자기 값 기준으로 계산: =COUNTIF(F:F,F2)처럼, 조건범위로 지정한 열(들)의
-  // "그 행 자신의 값"과 정확히 같은 값을 가진 행이 몇 개인지(또는 합계범위 값을 얼마나 더할지)
-  // 행마다 따로 계산합니다(같은 열이라도 값에 따라 행마다 결과가 다를 수 있습니다).
-  if(document.getElementById("csPerRowMode").checked){
-    const condCols = [];
-    for(let i=1;i<=condCount;i++) condCols.push(parseInt(document.getElementById(`csCol${i}`).value, 10));
+  // 행마다 자기 값 기준으로 계산: 조건 중 하나라도 "🔁 자기 값 기준 계산"이면, 그 조건은
+  // "출력 중인 행 자신의 값"과 정확히 같은 값을 가진 행만 걸러내고, 나머지 일반 조건은
+  // 평소처럼 계산해서 함께 적용합니다(같은 열이라도 값에 따라 행마다 결과가 다를 수 있습니다).
+  if(state.conditions.some(c => c.mode === "selfref")){
     const rows = getLookupDataRows();
     const lines = [];
     const colLabel = state.needsSumCol ? "SUMIF 결과(행별 합계)" : "COUNTIF 결과(행별 개수)";
     if(lookupHasHeader && lookupTable.length > 0){
       lines.push([...lookupTable[0], colLabel].join("\t"));
     }
-    rows.forEach(row=>{
-      const matchingRows = rows.filter(other => condCols.every(c => String(other[c-1]||"").trim() === String(row[c-1]||"").trim()));
+    rows.forEach(outputRow=>{
+      const matchingRows = rows.filter(candidateRow => state.conditions.every(c=>{
+        if(c.mode === "selfref"){
+          return String(candidateRow[c.col-1]||"").trim() === String(outputRow[c.col-1]||"").trim();
+        }
+        return c.matcher(candidateRow[c.col-1]||"", candidateRow);
+      }));
       let resultVal;
       if(state.needsSumCol){
         let sum = 0;
@@ -1963,7 +1945,7 @@ function copyCountSumResults(){
       } else {
         resultVal = matchingRows.length;
       }
-      lines.push([...row, resultVal].join("\t"));
+      lines.push([...outputRow, resultVal].join("\t"));
     });
     copyTextToClipboard(lines.join("\n"), "행마다 계산된 결과 열이 추가된 참조표가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
     return;
