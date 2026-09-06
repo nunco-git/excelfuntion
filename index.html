@@ -165,7 +165,7 @@
   input.pval{padding-top:2px;}
 
   td.result-cell{background:transparent;}
-  th.result-extra, td.result-extra{background:var(--accent-bg);}
+  th.result-extra, td.result-extra{background:var(--accent-bg); display:none;}
   td.result-extra .cell{color:#1d4ed8;font-weight:600;background:transparent;pointer-events:none;}
   td.result-cell .cell{color:#1d4ed8;font-weight:600;background:transparent;pointer-events:none;}
   td.result-cell.err .cell{color:var(--danger);font-weight:500;}
@@ -933,7 +933,7 @@ const CATEGORIES = [
         if(beforeBday) age--;
         if(age<0) throw "미래 날짜입니다";
         return `만 ${age}세`; } },
-    { key:"주민번호나이이상", label:"만 몇 세 이상 판별", example:"9001011234567 / 65 → 아니오 (만 36세)", note:"주민등록번호로 계산한 만 나이가 기준 나이 이상인지 예/아니오로 알려줍니다. 노인복지·경로우대 대상자 판별처럼 나이 기준 조건이 있는 명단 작업에 유용합니다.", params:["주민등록번호","기준 나이"],
+    { key:"주민번호나이이상", label:"만 몇 세 이상 판별", example:"9001011234567 / 65 → 아니오", note:"주민등록번호로 계산한 만 나이가 기준 나이 이상인지 예/아니오로 알려줍니다. 노인복지·경로우대 대상자 판별처럼 나이 기준 조건이 있는 명단 작업에 유용합니다.", params:["주민등록번호","기준 나이"],
       fn:([v, ageStr])=>{ const targetAge=parseInt(ageStr,10); if(isNaN(targetAge)||targetAge<0) throw "기준 나이는 0 이상 숫자로 입력하세요";
         const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "주민등록번호 13자리를 입력하세요";
         const yy=digits.slice(0,2), mm=digits.slice(2,4), dd=digits.slice(4,6), g=digits[6];
@@ -949,8 +949,8 @@ const CATEGORIES = [
         let age=today.getFullYear()-dt.getFullYear();
         const beforeBday=(today.getMonth()<dt.getMonth())||(today.getMonth()===dt.getMonth()&&today.getDate()<dt.getDate());
         if(beforeBday) age--;
-        return `${age>=targetAge?"예":"아니오"} (만 ${age}세)`; } },
-    { key:"주민번호나이미만", label:"만 몇 세 미만 판별", example:"9001011234567 / 65 → 예 (만 36세)", note:"주민등록번호로 계산한 만 나이가 기준 나이 미만인지 예/아니오로 알려줍니다. 아동수당 등 나이 상한 기준으로 명단을 거를 때 유용합니다.", params:["주민등록번호","기준 나이"],
+        return age>=targetAge?"예":"아니오"; } },
+    { key:"주민번호나이미만", label:"만 몇 세 미만 판별", example:"9001011234567 / 65 → 예", note:"주민등록번호로 계산한 만 나이가 기준 나이 미만인지 예/아니오로 알려줍니다. 아동수당 등 나이 상한 기준으로 명단을 거를 때 유용합니다.", params:["주민등록번호","기준 나이"],
       fn:([v, ageStr])=>{ const targetAge=parseInt(ageStr,10); if(isNaN(targetAge)||targetAge<0) throw "기준 나이는 0 이상 숫자로 입력하세요";
         const digits=v.replace(/[^0-9]/g,""); if(digits.length!==13) throw "주민등록번호 13자리를 입력하세요";
         const yy=digits.slice(0,2), mm=digits.slice(2,4), dd=digits.slice(4,6), g=digits[6];
@@ -966,7 +966,7 @@ const CATEGORIES = [
         let age=today.getFullYear()-dt.getFullYear();
         const beforeBday=(today.getMonth()<dt.getMonth())||(today.getMonth()===dt.getMonth()&&today.getDate()<dt.getDate());
         if(beforeBday) age--;
-        return `${age<targetAge?"예":"아니오"} (만 ${age}세)`; } },
+        return age<targetAge?"예":"아니오"; } },
   ]},
   { name:"개인정보 마스킹", functions:[
     { key:"이름마스킹", label:"이름 가운데 마스킹", example:"홍길동 / * → 홍*동", note:"이름 가운데 글자만 가려 개인정보를 보호하면서도 누구인지는 알아볼 수 있게 합니다. 공개 문서·게시물에 이름을 실을 때 씁니다.", params:["값","마스킹문자"],
@@ -1015,7 +1015,7 @@ const CATEGORIES = [
       example:"부서명 생활복지과 입력 / 기준 열 번호 3 / 결과 열 번호 1 → 3열(부서명)에서 '생활복지과'를 찾아 1열(사번) 값 반환",
       note:"VLOOKUP과 달리 기준이 되는 값이 반드시 맨 왼쪽(1열)에 있지 않아도 됩니다. 기준 열 번호에 기준이 되는 값이 들어있는 열을, 결과 열 번호에 가져올 값이 들어있는 열을 각각 지정하면 되며, 결과 열이 기준 열보다 왼쪽에 있어도(예: 부서명으로 사번을 거꾸로 찾기) 정상적으로 동작합니다. 참조표 1행을 '제목행'으로 체크했다면 열 번호 대신 '부서'처럼 열 이름을 그대로 입력해도 됩니다.",
       usesLookupTable:true,
-      params:["기준이 되는 값","기준 열 번호","결과 열 번호"],
+      params:["기준이 되는 값","하단 기준표에 왼쪽값이 있는 열번호","하단 기준표에서 찾으려고 하는 값의 열번호"],
       fn:([val, keyColStr, resultColStr])=>{
         const keyCol = resolveColumnRef(keyColStr);
         const resultCol = resolveColumnRef(resultColStr);
@@ -1027,25 +1027,37 @@ const CATEGORIES = [
         return match[resultCol-1];
       } },
     { key:"중복값찾기한셀", label:"XLOOKUP(모든 값 찾기, 한셀에 입력)",
-      example:"확인할 열 번호 3 → 3열에서 2번 이상 나온 값들을 한 칸에 쉼표로 모아 표시",
-      note:"아래 'XLOOKUP 참조표'의 지정한 열에서 2번 이상 나오는 값(중복값)을 찾아, 결과값 한 칸에 쉼표로 이어붙여 보여줍니다. 예를 들어 명단에서 같은 이름·같은 사번이 중복 입력됐는지 빠르게 확인할 때 씁니다. 중복값이 없으면 '중복값 없음'이 표시됩니다.", usesLookupTable:true, params:["확인할 열 번호"],
-      fn:([colStr])=>{ const col=resolveColumnRef(colStr); const rows=getLookupDataRows();
+      example:"부서명 생활복지과 입력 / 기준 열 번호 3 / 결과 열 번호 1 → 3열이 '생활복지과'인 모든 행의 1열 값을 쉼표로 모아 표시",
+      note:"일반 XLOOKUP은 조건에 맞는 첫 번째 값만 찾지만, 이 기능은 조건에 맞는 모든 행을 찾아 그 값을 전부 쉼표로 이어붙여 한 칸에 보여줍니다. 같은 부서 소속 직원이 여러 명일 때 그 사번을 한 번에 확인하는 식으로 씁니다.",
+      usesLookupTable:true,
+      params:["기준이 되는 값","하단 기준표에 왼쪽값이 있는 열번호","하단 기준표에서 찾으려고 하는 값의 열번호"],
+      fn:([val, keyColStr, resultColStr])=>{
+        const keyCol = resolveColumnRef(keyColStr);
+        const resultCol = resolveColumnRef(resultColStr);
+        const rows = getLookupDataRows();
         if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
-        const counts={}, order=[];
-        rows.forEach(r=>{ const v=(r[col-1]||"").trim(); if(v==="") return;
-          if(!(v in counts)){ counts[v]=0; order.push(v); } counts[v]++; });
-        const dups=order.filter(v=>counts[v]>1);
-        return dups.length===0 ? "중복값 없음" : dups.join(", "); } },
+        const matches = rows.filter(row => (row[keyCol-1]||"").trim() === val.trim())
+                             .map(row => row[resultCol-1] || "")
+                             .filter(v => v !== "");
+        if(matches.length===0) throw "참조표에서 값을 찾을 수 없습니다";
+        return matches.join(", ");
+      } },
     { key:"중복값찾기여러셀", label:"XLOOKUP(모든 값 찾기, 여러셀에 입력)",
-      example:"확인할 열 번호 3 → 3열에서 2번 이상 나온 값들이 결과값, 결과값2, 결과값3…에 하나씩 표시",
-      note:"'한셀에 입력'과 같은 방식으로 중복값을 찾지만, 쉼표로 합치지 않고 중복값 하나마다 결과값·결과값2·결과값3…으로 오른쪽에 나눠서 표시합니다(최대 8개). 중복값이 없으면 결과값에 '중복값 없음'이 표시됩니다.", usesLookupTable:true, multiResult:true, params:["확인할 열 번호"],
-      fn:([colStr])=>{ const col=resolveColumnRef(colStr); const rows=getLookupDataRows();
+      example:"부서명 생활복지과 입력 / 기준 열 번호 3 / 결과 열 번호 1 → 3열이 '생활복지과'인 모든 행의 1열 값이 결과값, 결과값2, 결과값3…에 하나씩 표시",
+      note:"'한셀에 입력'과 같은 방식으로 조건에 맞는 모든 행을 찾지만, 쉼표로 합치지 않고 값 하나마다 결과값·결과값2·결과값3…으로 오른쪽에 나눠서 표시합니다(최대 8개).",
+      usesLookupTable:true, multiResult:true,
+      params:["기준이 되는 값","하단 기준표에 왼쪽값이 있는 열번호","하단 기준표에서 찾으려고 하는 값의 열번호"],
+      fn:([val, keyColStr, resultColStr])=>{
+        const keyCol = resolveColumnRef(keyColStr);
+        const resultCol = resolveColumnRef(resultColStr);
+        const rows = getLookupDataRows();
         if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
-        const counts={}, order=[];
-        rows.forEach(r=>{ const v=(r[col-1]||"").trim(); if(v==="") return;
-          if(!(v in counts)){ counts[v]=0; order.push(v); } counts[v]++; });
-        const dups=order.filter(v=>counts[v]>1);
-        return dups.length===0 ? ["중복값 없음"] : dups; } },
+        const matches = rows.filter(row => (row[keyCol-1]||"").trim() === val.trim())
+                             .map(row => row[resultCol-1] || "")
+                             .filter(v => v !== "");
+        if(matches.length===0) throw "참조표에서 값을 찾을 수 없습니다";
+        return matches;
+      } },
     { key:"카운트이프", label:"COUNTIF (조건 개수 세기)",
       example:"아래 참조표에서 조건 열과 조건값을 고르면 조건에 맞는 행 개수를 바로 계산합니다",
       note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건 열을 드롭다운으로 고르고 조건값을 입력한 뒤 '계산하기'를 누르면, 그 열의 값이 조건에 맞는 행이 몇 개인지 바로 보여줍니다. 조건값에 '부여읍'처럼 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <>를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100).",
@@ -3069,7 +3081,7 @@ function updateResultColumnVisibility(){
   }
   for(let i=0;i<MAX_RESULT_EXTRA;i++){
     const show = i < maxExtra;
-    const disp = show ? "" : "none";
+    const disp = show ? "table-cell" : "none";
     const col = document.getElementById(`colResult${i+2}`);
     const th = document.getElementById(`thResult${i+2}`);
     if(col) col.style.display = disp;
