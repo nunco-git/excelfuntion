@@ -1905,45 +1905,41 @@ function copyCountSumResults(){
   const state = getActiveCountSumState();
   if(!state || state.error){ alert("먼저 '계산하기'를 실행하세요."); return; }
 
-  // COUNTIF/COUNTIFS는 원본 참조표(계산에 실제로 쓰인 것과 같은 데이터)에 "조건적합" 표시 열을
-  // 오른쪽에 추가해서, 그대로 엑셀에 붙여넣어 데이터로 활용할 수 있게 복사합니다.
+  // COUNTIF/COUNTIFS: 실제 엑셀에서 =COUNTIF(...)를 쓰고 아래로 채운 것처럼,
+  // 모든 행에 똑같은 개수 결과값을 오른쪽 새 열에 넣어 복사합니다.
   if(!state.needsSumCol){
     const rows = getLookupDataRows();
+    const matchCount = rows.filter(row => state.conditions.every(c => c.matcher(row[c.col-1]||""))).length;
     const lines = [];
     if(lookupHasHeader && lookupTable.length > 0){
-      lines.push([...lookupTable[0], "조건적합 여부"].join("\t"));
+      lines.push([...lookupTable[0], "COUNTIF 결과(개수)"].join("\t"));
     }
     rows.forEach(row=>{
-      const isMatch = state.conditions.every(c => c.matcher(row[c.col-1]||"")) ? "조건적합" : "";
-      lines.push([...row, isMatch].join("\t"));
+      lines.push([...row, matchCount].join("\t"));
     });
-    copyTextToClipboard(lines.join("\n"), "조건적합 표시가 추가된 참조표가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+    copyTextToClipboard(lines.join("\n"), "COUNTIF 결과 열이 추가된 참조표가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
     return;
   }
 
-  // SUMIF/SUMIFS는 원본 참조표에 "합계에 포함된 값" 열을 오른쪽에 추가하고
-  // (조건에 안 맞는 행은 빈칸), 맨 아래에 전체 합계 행을 붙여서 복사합니다.
+  // SUMIF/SUMIFS: 실제 엑셀에서 =SUMIF(...)를 쓰고 아래로 채운 것처럼,
+  // 모든 행에 똑같은 합계 결과값을 오른쪽 새 열에 넣어 복사합니다.
   {
     const rows = getLookupDataRows();
-    const lines = [];
-    if(lookupHasHeader && lookupTable.length > 0){
-      lines.push([...lookupTable[0], "합계에 포함된 값"].join("\t"));
-    }
     let sum = 0;
     rows.forEach(row=>{
-      const isMatch = state.conditions.every(c => c.matcher(row[c.col-1]||""));
-      let cellVal = "";
-      if(isMatch){
-        const raw = row[state.sumCol-1] || "";
-        cellVal = raw;
-        const num = Number(String(raw).replace(/,/g,""));
+      if(state.conditions.every(c => c.matcher(row[c.col-1]||""))){
+        const num = Number(String(row[state.sumCol-1]||"0").replace(/,/g,""));
         if(!isNaN(num)) sum += num;
       }
-      lines.push([...row, cellVal].join("\t"));
     });
-    const blankCols = Array((lookupCols || 1) - 1).fill("");
-    lines.push([...blankCols, "합계", commify(String(sum))].join("\t"));
-    copyTextToClipboard(lines.join("\n"), "합계에 포함된 값과 전체 합계가 추가된 참조표가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
+    const lines = [];
+    if(lookupHasHeader && lookupTable.length > 0){
+      lines.push([...lookupTable[0], "SUMIF 결과(합계)"].join("\t"));
+    }
+    rows.forEach(row=>{
+      lines.push([...row, commify(String(sum))].join("\t"));
+    });
+    copyTextToClipboard(lines.join("\n"), "SUMIF 결과 열이 추가된 참조표가 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.");
     return;
   }
 }
