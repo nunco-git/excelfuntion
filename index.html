@@ -439,7 +439,7 @@
     <div class="pivot-section" id="countSumSection">
       <h2 class="pivot-title" id="countSumTitle">🔢 조건부 집계</h2>
       <p class="lookup-desc">
-        조건 열을 고르고, 조건 방식(정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함)을 선택한 뒤 옆 칸에 기준값을 입력하세요. "중간(범위)"는 최소~최대 두 값을 입력합니다.
+        조건 열을 고르고, 조건 방식(정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다(특정 값 조건 없이 열 전체의 개수·합계가 필요할 때).
       </p>
       <div class="lookup-actions" id="csCond1Group">
         <span class="pivot-field-label">조건 열 1</span><select id="csCol1"></select>
@@ -451,6 +451,8 @@
           <option value="between">중간(범위)</option>
           <option value="contains">글자 포함</option>
           <option value="notcontains">글자 포함 안 함</option>
+          <option value="count">개수(값이 있으면 포함)</option>
+          <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal1" class="text-join-input" style="width:70px;" placeholder="값">
         <span class="cs-val-to-group" id="csVal1ToGroup" style="display:none;">~<input type="text" id="csVal1To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
@@ -465,6 +467,8 @@
           <option value="between">중간(범위)</option>
           <option value="contains">글자 포함</option>
           <option value="notcontains">글자 포함 안 함</option>
+          <option value="count">개수(값이 있으면 포함)</option>
+          <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal2" class="text-join-input" style="width:70px;" placeholder="값">
         <span class="cs-val-to-group" id="csVal2ToGroup" style="display:none;">~<input type="text" id="csVal2To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
@@ -479,6 +483,8 @@
           <option value="between">중간(범위)</option>
           <option value="contains">글자 포함</option>
           <option value="notcontains">글자 포함 안 함</option>
+          <option value="count">개수(값이 있으면 포함)</option>
+          <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal3" class="text-join-input" style="width:70px;" placeholder="값">
         <span class="cs-val-to-group" id="csVal3ToGroup" style="display:none;">~<input type="text" id="csVal3To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
@@ -493,6 +499,8 @@
           <option value="between">중간(범위)</option>
           <option value="contains">글자 포함</option>
           <option value="notcontains">글자 포함 안 함</option>
+          <option value="count">개수(값이 있으면 포함)</option>
+          <option value="sum">합계(값이 있으면 포함)</option>
         </select>
         <input type="text" id="csVal4" class="text-join-input" style="width:70px;" placeholder="값">
         <span class="cs-val-to-group" id="csVal4ToGroup" style="display:none;">~<input type="text" id="csVal4To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
@@ -1802,6 +1810,7 @@ function buildConditionMatcher(mode, val1, val2){
   return function(cellValue){
     const cellStr = String(cellValue||"").trim();
     const cellNum = Number(cellStr.replace(/,/g,""));
+    if(mode === "count" || mode === "sum") return cellStr !== ""; // 값이 있으면(빈칸이 아니면) 무조건 포함
     if(mode === "contains") return cellStr.includes(v1);
     if(mode === "notcontains") return !cellStr.includes(v1);
     if(mode === "between"){
@@ -1822,7 +1831,10 @@ document.querySelectorAll(".cs-mode-select").forEach(sel=>{
   sel.addEventListener("change", ()=>{
     const idx = sel.id.replace("csMode","");
     const toGroup = document.getElementById(`csVal${idx}ToGroup`);
+    const valInput = document.getElementById(`csVal${idx}`);
+    const noValueNeeded = (sel.value === "count" || sel.value === "sum");
     if(toGroup) toGroup.style.display = (sel.value === "between") ? "" : "none";
+    if(valInput) valInput.style.display = noValueNeeded ? "none" : "";
   });
 });
 
@@ -1847,7 +1859,7 @@ function getActiveCountSumState(){
     const col = parseInt(document.getElementById(`csCol${i}`).value, 10);
     const mode = document.getElementById(`csMode${i}`).value;
     const val = document.getElementById(`csVal${i}`).value.trim();
-    if(!val) return { error: `조건 ${i}의 값을 입력하세요.` };
+    if(mode !== "count" && mode !== "sum" && !val) return { error: `조건 ${i}의 값을 입력하세요.` };
     let val2 = "";
     if(mode === "between"){
       val2 = document.getElementById(`csVal${i}To`).value.trim();
