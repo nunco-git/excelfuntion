@@ -113,6 +113,14 @@
     border-radius:8px;background:#fff;padding:4px 8px;}
   .text-join-label{font-size:.75rem;color:var(--muted);white-space:nowrap;}
   .cs-colref-toggle{font-size:.75rem;color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center;gap:3px;}
+
+  .pdf-preview-modal{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:1000;
+    display:flex;align-items:center;justify-content:center;padding:24px;}
+  .pdf-preview-box{background:#fff;border-radius:12px;padding:18px;width:min(820px,95vw);
+    max-height:92vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);}
+  .pdf-preview-header{font-weight:700;font-size:.92rem;color:var(--title);}
+  .pdf-preview-frame{width:100%;height:65vh;border:1px solid var(--line);border-radius:8px;background:#525659;}
+  .pdf-preview-actions{display:flex;justify-content:flex-end;gap:8px;}
   .text-join-input{width:78px;border:1px solid var(--line);border-radius:6px;
     padding:5px 8px;font-size:.79rem;font-family:inherit;color:var(--text);}
   .text-join-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg);}
@@ -622,8 +630,32 @@
         <button class="btn primary" id="splitSheetRun">복수 시트 엑셀 파일(1개) 만들기</button>
         <button class="btn primary" id="splitFilesRun">복수 엑셀 파일 만들기</button>
         <button class="btn primary" id="splitPrintRun">시트별로 나눠서 일괄 인쇄/PDF 저장</button>
-        <button class="btn primary" id="splitPdfIndividualRun">개별 PDF 저장</button>
       </div>
+      <div class="lookup-actions">
+        <span class="pivot-field-label">개별 PDF 저장 옵션</span>
+        <span class="pivot-field"><span class="pivot-field-label">용지 방향</span>
+          <select id="pdfOrientation">
+            <option value="auto">자동(열 개수에 맞게)</option>
+            <option value="portrait">세로</option>
+            <option value="landscape">가로</option>
+          </select>
+        </span>
+        <label class="cs-colref-toggle"><input type="checkbox" id="pdfAutoFit" checked> 자동으로 한 페이지에 맞추기</label>
+        <button class="btn primary" id="splitPdfIndividualRun">개별 PDF 저장(미리보기 먼저 확인)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pdfPreviewModal" class="pdf-preview-modal" style="display:none;">
+  <div class="pdf-preview-box">
+    <div class="pdf-preview-header">
+      <span>📄 PDF 미리보기 (첫 번째 그룹 예시 — 이 모양대로 전체 그룹이 저장됩니다)</span>
+    </div>
+    <iframe id="pdfPreviewFrame" class="pdf-preview-frame"></iframe>
+    <div class="pdf-preview-actions">
+      <button class="btn" id="pdfPreviewCancel">취소</button>
+      <button class="btn primary" id="pdfPreviewConfirm">이대로 전체 저장</button>
     </div>
   </div>
 </div>
@@ -1164,7 +1196,7 @@ const CATEGORIES = [
       fn:()=> "↓ 아래 참조표에 데이터를 넣고 '열 기준 시트 나누기'의 '시트별로 나눠서 일괄 인쇄/PDF 저장' 버튼을 누르세요" },
     { key:"매크로개별pdf", label:"특정 열 기준 개별 PDF 저장",
       example:"참조표를 기준 열의 값별로 나눠, 저장할 폴더를 한 번만 선택하면 값마다 별도의 PDF 파일이 자동으로 그 폴더에 저장됩니다",
-      note:"아래 참조표에 데이터를 붙여넣고 '📄 열 기준 시트 나누기' 섹션에서 기준 열을 고른 뒤 '개별 PDF 저장' 버튼을 누르세요. 폴더 선택 창이 한 번만 뜨고, 저장할 폴더를 고르면 값마다 완전히 별도의 PDF 파일이 추가 대화상자 없이 자동으로 그 폴더 안에 저장됩니다. Chrome·Edge 브라우저에서만 지원됩니다.",
+      note:"아래 참조표에 데이터를 붙여넣고 '📄 열 기준 시트 나누기' 섹션에서 기준 열과 용지 방향(자동/세로/가로)을 고르세요. '자동으로 한 페이지에 맞추기'를 켜면 내용이 잘리지 않게 한 페이지 안에 축소해서 넣고, 끄면 폭에 맞추고 넘치는 내용은 여러 페이지로 이어붙입니다. '개별 PDF 저장'을 누르면 먼저 첫 번째 그룹의 미리보기가 뜨고, 확인 후 '이대로 전체 저장'을 눌러야 실제로 폴더에 저장됩니다(그 다음 폴더 선택). Chrome·Edge 브라우저에서만 지원됩니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
       fn:()=> "↓ 아래 참조표에 데이터를 넣고 '열 기준 시트 나누기'의 '개별 PDF 저장' 버튼을 누르세요" },
     { key:"매크로통합셀해제", label:"통합된 셀 해제하기",
@@ -2989,27 +3021,104 @@ async function buildGroupCanvas(headerRow, groupRows, title){
   container.style.position = "fixed";
   container.style.left = "-9999px";
   container.style.top = "0";
-  container.style.width = "700px";
+  // 열이 많으면 고정폭(700px)에 눌려 잘리는 문제가 있어서, 열 개수에 맞춰 너비를 넉넉하게 계산합니다.
+  const dynamicWidth = Math.max(700, headerRow.length * 150);
+  container.style.width = dynamicWidth + "px";
   container.style.background = "#ffffff";
   container.style.padding = "24px";
   container.style.fontFamily = "'Pretendard','Malgun Gothic','Apple SD Gothic Neo',sans-serif";
   container.style.color = "#111111";
   const rowsHtml = groupRows.map(r=>{
-    return "<tr>" + headerRow.map((_,ci)=>`<td style="border:1px solid #333;padding:7px 10px;font-size:13px;color:#111;">${r[ci] || ""}</td>`).join("") + "</tr>";
+    return "<tr>" + headerRow.map((_,ci)=>`<td style="border:1px solid #333;padding:7px 10px;font-size:13px;color:#111;white-space:nowrap;">${r[ci] || ""}</td>`).join("") + "</tr>";
   }).join("");
   container.innerHTML = `
     <h2 style="font-size:18px;margin:0 0 14px;color:#111;">${title}</h2>
-    <table style="border-collapse:collapse;width:100%;">
-      <thead><tr>${headerRow.map(h=>`<th style="border:1px solid #333;padding:7px 10px;background:#f0f0f0;text-align:left;font-size:13px;color:#111;">${h}</th>`).join("")}</tr></thead>
+    <table style="border-collapse:collapse;width:auto;">
+      <thead><tr>${headerRow.map(h=>`<th style="border:1px solid #333;padding:7px 10px;background:#f0f0f0;text-align:left;font-size:13px;color:#111;white-space:nowrap;">${h}</th>`).join("")}</tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>`;
   document.body.appendChild(container);
   // 폰트가 완전히 로드된 뒤에 캡처해야 한글이 깨지지 않음
   if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); // 레이아웃 확정 대기
-  const canvas = await html2canvas(container, { scale:1.5, backgroundColor:"#ffffff", useCORS:true });
+  // 실제 콘텐츠가 컨테이너보다 넓어졌을 수도 있으므로, 스크롤 너비 기준으로 캡처 폭을 재조정
+  const actualWidth = Math.max(container.scrollWidth, container.offsetWidth);
+  const canvas = await html2canvas(container, { scale:1.5, backgroundColor:"#ffffff", useCORS:true, width:actualWidth, windowWidth:actualWidth });
   document.body.removeChild(container);
   return canvas;
+}
+
+// 캔버스를 페이지 크기(방향·자동맞춤 옵션 반영)에 맞춰 PDF Blob으로 변환
+function canvasToPdfBlob(canvas, orientation, autoFit){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation, unit:"mm", format:"a4" });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 10;
+  const availW = pageWidth - margin*2;
+  const availH = pageHeight - margin*2;
+  const imgData = canvas.toDataURL("image/jpeg", 0.85);
+
+  if(autoFit){
+    // 자동으로 한 페이지에 맞추기: 가로·세로 둘 다 여백 안에 들어가도록 비율 유지하며 축소
+    let imgWidth = availW;
+    let imgHeight = canvas.height * imgWidth / canvas.width;
+    if(imgHeight > availH){
+      imgHeight = availH;
+      imgWidth = canvas.width * imgHeight / canvas.height;
+    }
+    const offsetX = margin + (availW - imgWidth) / 2;
+    const offsetY = margin + (availH - imgHeight) / 2;
+    pdf.addImage(imgData, "JPEG", offsetX, offsetY, imgWidth, imgHeight);
+  } else {
+    // 자동 맞춤을 끄면: 가로 폭에 맞추고, 넘치는 세로 내용은 여러 페이지로 나눠서 이어붙임
+    const imgWidth = availW;
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    let heightLeft = imgHeight;
+    pdf.addImage(imgData, "JPEG", margin, margin, imgWidth, imgHeight);
+    heightLeft -= availH;
+    while(heightLeft > 0){
+      const position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", margin, position + margin, imgWidth, imgHeight);
+      heightLeft -= availH;
+    }
+  }
+  return pdf.output("blob");
+}
+
+function getPdfOrientationSetting(colCount){
+  const sel = document.getElementById("pdfOrientation");
+  const v = sel ? sel.value : "auto";
+  if(v === "portrait" || v === "landscape") return v;
+  return colCount >= 6 ? "landscape" : "portrait"; // 자동: 열이 많으면 가로가 더 잘 맞음
+}
+
+let pdfPreviewState = null; // 미리보기 확인 대기 중인 정보(폴더 핸들, 그룹 목록 등)
+
+function showPdfPreview(blob){
+  return new Promise(resolve=>{
+    const modal = document.getElementById("pdfPreviewModal");
+    const frame = document.getElementById("pdfPreviewFrame");
+    const url = URL.createObjectURL(blob);
+    frame.src = url;
+    modal.style.display = "flex";
+
+    const cleanup = (result)=>{
+      modal.style.display = "none";
+      frame.src = "about:blank";
+      URL.revokeObjectURL(url);
+      confirmBtn.removeEventListener("click", onConfirm);
+      cancelBtn.removeEventListener("click", onCancel);
+      resolve(result);
+    };
+    const confirmBtn = document.getElementById("pdfPreviewConfirm");
+    const cancelBtn = document.getElementById("pdfPreviewCancel");
+    const onConfirm = ()=>cleanup(true);
+    const onCancel = ()=>cleanup(false);
+    confirmBtn.addEventListener("click", onConfirm);
+    cancelBtn.addEventListener("click", onCancel);
+  });
 }
 
 async function runSplitPdfIndividual(){
@@ -3027,6 +3136,16 @@ async function runSplitPdfIndividual(){
   const col = parseInt(document.getElementById("splitSheetCol").value, 10);
   const { groups, order } = groupLookupRowsByColumn(col);
   const groupLabel = header[col-1] || `${col}열`;
+  const orientation = getPdfOrientationSetting(header.length);
+  const autoFit = document.getElementById("pdfAutoFit").checked;
+
+  showToast("미리보기를 준비하는 중입니다...");
+  const firstKey = order[0];
+  const firstCanvas = await buildGroupCanvas(header, groups[firstKey], `${groupLabel}: ${firstKey}`);
+  const firstBlob = canvasToPdfBlob(firstCanvas, orientation, autoFit);
+
+  const confirmed = await showPdfPreview(firstBlob);
+  if(!confirmed){ showToast("취소했습니다."); return; }
 
   let dirHandle;
   try{
@@ -3035,33 +3154,13 @@ async function runSplitPdfIndividual(){
     return; // 사용자가 폴더 선택을 취소함
   }
 
-  const { jsPDF } = window.jspdf;
   showToast(`${order.length}개 PDF 파일을 생성하는 중입니다...`);
 
   const usedNames = new Set();
   let successCount = 0;
   for(const key of order){
     try{
-      const canvas = await buildGroupCanvas(header, groups[key], `${groupLabel}: ${key}`);
-      const imgData = canvas.toDataURL("image/jpeg", 0.85);
-      const pdf = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const imgWidth = pageWidth - margin*2;
-      const imgHeight = canvas.height * imgWidth / canvas.width;
-
-      let heightLeft = imgHeight;
-      pdf.addImage(imgData, "JPEG", margin, margin, imgWidth, imgHeight);
-      heightLeft -= (pageHeight - margin*2);
-      while(heightLeft > 0){
-        const position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", margin, position + margin, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - margin*2);
-      }
-
-      const blob = pdf.output("blob");
+      const blob = (key === firstKey) ? firstBlob : canvasToPdfBlob(await buildGroupCanvas(header, groups[key], `${groupLabel}: ${key}`), orientation, autoFit);
       let baseName = sanitizeSheetName(key);
       let finalName = baseName, n = 2;
       while(usedNames.has(finalName)){ finalName = sanitizeSheetName(`${baseName}${n}`); n++; }
