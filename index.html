@@ -2488,10 +2488,17 @@ async function buildDynamicListXlsx(dataRows, maxLevels){
     validations.push(`<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${sqref}"><formula1>${formula1}</formula1></dataValidation>`);
   }
   const dataValidationsXml = `<dataValidations count="${validations.length}">${validations.join("")}</dataValidations>`;
+  // CT_Worksheet 스키마 순서상 dataValidations는 hyperlinks/pageMargins/ignoredErrors보다 앞에 와야 합니다.
+  // (이전 버전은 무조건 </worksheet> 바로 앞에 넣어서, ignoredErrors 뒤에 놓이는 순서 위반이 있었습니다 —
+  //  느슨한 XML 파서는 통과시키지만 엑셀은 이를 스키마 오류로 감지해 해당 부분을 복구/삭제합니다.)
   if(sheet1Xml.includes("<dataValidations")){
     sheet1Xml = sheet1Xml.replace(/<dataValidations[\s\S]*?<\/dataValidations>/, dataValidationsXml);
+  } else if(sheet1Xml.includes("<hyperlinks")){
+    sheet1Xml = sheet1Xml.replace("<hyperlinks", dataValidationsXml + "<hyperlinks");
   } else if(sheet1Xml.includes("<pageMargins")){
     sheet1Xml = sheet1Xml.replace("<pageMargins", dataValidationsXml + "<pageMargins");
+  } else if(sheet1Xml.includes("<ignoredErrors")){
+    sheet1Xml = sheet1Xml.replace("<ignoredErrors", dataValidationsXml + "<ignoredErrors");
   } else {
     sheet1Xml = sheet1Xml.replace("</worksheet>", dataValidationsXml + "</worksheet>");
   }
