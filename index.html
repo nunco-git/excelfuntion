@@ -620,9 +620,9 @@
       <div class="lookup-actions">
         <span class="pivot-field"><span class="pivot-field-label">기준 열</span><select id="splitSheetCol"></select></span>
         <button class="btn primary" id="splitSheetRun">복수 시트 엑셀 파일(1개) 만들기</button>
-        <button class="btn" id="splitFilesRun">복수 엑셀 파일 만들기</button>
-        <button class="btn" id="splitPrintRun">시트별로 나눠서 일괄 인쇄/PDF 저장</button>
-        <button class="btn" id="splitPdfIndividualRun">개별 PDF 저장</button>
+        <button class="btn primary" id="splitFilesRun">복수 엑셀 파일 만들기</button>
+        <button class="btn primary" id="splitPrintRun">시트별로 나눠서 일괄 인쇄/PDF 저장</button>
+        <button class="btn primary" id="splitPdfIndividualRun">개별 PDF 저장</button>
       </div>
     </div>
   </div>
@@ -3007,7 +3007,7 @@ async function buildGroupCanvas(headerRow, groupRows, title){
   // 폰트가 완전히 로드된 뒤에 캡처해야 한글이 깨지지 않음
   if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); // 레이아웃 확정 대기
-  const canvas = await html2canvas(container, { scale:2, backgroundColor:"#ffffff", useCORS:true });
+  const canvas = await html2canvas(container, { scale:1.5, backgroundColor:"#ffffff", useCORS:true });
   document.body.removeChild(container);
   return canvas;
 }
@@ -3043,7 +3043,7 @@ async function runSplitPdfIndividual(){
   for(const key of order){
     try{
       const canvas = await buildGroupCanvas(header, groups[key], `${groupLabel}: ${key}`);
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL("image/jpeg", 0.85);
       const pdf = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -3052,12 +3052,12 @@ async function runSplitPdfIndividual(){
       const imgHeight = canvas.height * imgWidth / canvas.width;
 
       let heightLeft = imgHeight;
-      pdf.addImage(imgData, "PNG", margin, margin, imgWidth, imgHeight);
+      pdf.addImage(imgData, "JPEG", margin, margin, imgWidth, imgHeight);
       heightLeft -= (pageHeight - margin*2);
       while(heightLeft > 0){
         const position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, position + margin, imgWidth, imgHeight);
+        pdf.addImage(imgData, "JPEG", margin, position + margin, imgWidth, imgHeight);
         heightLeft -= (pageHeight - margin*2);
       }
 
