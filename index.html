@@ -438,21 +438,66 @@
 
     <div class="pivot-section" id="countSumSection">
       <h2 class="pivot-title" id="countSumTitle">🔢 조건부 집계</h2>
+      <p class="lookup-desc">
+        조건 열을 고르고, 조건 방식(정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함)을 선택한 뒤 옆 칸에 기준값을 입력하세요. "중간(범위)"는 최소~최대 두 값을 입력합니다.
+      </p>
+      <div class="lookup-actions" id="csCond1Group">
+        <span class="pivot-field-label">조건 열 1</span><select id="csCol1"></select>
+        <span class="pivot-field-label">조건 방식</span>
+        <select class="cs-mode-select" id="csMode1">
+          <option value="eq">정확히 일치</option>
+          <option value="gte">이상</option>
+          <option value="lte">이하</option>
+          <option value="between">중간(범위)</option>
+          <option value="contains">글자 포함</option>
+          <option value="notcontains">글자 포함 안 함</option>
+        </select>
+        <input type="text" id="csVal1" class="text-join-input" style="width:70px;" placeholder="값">
+        <span class="cs-val-to-group" id="csVal1ToGroup" style="display:none;">~<input type="text" id="csVal1To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
+      </div>
+      <div class="lookup-actions" id="csCond2Group" style="display:none;">
+        <span class="pivot-field-label">조건 열 2</span><select id="csCol2"></select>
+        <span class="pivot-field-label">조건 방식</span>
+        <select class="cs-mode-select" id="csMode2">
+          <option value="eq">정확히 일치</option>
+          <option value="gte">이상</option>
+          <option value="lte">이하</option>
+          <option value="between">중간(범위)</option>
+          <option value="contains">글자 포함</option>
+          <option value="notcontains">글자 포함 안 함</option>
+        </select>
+        <input type="text" id="csVal2" class="text-join-input" style="width:70px;" placeholder="값">
+        <span class="cs-val-to-group" id="csVal2ToGroup" style="display:none;">~<input type="text" id="csVal2To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
+      </div>
+      <div class="lookup-actions" id="csCond3Group" style="display:none;">
+        <span class="pivot-field-label">조건 열 3</span><select id="csCol3"></select>
+        <span class="pivot-field-label">조건 방식</span>
+        <select class="cs-mode-select" id="csMode3">
+          <option value="eq">정확히 일치</option>
+          <option value="gte">이상</option>
+          <option value="lte">이하</option>
+          <option value="between">중간(범위)</option>
+          <option value="contains">글자 포함</option>
+          <option value="notcontains">글자 포함 안 함</option>
+        </select>
+        <input type="text" id="csVal3" class="text-join-input" style="width:70px;" placeholder="값">
+        <span class="cs-val-to-group" id="csVal3ToGroup" style="display:none;">~<input type="text" id="csVal3To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
+      </div>
+      <div class="lookup-actions" id="csCond4Group" style="display:none;">
+        <span class="pivot-field-label">조건 열 4</span><select id="csCol4"></select>
+        <span class="pivot-field-label">조건 방식</span>
+        <select class="cs-mode-select" id="csMode4">
+          <option value="eq">정확히 일치</option>
+          <option value="gte">이상</option>
+          <option value="lte">이하</option>
+          <option value="between">중간(범위)</option>
+          <option value="contains">글자 포함</option>
+          <option value="notcontains">글자 포함 안 함</option>
+        </select>
+        <input type="text" id="csVal4" class="text-join-input" style="width:70px;" placeholder="값">
+        <span class="cs-val-to-group" id="csVal4ToGroup" style="display:none;">~<input type="text" id="csVal4To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
+      </div>
       <div class="lookup-actions">
-        <span class="pivot-field"><span class="pivot-field-label">조건 열 1</span><select id="csCol1"></select></span>
-        <span class="pivot-field"><span class="pivot-field-label">조건값 1</span><input type="text" id="csVal1" class="text-join-input" style="width:90px;"></span>
-        <span class="pivot-field" id="csCond2Group" style="display:none;">
-          <span class="pivot-field-label">조건 열 2</span><select id="csCol2"></select>
-          <span class="pivot-field-label">조건값 2</span><input type="text" id="csVal2" class="text-join-input" style="width:90px;">
-        </span>
-        <span class="pivot-field" id="csCond3Group" style="display:none;">
-          <span class="pivot-field-label">조건 열 3</span><select id="csCol3"></select>
-          <span class="pivot-field-label">조건값 3</span><input type="text" id="csVal3" class="text-join-input" style="width:90px;">
-        </span>
-        <span class="pivot-field" id="csCond4Group" style="display:none;">
-          <span class="pivot-field-label">조건 열 4</span><select id="csCol4"></select>
-          <span class="pivot-field-label">조건값 4</span><input type="text" id="csVal4" class="text-join-input" style="width:90px;">
-        </span>
         <button class="btn" id="csAddCond" style="display:none;">+ 조건 추가</button>
         <span class="pivot-field" id="csSumColGroup" style="display:none;">
           <span class="pivot-field-label">합계 열</span><select id="csSumCol"></select>
@@ -1750,6 +1795,37 @@ document.getElementById("csAddCond").addEventListener("click", ()=>{
   if(csConditionCount >= 4) document.getElementById("csAddCond").style.display = "none";
 });
 
+// 조건 방식(정확히 일치/이상/이하/범위/포함/포함안함)과 입력값으로 매칭 함수를 만듦
+function buildConditionMatcher(mode, val1, val2){
+  const v1 = (val1||"").trim();
+  const v2 = (val2||"").trim();
+  return function(cellValue){
+    const cellStr = String(cellValue||"").trim();
+    const cellNum = Number(cellStr.replace(/,/g,""));
+    if(mode === "contains") return cellStr.includes(v1);
+    if(mode === "notcontains") return !cellStr.includes(v1);
+    if(mode === "between"){
+      const n1 = Number(v1.replace(/,/g,"")), n2 = Number(v2.replace(/,/g,""));
+      if(isNaN(cellNum) || isNaN(n1) || isNaN(n2)) return false;
+      const lo = Math.min(n1,n2), hi = Math.max(n1,n2);
+      return cellNum >= lo && cellNum <= hi;
+    }
+    const n1 = Number(v1.replace(/,/g,""));
+    const bothNumeric = v1 !== "" && !isNaN(cellNum) && !isNaN(n1);
+    if(mode === "gte") return bothNumeric ? cellNum >= n1 : cellStr >= v1;
+    if(mode === "lte") return bothNumeric ? cellNum <= n1 : cellStr <= v1;
+    return bothNumeric ? cellNum === n1 : cellStr === v1; // eq(기본값)
+  };
+}
+
+document.querySelectorAll(".cs-mode-select").forEach(sel=>{
+  sel.addEventListener("change", ()=>{
+    const idx = sel.id.replace("csMode","");
+    const toGroup = document.getElementById(`csVal${idx}ToGroup`);
+    if(toGroup) toGroup.style.display = (sel.value === "between") ? "" : "none";
+  });
+});
+
 function runCountSum(){
   const rows = getLookupDataRows();
   if(rows.length === 0){ alert("먼저 위 참조표에 데이터를 붙여넣으세요."); return; }
@@ -1770,16 +1846,22 @@ function runCountSum(){
   const conditions = [];
   for(let i=1;i<=condCount;i++){
     const col = parseInt(document.getElementById(`csCol${i}`).value, 10);
+    const mode = document.getElementById(`csMode${i}`).value;
     const val = document.getElementById(`csVal${i}`).value.trim();
-    if(!val){ alert(`조건값 ${i}을(를) 입력하세요.`); return; }
-    conditions.push({col, val});
+    if(!val){ alert(`조건 ${i}의 값을 입력하세요.`); return; }
+    let val2 = "";
+    if(mode === "between"){
+      val2 = document.getElementById(`csVal${i}To`).value.trim();
+      if(!val2){ alert(`조건 ${i}의 '~ 값'(최대값)을 입력하세요.`); return; }
+    }
+    conditions.push({ col, matcher: buildConditionMatcher(mode, val, val2) });
   }
   let sumCol;
   if(needsSumCol){
     sumCol = parseInt(document.getElementById("csSumCol").value, 10);
   }
 
-  const matchRows = rows.filter(row => conditions.every(c => matchCondition(row[c.col-1]||"", c.val)));
+  const matchRows = rows.filter(row => conditions.every(c => c.matcher(row[c.col-1]||"")));
 
   const box = document.getElementById("csResultBox");
   if(needsSumCol){
