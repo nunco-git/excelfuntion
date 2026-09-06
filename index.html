@@ -394,11 +394,9 @@
       <button type="button" class="btn-goto-top" id="clearLookup">🗑️ 참조표 초기화</button>
     </div>
     <p class="lookup-desc" id="lookupXlookupDesc">
-      아래 표의 <strong>아무 칸이나 클릭한 뒤 엑셀에서 복사한 범위를 그대로 붙여넣으세요(Ctrl+V)</strong>. 클릭한 칸을 시작점으로 오른쪽·아래쪽으로 값이 자동으로 채워지고, 각 열 맨 위에는 <strong>1열, 2열, 3열…</strong> 번호가 표시됩니다. <strong>XLOOKUP은 VLOOKUP과 달리 기준이 되는 값이 있는 열(기준 열)이 꼭 맨 왼쪽일 필요가 없으므로</strong>, 필요한 열들을 포함해서 자유롭게 범위를 복사하면 됩니다. 예를 들어 [사번, 이름, 부서]를 복사했다면 이름으로 사번을 찾고 싶을 때는 기준 열 번호에 2, 결과 열 번호에 1을 넣으면 됩니다. 이 참조표는 "조회(XLOOKUP)" 구분의 5개 기능(XLOOKUP, COUNTIF, COUNTIFS, SUMIF, SUMIFS)이 함께 사용합니다.<br>
-      · <strong>XLOOKUP</strong>: 기준 열 번호로 지정한 열에서 기준이 되는 값과 일치하는 행을 찾아, 결과 열 번호로 지정한 열 값을 반환(기준 열이 어디에 있든 상관없음)<br>
-      · <strong>COUNTIF/COUNTIFS</strong>: 조건에 맞는 행의 개수를 셈<br>
-      · <strong>SUMIF/SUMIFS</strong>: 조건에 맞는 행들의 특정 열 값을 합산<br>
-      열 번호 대신 <strong>아래 "1행은 제목행" 체크</strong>를 켜면 1행에 붙여넣은 열 이름(예: 부서, 금액)을 그대로 조건·기준 열에 쓸 수 있습니다. COUNTIFS·SUMIFS의 조건 목록은 <strong>'열번호:조건값'</strong> 또는 <strong>'열이름:조건값'</strong>을 쉼표로 이어서 입력하며(예: 1:부여읍,4:&gt;=5 또는 부서:부여읍,금액:&gt;=5), 조건값 앞에 &gt;, &lt;, &gt;=, &lt;=, &lt;&gt; 를 붙이면 비교 조건으로도 쓸 수 있습니다.
+      아래 표의 <strong>아무 칸이나 클릭한 뒤 엑셀에서 복사한 범위를 그대로 붙여넣으세요(Ctrl+V)</strong>. 각 열 맨 위에 <strong>1열, 2열, 3열…</strong> 번호가 표시됩니다.<br>
+      <strong>XLOOKUP</strong>은 VLOOKUP과 달리 기준이 되는 값이 있는 열이 꼭 맨 왼쪽일 필요가 없으므로, 필요한 열들을 포함해서 자유롭게 범위를 복사하면 됩니다(예: [사번, 이름, 부서]에서 이름으로 사번을 찾으려면 왼쪽값 열번호 2, 찾을 값 열번호 1).<br>
+      열 번호 대신 <strong>"1행은 제목행"</strong>을 체크하면 1행의 열 이름(예: 부서)을 그대로 열 지정에 쓸 수 있습니다.
     </p>
     <div class="lookup-actions">
       <span class="row-add-group"><input type="number" id="lookupAddRowCount" min="1" max="200" value="10"></span>
@@ -1013,7 +1011,7 @@ const CATEGORIES = [
   { name:"찾기(XLOOKUP, SUMIF 등)", functions:[
     { key:"엑스룩업", label:"XLOOKUP(값 1개 찾기)",
       example:"부서명 생활복지과 입력 / 기준 열 번호 3 / 결과 열 번호 1 → 3열(부서명)에서 '생활복지과'를 찾아 1열(사번) 값 반환",
-      note:"VLOOKUP과 달리 기준이 되는 값이 반드시 맨 왼쪽(1열)에 있지 않아도 됩니다. 기준 열 번호에 기준이 되는 값이 들어있는 열을, 결과 열 번호에 가져올 값이 들어있는 열을 각각 지정하면 되며, 결과 열이 기준 열보다 왼쪽에 있어도(예: 부서명으로 사번을 거꾸로 찾기) 정상적으로 동작합니다. 참조표 1행을 '제목행'으로 체크했다면 열 번호 대신 '부서'처럼 열 이름을 그대로 입력해도 됩니다.",
+      note:"VLOOKUP과 달리 기준값이 있는 열이 맨 왼쪽이 아니어도 됩니다. 왼쪽값 열번호에 기준값이 있는 열을, 찾을 값 열번호에 가져올 값이 있는 열을 지정하세요. '1행은 제목행' 체크 시 열 번호 대신 열 이름도 쓸 수 있습니다.",
       usesLookupTable:true,
       params:["기준이 되는 값","하단 기준표에 왼쪽값이 있는 열번호","하단 기준표에서 찾으려고 하는 값의 열번호"],
       fn:([val, keyColStr, resultColStr])=>{
@@ -1022,13 +1020,12 @@ const CATEGORIES = [
         const rows = getLookupDataRows();
         if(rows.length===0) throw "먼저 화면 아래 XLOOKUP 참조표에 데이터를 붙여넣으세요";
         const match = rows.find(row => (row[keyCol-1]||"").trim() === val.trim());
-        if(!match) throw "참조표에서 값을 찾을 수 없습니다";
-        if(match[resultCol-1] === undefined || match[resultCol-1] === "") throw "해당 열 번호에 데이터가 없습니다";
-        return match[resultCol-1];
+        if(!match) return "";
+        return match[resultCol-1] || "";
       } },
     { key:"중복값찾기한셀", label:"XLOOKUP(모든 값 찾기, 한셀에 입력)",
       example:"부서명 생활복지과 입력 / 기준 열 번호 3 / 결과 열 번호 1 → 3열이 '생활복지과'인 모든 행의 1열 값을 쉼표로 모아 표시",
-      note:"일반 XLOOKUP은 조건에 맞는 첫 번째 값만 찾지만, 이 기능은 조건에 맞는 모든 행을 찾아 그 값을 전부 쉼표로 이어붙여 한 칸에 보여줍니다. 같은 부서 소속 직원이 여러 명일 때 그 사번을 한 번에 확인하는 식으로 씁니다.",
+      note:"XLOOKUP은 첫 번째 일치 행만 찾지만, 이 기능은 일치하는 모든 행의 값을 쉼표로 이어붙여 한 칸에 보여줍니다. 같은 부서 직원이 여러 명일 때 사번을 한 번에 확인하는 식으로 씁니다.",
       usesLookupTable:true,
       params:["기준이 되는 값","하단 기준표에 왼쪽값이 있는 열번호","하단 기준표에서 찾으려고 하는 값의 열번호"],
       fn:([val, keyColStr, resultColStr])=>{
@@ -1039,7 +1036,7 @@ const CATEGORIES = [
         const matches = rows.filter(row => (row[keyCol-1]||"").trim() === val.trim())
                              .map(row => row[resultCol-1] || "")
                              .filter(v => v !== "");
-        if(matches.length===0) throw "참조표에서 값을 찾을 수 없습니다";
+        if(matches.length===0) return "";
         return matches.join(", ");
       } },
     { key:"중복값찾기여러셀", label:"XLOOKUP(모든 값 찾기, 여러셀에 입력)",
@@ -1055,7 +1052,7 @@ const CATEGORIES = [
         const matches = rows.filter(row => (row[keyCol-1]||"").trim() === val.trim())
                              .map(row => row[resultCol-1] || "")
                              .filter(v => v !== "");
-        if(matches.length===0) throw "참조표에서 값을 찾을 수 없습니다";
+        if(matches.length===0) return [""];
         return matches;
       } },
     { key:"카운트이프", label:"COUNTIF (조건 개수 세기)",
@@ -3036,12 +3033,21 @@ function updateSplitToggleButtonLabel(){
 // 입력값2·입력값3 열을 화면에 표시하고, 나머지는 아예 숨김
 // 텍스트 나누기 등 multiResult 함수의 실제 조각 개수에 맞춰 결과값2~8 열을 표시/숨김
 // 결과값 열들을 실제 내용 길이에 맞춰 폭을 자동으로 조절
+// 한글 등 전각 문자는 "ch" 단위 기준 폭의 약 2배를 차지하므로, 실제 보이는 너비에 맞춰 가중치를 둠
+function visualWidth(str){
+  let w = 0;
+  for(const ch of str){
+    w += /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7A3\u3040-\u30FF\u4E00-\u9FFF\uFF00-\uFFEF]/.test(ch) ? 2 : 1;
+  }
+  return w;
+}
+
 function autoSizeResultColumns(){
   const rows = rowsInGrid();
   let maxLen = 6;
   rows.forEach(tr=>{
     const v = tr.querySelector(".fresult").value || "";
-    maxLen = Math.max(maxLen, v.length);
+    maxLen = Math.max(maxLen, visualWidth(v));
   });
   const mainCol = document.getElementById("colResultMain");
   if(mainCol) mainCol.style.width = Math.min(maxLen+3, 60)+"ch";
@@ -3050,7 +3056,7 @@ function autoSizeResultColumns(){
     let m = 6;
     rows.forEach(tr=>{
       const inp = tr.querySelectorAll(".fresult-extra")[i];
-      if(inp){ m = Math.max(m, (inp.value||"").length); }
+      if(inp){ m = Math.max(m, visualWidth(inp.value||"")); }
     });
     const col = document.getElementById(`colResult${i+2}`);
     if(col) col.style.width = Math.min(m+3, 60)+"ch";
