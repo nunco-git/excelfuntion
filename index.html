@@ -321,7 +321,7 @@
       <div class="card fn-detail-card">
         <h2>선택한 기능 설명<span id="fnDetailTitleTag"></span></h2>
         <div id="fnDetail">
-          <div class="fn-detail-empty">표에서 구분·세부기능을 선택하면 여기에 설명이 표시됩니다.</div>
+          <div class="fn-detail-empty">엑셀함수 쉽게 활용 : 쉬운 설명과 예시문으로 누구나 엑셀 함수 활용 가능.</div>
         </div>
       </div>
     </div>
@@ -2183,7 +2183,7 @@ function copyTextJoinResults(){
 document.getElementById("tjCopyResults").addEventListener("click", copyTextJoinResults);
 
 function runJudgingTable(){
-  const { data } = getMacroHeaderAndData();
+  const data = getLookupDataRows();
   if(data.length === 0){ alert("먼저 위 참조표에 점수를 붙여넣으세요."); return; }
   const startCol = parseInt(document.getElementById("judgeStartCol").value, 10);
   const endCol = parseInt(document.getElementById("judgeEndCol").value, 10);
@@ -2194,11 +2194,16 @@ function runJudgingTable(){
   const body = document.getElementById("lookupGridBody");
   const rows = [...body.children];
 
-  const headerInput = rows[0].children[newColIdx-1].querySelector("input");
-  headerInput.value = "심사표 합계(최고최저제외)";
+  // "1행은 제목행" 체크박스를 켰을 때만 1행을 건너뛰고 라벨을 붙입니다.
+  // 기본값(체크 안 함)이면 1행도 실제 점수 데이터로 보고 계산에 포함합니다.
+  const startRowIdx = lookupHasHeader ? 1 : 0;
+  if(lookupHasHeader && rows[0]){
+    const headerInput = rows[0].children[newColIdx-1].querySelector("input");
+    if(headerInput) headerInput.value = "심사표 합계(최고최저제외)";
+  }
 
   let processedCount = 0;
-  for(let i=1;i<rows.length;i++){
+  for(let i=startRowIdx;i<rows.length;i++){
     const cells = [...rows[i].children];
     const isRowEmpty = cells.every(td=>{ const inp = td.querySelector("input"); return !inp || inp.value.trim()===""; });
     if(isRowEmpty) continue;
