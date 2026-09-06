@@ -440,7 +440,7 @@
     <div class="pivot-section" id="countSumSection">
       <h2 class="pivot-title" id="countSumTitle">🔢 조건부 집계</h2>
       <p class="lookup-desc">
-        <strong>조건범위</strong>(조건을 확인할 열)를 고르고, 조건 방식(🔁 자기 값 기준 계산·정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요(이 기준값이 엑셀 COUNTIF·SUMIF의 "조건"에 해당합니다). SUMIF·SUMIFS는 <strong>합계범위</strong>(더할 값이 있는 열)도 추가로 고릅니다. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다. <strong>"🔁 자기 값 기준 계산"</strong>을 고르면 값 입력 없이, 실제 엑셀 =COUNTIF(F:F,F2)처럼 그 열의 각 행이 같은 값을 몇 번 가지는지 행마다 계산합니다.
+        <strong>조건범위</strong>(조건을 확인할 열)를 고르고, 조건 방식(🔁 자기 값 기준 계산·정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요(이 기준값이 엑셀 COUNTIF·SUMIF의 "조건"에 해당합니다). SUMIF·SUMIFS는 <strong>합계범위</strong>(더할 값이 있는 열)도 추가로 고릅니다. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다. <strong>"🔁 자기 값 기준 계산"</strong>을 고르면 값 입력 없이, COUNTIF는 실제 엑셀 =COUNTIF(F:F,F2)처럼 그 열의 각 행이 같은 값을 몇 번 가지는지, SUMIF는 =SUMIF(F:F,F2,합계범위)처럼 같은 값을 가진 행들의 합계범위 값을 행마다 계산합니다.
       </p>
       <div class="lookup-actions" id="csCond1Group">
         <span class="pivot-field-label">조건범위1</span><select id="csCol1"></select>
@@ -1799,6 +1799,15 @@ function configureCountSumSection(key){
     document.getElementById(`csCond${i}Group`).style.display = (i <= csConditionCount) ? "" : "none";
   }
   addBtn.style.display = (isMulti && csConditionCount < 4) ? "" : "none";
+
+  // "자기 값 기준 계산" 옵션 문구를 COUNTIF/SUMIF 형식에 맞게 실시간으로 바꿔줌
+  const selfrefLabel = needsSumCol
+    ? "🔁 자기 값 기준 계산(예: =SUMIF(F:F,F2,G:G))"
+    : "🔁 자기 값 기준 계산(예: =COUNTIF(F:F,F2))";
+  for(let i=1;i<=4;i++){
+    const opt = document.querySelector(`#csMode${i} option[value="selfref"]`);
+    if(opt) opt.textContent = selfrefLabel;
+  }
 }
 
 document.getElementById("csAddCond").addEventListener("click", ()=>{
