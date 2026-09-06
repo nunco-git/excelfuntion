@@ -234,7 +234,8 @@
   .lookup-header-toggle input{cursor:pointer;}
   tr.lookup-header-tr td{background:#eef2ff !important;}
   tr.lookup-header-tr input.lookup-cell{font-weight:700;color:#4338ca;}
-  .lookup-preview-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:320px;}
+  .lookup-preview-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:175px;}
+  .lookup-paste-hint{font-size:.79rem;color:var(--muted);line-height:1.4;}
   table.lookup-grid{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
   table.lookup-grid th.lookup-colnum{background:#4338ca;color:#fff;font-weight:700;
     padding:6px 4px;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:2;
@@ -399,8 +400,7 @@
       열 번호 대신 <strong>"1행은 제목행"</strong>을 체크하면 1행의 열 이름(예: 부서)을 그대로 열 지정에 쓸 수 있습니다.
     </p>
     <div class="lookup-actions">
-      <span class="row-add-group"><input type="number" id="lookupAddRowCount" min="1" max="200" value="10"></span>
-      <button class="btn primary" id="lookupAddRows">+ 행 추가</button>
+      <span class="lookup-paste-hint">💡 엑셀에서 복사한 자료를 아래 표 아무 칸에나 붙여넣으세요(Ctrl+V) — 붙여넣으면 행이 자동으로 늘어납니다.</span>
       <button class="btn" id="lookupAddCol">+ 열 추가</button>
       <label class="lookup-header-toggle"><input type="checkbox" id="lookupHasHeader"> 1행은 제목행(열 이름)</label>
       <span class="lookup-status" id="lookupStatus"></span>
@@ -439,10 +439,10 @@
     <div class="pivot-section" id="countSumSection">
       <h2 class="pivot-title" id="countSumTitle">🔢 조건부 집계</h2>
       <p class="lookup-desc">
-        조건 열을 고르고, 조건 방식(정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다(특정 값 조건 없이 열 전체의 개수·합계가 필요할 때).
+        <strong>조건범위</strong>(조건을 확인할 열)를 고르고, 조건 방식(정확히 일치·이상·이하·중간범위·글자 포함·글자 포함 안 함·개수·합계)을 선택한 뒤 옆 칸에 기준값을 입력하세요(이 기준값이 엑셀 COUNTIF·SUMIF의 "조건"에 해당합니다). SUMIF·SUMIFS는 <strong>합계범위</strong>(더할 값이 있는 열)도 추가로 고릅니다. "중간(범위)"는 최소~최대 두 값을 입력하고, "개수"·"합계"는 값 입력 없이 그 열에 값이 있는 행을 전부 포함합니다.
       </p>
       <div class="lookup-actions" id="csCond1Group">
-        <span class="pivot-field-label">조건 열 1</span><select id="csCol1"></select>
+        <span class="pivot-field-label">조건범위1</span><select id="csCol1"></select>
         <span class="pivot-field-label">조건 방식</span>
         <select class="cs-mode-select" id="csMode1">
           <option value="eq">정확히 일치</option>
@@ -458,7 +458,7 @@
         <span class="cs-val-to-group" id="csVal1ToGroup" style="display:none;">~<input type="text" id="csVal1To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond2Group" style="display:none;">
-        <span class="pivot-field-label">조건 열 2</span><select id="csCol2"></select>
+        <span class="pivot-field-label">조건범위2</span><select id="csCol2"></select>
         <span class="pivot-field-label">조건 방식</span>
         <select class="cs-mode-select" id="csMode2">
           <option value="eq">정확히 일치</option>
@@ -474,7 +474,7 @@
         <span class="cs-val-to-group" id="csVal2ToGroup" style="display:none;">~<input type="text" id="csVal2To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond3Group" style="display:none;">
-        <span class="pivot-field-label">조건 열 3</span><select id="csCol3"></select>
+        <span class="pivot-field-label">조건범위3</span><select id="csCol3"></select>
         <span class="pivot-field-label">조건 방식</span>
         <select class="cs-mode-select" id="csMode3">
           <option value="eq">정확히 일치</option>
@@ -490,7 +490,7 @@
         <span class="cs-val-to-group" id="csVal3ToGroup" style="display:none;">~<input type="text" id="csVal3To" class="text-join-input" style="width:70px;" placeholder="~ 값"></span>
       </div>
       <div class="lookup-actions" id="csCond4Group" style="display:none;">
-        <span class="pivot-field-label">조건 열 4</span><select id="csCol4"></select>
+        <span class="pivot-field-label">조건범위4</span><select id="csCol4"></select>
         <span class="pivot-field-label">조건 방식</span>
         <select class="cs-mode-select" id="csMode4">
           <option value="eq">정확히 일치</option>
@@ -508,7 +508,7 @@
       <div class="lookup-actions">
         <button class="btn" id="csAddCond" style="display:none;">+ 조건 추가</button>
         <span class="pivot-field" id="csSumColGroup" style="display:none;">
-          <span class="pivot-field-label">합계 열</span><select id="csSumCol"></select>
+          <span class="pivot-field-label">합계범위</span><select id="csSumCol"></select>
         </span>
         <button class="btn primary" id="csRun">계산하기</button>
         <button class="btn" id="csCopyResults">결과값 복사</button>
@@ -1109,25 +1109,25 @@ const CATEGORIES = [
         return matches;
       } },
     { key:"카운트이프", label:"COUNTIF (조건 개수 세기)",
-      example:"아래 참조표에서 조건 열과 조건값을 고르면 조건에 맞는 행 개수를 바로 계산합니다",
-      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건 열을 드롭다운으로 고르고 조건값을 입력한 뒤 '계산하기'를 누르면, 그 열의 값이 조건에 맞는 행이 몇 개인지 바로 보여줍니다. 조건값에 '부여읍'처럼 값만 넣으면 정확히 일치하는 것만 세고, 앞에 >, <, >=, <=, <>를 붙이면 크다·작다·이상·이하·같지 않음으로 비교합니다(예: >=100).",
+      example:"아래 참조표에서 조건범위와 조건값을 고르면 조건에 맞는 행 개수를 바로 계산합니다",
+      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건범위(확인할 열)를 드롭다운으로 고르고 조건값을 입력한 뒤 '계산하기'를 누르면, 그 열의 값이 조건에 맞는 행이 몇 개인지 바로 보여줍니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
-      fn:()=> "↓ 아래 '조건부 집계' 섹션에서 조건 열·조건값을 고르고 계산하기를 누르세요" },
+      fn:()=> "↓ 아래 '조건부 집계' 섹션에서 조건범위·조건값을 고르고 계산하기를 누르세요" },
     { key:"카운트이프스", label:"COUNTIFS (여러 조건 개수 세기)",
-      example:"아래 참조표에서 조건 열 1·2와 조건값 1·2를 고르면, 두 조건을 모두 만족하는 행 개수를 계산합니다",
-      note:"COUNTIF에서 조건을 2개 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건 열 1·2와 조건값 1·2를 각각 드롭다운·입력칸으로 고른 뒤 '계산하기'를 누르면 됩니다.",
+      example:"아래 참조표에서 조건범위1·2와 조건값 1·2를 고르면, 두 조건을 모두 만족하는 행 개수를 계산합니다",
+      note:"COUNTIF에서 조건을 2개 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건범위1·2와 조건값 1·2를 각각 드롭다운·입력칸으로 고른 뒤 '계산하기'를 누르면 됩니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
-      fn:()=> "↓ 아래 '조건부 집계' 섹션에서 조건 열·조건값을 고르고 계산하기를 누르세요" },
+      fn:()=> "↓ 아래 '조건부 집계' 섹션에서 조건범위·조건값을 고르고 계산하기를 누르세요" },
     { key:"섬이프", label:"SUMIF (조건에 맞는 값 합계)",
-      example:"아래 참조표에서 조건 열·조건값·합계 열을 고르면, 조건에 맞는 행들의 합계 열 값을 모두 더해 보여줍니다",
-      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건 열·조건값을 고르고, 집계 방식을 '합계'로 선택한 뒤 합계 열까지 고르고 '계산하기'를 누르면 됩니다. 조건값에는 COUNTIF와 같은 비교연산자(>, <, >=, <=, <>)도 쓸 수 있습니다.",
+      example:"아래 참조표에서 조건범위·조건값·합계범위를 고르면, 조건에 맞는 행들의 합계범위 값을 모두 더해 보여줍니다",
+      note:"이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건범위·조건값을 고르고, 합계범위(더할 값이 있는 열)까지 고른 뒤 '계산하기'를 누르면 됩니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
-      fn:()=> "↓ 아래 '조건부 집계' 섹션에서 조건 열·조건값·합계 열을 고르고 계산하기를 누르세요" },
+      fn:()=> "↓ 아래 '조건부 집계' 섹션에서 조건범위·조건값·합계범위를 고르고 계산하기를 누르세요" },
     { key:"섬이프스", label:"SUMIFS (여러 조건에 맞는 값 합계)",
-      example:"아래 참조표에서 조건 열 1·2·조건값 1·2·합계 열을 고르면, 두 조건을 모두 만족하는 행들의 합계 열 값을 더해 보여줍니다",
-      note:"SUMIF에서 조건을 2개 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건 열 1·2·조건값 1·2를 고르고, 집계 방식을 '합계'로 선택한 뒤 합계 열까지 고르고 '계산하기'를 누르면 됩니다.",
+      example:"아래 참조표에서 조건범위1·2·조건값 1·2·합계범위를 고르면, 두 조건을 모두 만족하는 행들의 합계범위 값을 더해 보여줍니다",
+      note:"SUMIF에서 조건을 2개 동시에(모두 만족, AND) 걸고 싶을 때 씁니다. 이 기능을 선택하면 화면이 참조표 위주로 정리됩니다. 아래 '🔢 조건부 집계' 섹션에서 조건범위1·2·조건값 1·2를 고르고, 합계범위까지 고른 뒤 '계산하기'를 누르면 됩니다.",
       usesLookupTable:true, isPivotMode:true, params:[],
-      fn:()=> "↓ 아래 '조건부 집계' 섹션에서 조건 열·조건값·합계 열을 고르고 계산하기를 누르세요" },
+      fn:()=> "↓ 아래 '조건부 집계' 섹션에서 조건범위·조건값·합계범위를 고르고 계산하기를 누르세요" },
     { key:"피벗테이블", label:"피벗 테이블 만들기",
       example:"참조표 데이터를 기준으로 그룹별 집계표(개수·합계·평균)를 만듭니다",
       note:"이 기능을 선택하면 화면이 참조표·피벗 테이블 위주로 정리됩니다. 아래에 나타나는 참조표에 데이터를 붙여넣은 뒤, 그 아래 '📊 피벗 테이블' 섹션에서 행 그룹 열·열 그룹 열(선택)·값 열·집계 방식을 고르고 '피벗 테이블 만들기' 버튼을 누르면 교차 집계표가 만들어집니다. 이 표에서는 입력값이 따로 필요 없습니다.",
@@ -3041,13 +3041,6 @@ document.getElementById("lookupHasHeader").addEventListener("change", (e)=>{
   syncLookupTableFromGrid();
 });
 
-document.getElementById("lookupAddRows").addEventListener("click", ()=>{
-  const input = document.getElementById("lookupAddRowCount");
-  let n = parseInt(input.value, 10);
-  if(isNaN(n) || n < 1){ alert("추가할 행 개수를 1 이상으로 입력하세요."); return; }
-  if(n > 200) n = 200;
-  addLookupRows(n);
-});
 
 document.getElementById("lookupAddCol").addEventListener("click", ()=> addLookupColumn());
 
