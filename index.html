@@ -828,5 +828,140 @@
   }
 })();
 </script>
+
+<script>
+(function(){
+  // 실제 엑셀 함수(수식)로 바로 대응되는 세부기능에 함수 이름을 라벨 끝에 표기
+  var EXCEL_FN_MAP = {
+    // 텍스트 편집
+    '왼쪽N글자': 'LEFT',
+    '오른쪽N글자': 'RIGHT',
+    '특정문자치환': 'SUBSTITUTE',
+    '공백제거': 'TRIM',
+    '문자열길이': 'LEN',
+    // 날짜/시간 (모두 TEXT 함수로 서식 지정)
+    '날짜형식변환': 'TEXT',
+    '날짜형식변환한글': 'TEXT',
+    '날짜형식변환행정': 'TEXT',
+    '날짜형식변환점표기': 'TEXT',
+    '기간형식변환': 'TEXT',
+    '기간형식변환한글': 'TEXT',
+    '기간형식변환행정': 'TEXT',
+    '기간형식변환점표기': 'TEXT',
+    '요일표시': 'TEXT',
+    '연도추출': 'YEAR',
+    '날짜차이': 'DATEDIF',
+    '기간계산': 'DATEDIF',
+    // 숫자/금액
+    '텍스트를숫자로변환': 'VALUE',
+    '한글금액변환': 'NUMBERSTRING',
+    // 주민등록번호
+    '주민번호형식변환': 'LEFT+MID',
+    '주민번호성별판별': 'MID+IF',
+    '주민번호생년월일전환': 'DATE',
+    '주민번호만나이계산': 'DATEDIF',
+    '주민번호나이이상': 'DATEDIF+IF',
+    '주민번호나이미만': 'DATEDIF+IF',
+    // 개인정보 마스킹
+    '이름마스킹': 'REPLACE',
+    '주민번호마스킹': 'REPLACE',
+    '전화번호마스킹': 'REPLACE',
+    '이메일마스킹': 'REPLACE',
+    '계좌번호마스킹': 'REPLACE',
+    // 서식 변환
+    '전화번호형식': 'LEFT+MID+RIGHT',
+    '주민번호형식': 'LEFT+MID',
+    '사업자번호형식': 'LEFT+MID+RIGHT'
+  };
+
+  CATEGORIES.forEach(function(cat){
+    cat.functions.forEach(function(fn){
+      var excelName = EXCEL_FN_MAP[fn.key];
+      if (!excelName) return;
+      var suffix = ' (' + excelName + ')';
+      if (fn.label.indexOf(suffix) === -1){
+        fn.label = fn.label + suffix;
+      }
+    });
+  });
+
+  // 사이드바 함수 목록을 새 라벨 기준으로 전체 다시 그리기
+  var fnListEl3 = document.getElementById('fnList');
+  if (fnListEl3){
+    fnListEl3.innerHTML = '';
+    CATEGORIES.forEach(function(cat){
+      var details = document.createElement('details');
+      var summary = document.createElement('summary');
+      summary.textContent = cat.name;
+      details.appendChild(summary);
+      cat.functions.forEach(function(fn){
+        var item = document.createElement('div');
+        item.className = 'fn-item';
+        var paramsHtml = fn.params.length > 1 ? ' <span class="fn-params">(' + fn.params.join(', ') + ')</span>' : '';
+        item.innerHTML = '<strong>' + fn.label + '</strong><br>' + fn.example + paramsHtml;
+        details.appendChild(item);
+      });
+      fnListEl3.appendChild(details);
+    });
+  }
+})();
+</script>
+
+<script>
+(function(){
+  // '필터링 연번' 카테고리를 새로 추가 (자동필터로 숨겨진 행은 세지 않는 SUBTOTAL 연번 수식 생성)
+  var newCat = {
+    name: '필터링 연번',
+    functions: [
+      {
+        key: '필터링연번',
+        label: '필터링해도 유지되는 연번 (SUBTOTAL)',
+        example: "A / 2 / 2 → =SUBTOTAL(103,$A$2:A2)  /  A / 2 / 5 → =SUBTOTAL(103,$A$2:A5)",
+        note: '자동필터로 화면에서 숨겨진(필터링된) 행은 세지 않고, 현재 보이는 행만 세어 순서를 매겨주는 수식을 만들어줍니다. 결과 셀에 나온 값은 계산된 숫자가 아니라 수식 그 자체(=SUBTOTAL(...))이므로, 이 값을 복사해서 엑셀의 해당 셀에 붙여넣으면 계산 결과가 아닌 실제 수식으로 들어갑니다. 그 상태로 다른 열을 기준으로 필터를 걸어도, 화면에 보이는 행 순서대로 1, 2, 3...이 자동으로 다시 매겨집니다. "기준 열"은 연번이 들어갈 열(예: A), "시작 행"은 데이터가 시작되는 첫 행(제목행 다음 행, 보통 2), "현재 행"은 이 수식이 들어갈 행 번호입니다. 첫 행에는 시작 행과 현재 행을 같게(예: 2, 2) 넣고, 아래로 갈수록 현재 행 번호만 1씩 늘려 채우면 됩니다.',
+        params: ['기준 열(예: A)', '시작 행(예: 2)', '현재 행'],
+        fn: function(args){
+          var col = String(args[0] || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+          if (!col) throw '기준 열을 입력하세요 (예: A)';
+          var startRow = parseInt(args[1], 10);
+          var curRow = parseInt(args[2], 10);
+          if (isNaN(startRow) || startRow < 1) throw '시작 행 번호를 확인하세요';
+          if (isNaN(curRow) || curRow < startRow) throw '현재 행 번호는 시작 행보다 크거나 같아야 합니다';
+          return '=SUBTOTAL(103,$' + col + '$' + startRow + ':' + col + curRow + ')';
+        }
+      }
+    ]
+  };
+  CATEGORIES.push(newCat);
+  var newCatIndex = CATEGORIES.length - 1;
+
+  // 사이드바 함수 목록 맨 아래에 새 카테고리 섹션 추가
+  var fnListEl4 = document.getElementById('fnList');
+  if (fnListEl4){
+    var details = document.createElement('details');
+    var summary = document.createElement('summary');
+    summary.textContent = newCat.name;
+    details.appendChild(summary);
+    newCat.functions.forEach(function(fn){
+      var item = document.createElement('div');
+      item.className = 'fn-item';
+      var paramsHtml = fn.params.length > 1 ? ' <span class="fn-params">(' + fn.params.join(', ') + ')</span>' : '';
+      item.innerHTML = '<strong>' + fn.label + '</strong><br>' + fn.example + paramsHtml;
+      details.appendChild(item);
+    });
+    fnListEl4.appendChild(details);
+  }
+
+  // 이미 만들어진 행들의 '구분' 선택 목록에도 새 카테고리 옵션 추가
+  var newOptionsHtml = '<option value="">구분 선택</option>' +
+    CATEGORIES.map(function(cat, idx){ return '<option value="' + idx + '">' + cat.name + '</option>'; }).join('');
+  rowsInGrid().forEach(function(row){
+    var catSel = row.querySelector('.catSel');
+    if (!catSel) return;
+    var curVal = catSel.value;
+    catSel.innerHTML = newOptionsHtml;
+    catSel.value = curVal;
+  });
+})();
+</script>
 </body>
 </html>
