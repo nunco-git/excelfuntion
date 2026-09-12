@@ -306,6 +306,8 @@
     padding:10px;font-size:12.5px;font-family:inherit;color:var(--text);resize:vertical;box-sizing:border-box;}
   .copy-modal textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg);}
   .copy-modal-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;}
+  td.result-cell.err input.fresult,
+  td.result-cell.err input.fresult-extra{color:#dc2626;font-weight:600;background:#fef2f2;}
 </style>
 </head>
 <body>
@@ -735,6 +737,93 @@
       item.className = 'fn-item';
       item.innerHTML = '<strong>' + newFn.label + '</strong><br>' + newFn.example;
       targetDetails.appendChild(item);
+    }
+  }
+})();
+</script>
+
+<script>
+(function(){
+  // '주민등록번호' 카테고리를 이름으로 찾는다
+  var targetCat = null, targetIndex = -1;
+  for (var i = 0; i < CATEGORIES.length; i++){
+    if (CATEGORIES[i].name === '주민등록번호'){
+      targetCat = CATEGORIES[i];
+      targetIndex = i;
+      break;
+    }
+  }
+  if (!targetCat) return;
+
+  var newFn = {
+    key: '주민번호형식변환',
+    label: '텍스트형 -> - 포함 13자리로 변환',
+    example: '9001011234567 → 900101-1234567',
+    note: '엑셀에 텍스트/숫자로만 붙어 있는 주민등록번호(13자리)에 자동으로 하이픈(-)을 넣어 표준 형식(앞6자리-뒤7자리)으로 바꿔줍니다. 이미 하이픈이 섞여 있어도 숫자만 추출해 다시 정리합니다.',
+    params: ['텍스트 주민번호'],
+    fn: function(args){
+      var v = args[0];
+      var digits = String(v === undefined || v === null ? '' : v).replace(/[^0-9]/g, '');
+      if (digits.length !== 13) throw '주민등록번호 13자리를 입력하세요';
+      return digits.slice(0, 6) + '-' + digits.slice(6);
+    }
+  };
+
+  // 맨 위(첫 번째)에 추가
+  targetCat.functions.unshift(newFn);
+
+  // 맨 아래에 유효성 검증 함수 추가 (끝자리 검증번호를 이용한 체크섬 검증)
+  var validateFn = {
+    key: '주민번호유효성검증',
+    label: '주민번호 유효성 검증',
+    example: '9001011234568 → 유효한 번호입니다  /  9001011234567 → ⚠ 오류(끝자리 불일치)',
+    note: '주민등록번호 뒤 7자리 중 마지막 숫자(검증번호)는 앞 12자리 숫자에 정해진 가중치를 곱해 계산한 값으로 정해집니다. 이 계산식으로 끝자리가 실제 값과 일치하는지 확인해서, 오타나 자릿수 누락 등으로 잘못 입력된 주민등록번호를 걸러냅니다. 형식만 맞고 실제로 존재하는 번호인지까지는 확인할 수 없습니다. 유효하지 않으면 결과가 빨간색 오류로 표시됩니다.',
+    params: ['텍스트 주민번호'],
+    fn: function(args){
+      var v = args[0];
+      var digits = String(v === undefined || v === null ? '' : v).replace(/[^0-9]/g, '');
+      if (digits.length !== 13) throw '주민등록번호 13자리를 입력하세요';
+      var weights = [2, 3, 4, 5, 6, 7, 8, 9, 2, 3, 4, 5];
+      var sum = 0;
+      for (var i = 0; i < 12; i++) {
+        sum += Number(digits[i]) * weights[i];
+      }
+      var check = (11 - (sum % 11)) % 10;
+      if (check !== Number(digits[12])) throw '유효하지 않은 주민등록번호입니다 (끝자리 불일치)';
+      return '유효한 주민등록번호입니다';
+    }
+  };
+  targetCat.functions.push(validateFn);
+
+  // 사이드바 함수 목록에도 맨 아래에 표시 추가
+  (function(){
+    var fnListEl2 = document.getElementById('fnList');
+    if (!fnListEl2) return;
+    var detailsList2 = fnListEl2.querySelectorAll('details');
+    var targetDetails2 = detailsList2[targetIndex];
+    if (targetDetails2){
+      var item2 = document.createElement('div');
+      item2.className = 'fn-item';
+      item2.innerHTML = '<strong>' + validateFn.label + '</strong><br>' + validateFn.example;
+      targetDetails2.appendChild(item2);
+    }
+  })();
+
+  // 사이드바 함수 목록에도 맨 위에 표시 추가
+  var fnListEl = document.getElementById('fnList');
+  if (fnListEl){
+    var detailsList = fnListEl.querySelectorAll('details');
+    var targetDetails = detailsList[targetIndex];
+    if (targetDetails){
+      var item = document.createElement('div');
+      item.className = 'fn-item';
+      item.innerHTML = '<strong>' + newFn.label + '</strong><br>' + newFn.example;
+      var firstItem = targetDetails.querySelector('.fn-item');
+      if (firstItem){
+        targetDetails.insertBefore(item, firstItem);
+      } else {
+        targetDetails.appendChild(item);
+      }
     }
   }
 })();
