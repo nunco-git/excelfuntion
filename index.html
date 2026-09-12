@@ -113,7 +113,7 @@
     border-radius:8px;background:#fff;overflow:hidden;}
   #addRowCount{width:66px;border:none;outline:none;font-size:12.5px;font-family:inherit;
     padding:6px 10px;color:var(--text);background:transparent;}
-  .row-add-hint{font-size:.79rem;color:var(--muted);line-height:1.4;}
+  .row-add-hint{font-size:1rem;color:var(--muted);line-height:1.5;}
   .text-join-group{display:flex;align-items:center;gap:6px;border:1px solid var(--line);
     border-radius:8px;background:#fff;padding:4px 8px;}
   .text-join-label{font-size:.75rem;color:var(--muted);white-space:nowrap;}
@@ -176,6 +176,7 @@
   .param-label{font-size:10px;color:var(--accent);font-weight:600;padding:5px 9px 0;}
   td.valCell.na .param-label{color:#cbd5e1;}
   input.pval:disabled{background:#f8fafc;color:#cbd5e1;}
+  input.pval[data-idx="0"]:not(:disabled){background:#fef3c7;}
   input.pval{padding-top:2px;}
 
   td.result-cell{background:transparent;}
@@ -350,7 +351,7 @@
           <input type="number" id="addRowCount" min="1" max="500" value="10">
         </span>
         <button class="btn primary" id="addRow">+ 행 추가</button>
-        <span class="row-add-hint">① 구분 ② 세부 기능에서 원하는 함수 선택 → 입력값1에 변환할 값이나 기준값을 입력(복사·붙여넣기 가능, 엑셀에서 여러 행·열 블록을 통째로 복사해 붙여넣으면 입력값1·2·3에 자동으로 나눠 채워짐), 우측 상단 설명문을 보면서 입력값2·3에 적당한 값을 입력하면서 원하는 결과값 찾기</span>
+        <span class="row-add-hint">① 구분 → ② 세부 기능 선택 → 연한 색 <strong>입력값1</strong> 열에 변환할 원본 자료 입력(엑셀에서 여러 행을 통째로 복사해 붙여넣기 가능). 우측 상단 설명을 보며 입력값2·3에 세부 조건을 입력해 원하는 결과값을 찾아보세요.</span>
         <span style="flex:1"></span>
         <button class="btn primary" id="copyResults">결과값 복사</button>
       </div>
@@ -909,58 +910,38 @@
 
 <script>
 (function(){
-  // '필터링 연번' 카테고리를 새로 추가 (자동필터로 숨겨진 행은 세지 않는 SUBTOTAL 연번 수식 생성)
-  var newCat = {
-    name: '필터링 연번',
-    functions: [
-      {
-        key: '필터링연번',
-        label: '필터링해도 유지되는 연번 (SUBTOTAL)',
-        example: "A / 2 / 2 → =SUBTOTAL(103,$A$2:A2)  /  A / 2 / 5 → =SUBTOTAL(103,$A$2:A5)",
-        note: '자동필터로 화면에서 숨겨진(필터링된) 행은 세지 않고, 현재 보이는 행만 세어 순서를 매겨주는 수식을 만들어줍니다. 결과 셀에 나온 값은 계산된 숫자가 아니라 수식 그 자체(=SUBTOTAL(...))이므로, 이 값을 복사해서 엑셀의 해당 셀에 붙여넣으면 계산 결과가 아닌 실제 수식으로 들어갑니다. 그 상태로 다른 열을 기준으로 필터를 걸어도, 화면에 보이는 행 순서대로 1, 2, 3...이 자동으로 다시 매겨집니다. "기준 열"은 연번이 들어갈 열(예: A), "시작 행"은 데이터가 시작되는 첫 행(제목행 다음 행, 보통 2), "현재 행"은 이 수식이 들어갈 행 번호입니다. 첫 행에는 시작 행과 현재 행을 같게(예: 2, 2) 넣고, 아래로 갈수록 현재 행 번호만 1씩 늘려 채우면 됩니다.',
-        params: ['기준 열(예: A)', '시작 행(예: 2)', '현재 행'],
-        fn: function(args){
-          var col = String(args[0] || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
-          if (!col) throw '기준 열을 입력하세요 (예: A)';
-          var startRow = parseInt(args[1], 10);
-          var curRow = parseInt(args[2], 10);
-          if (isNaN(startRow) || startRow < 1) throw '시작 행 번호를 확인하세요';
-          if (isNaN(curRow) || curRow < startRow) throw '현재 행 번호는 시작 행보다 크거나 같아야 합니다';
-          return '=SUBTOTAL(103,$' + col + '$' + startRow + ':' + col + curRow + ')';
-        }
+  // 참조표(XLOOKUP, 텍스트 나누기 등에서 쓰는 아래쪽 표)의 열 너비를 내용에 맞게 자동 조정
+  function autoSizeLookupColumns(){
+    var headRow = document.getElementById('lookupGridHeadRow');
+    var body = document.getElementById('lookupGridBody');
+    if (!headRow || !body) return;
+    var headerCells = [].slice.call(headRow.children);
+    var bodyRows = [].slice.call(body.children);
+    for (var c = 0; c < lookupCols; c++){
+      var maxW = 6;
+      for (var r = 0; r < bodyRows.length; r++){
+        var cell = bodyRows[r].children[c];
+        if (!cell) continue;
+        var input = cell.querySelector('input.lookup-cell');
+        if (input && input.value) maxW = Math.max(maxW, visualWidth(input.value));
       }
-    ]
-  };
-  CATEGORIES.push(newCat);
-  var newCatIndex = CATEGORIES.length - 1;
-
-  // 사이드바 함수 목록 맨 아래에 새 카테고리 섹션 추가
-  var fnListEl4 = document.getElementById('fnList');
-  if (fnListEl4){
-    var details = document.createElement('details');
-    var summary = document.createElement('summary');
-    summary.textContent = newCat.name;
-    details.appendChild(summary);
-    newCat.functions.forEach(function(fn){
-      var item = document.createElement('div');
-      item.className = 'fn-item';
-      var paramsHtml = fn.params.length > 1 ? ' <span class="fn-params">(' + fn.params.join(', ') + ')</span>' : '';
-      item.innerHTML = '<strong>' + fn.label + '</strong><br>' + fn.example + paramsHtml;
-      details.appendChild(item);
-    });
-    fnListEl4.appendChild(details);
+      var headerCell = headerCells[c];
+      if (headerCell && headerCell.textContent) maxW = Math.max(maxW, visualWidth(headerCell.textContent));
+      var widthCh = Math.min(Math.max(maxW + 3, 8), 40) + 'ch';
+      if (headerCell) headerCell.style.width = widthCh;
+    }
   }
 
-  // 이미 만들어진 행들의 '구분' 선택 목록에도 새 카테고리 옵션 추가
-  var newOptionsHtml = '<option value="">구분 선택</option>' +
-    CATEGORIES.map(function(cat, idx){ return '<option value="' + idx + '">' + cat.name + '</option>'; }).join('');
-  rowsInGrid().forEach(function(row){
-    var catSel = row.querySelector('.catSel');
-    if (!catSel) return;
-    var curVal = catSel.value;
-    catSel.innerHTML = newOptionsHtml;
-    catSel.value = curVal;
-  });
+  // 기존 syncLookupTableFromGrid 뒤에 자동 너비 조정을 덧붙임
+  // (붙여넣기, 텍스트 나누기, XLOOKUP 참조표 갱신 등은 모두 이 함수를 이름으로 호출하므로 재정의가 반영됨)
+  var originalSync = syncLookupTableFromGrid;
+  syncLookupTableFromGrid = function(){
+    originalSync();
+    autoSizeLookupColumns();
+  };
+
+  // 이미 그려진 참조표에도 즉시 한 번 적용
+  autoSizeLookupColumns();
 })();
 </script>
 </body>
