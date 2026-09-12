@@ -944,5 +944,48 @@
   autoSizeLookupColumns();
 })();
 </script>
+
+<script>
+(function(){
+  // '한글금액변환' 함수를 입력값1만으로 "45,230원(금사만오천이백삼십원정)" 형식으로 항상 출력하도록 변경
+  var numCat = null;
+  for (var i = 0; i < CATEGORIES.length; i++){
+    if (CATEGORIES[i].name === '숫자 / 금액'){ numCat = CATEGORIES[i]; break; }
+  }
+  if (!numCat) return;
+  var targetFn = null;
+  for (var j = 0; j < numCat.functions.length; j++){
+    if (numCat.functions[j].key === '한글금액변환'){ targetFn = numCat.functions[j]; break; }
+  }
+  if (!targetFn) return;
+
+  targetFn.params = ['값'];
+  targetFn.example = '45230 → 45,230원(금사만오천이백삼십원정)';
+  targetFn.note = '숫자를 공문서에서 위변조 없이 금액을 표기할 때 쓰는 형식으로 바꿔줍니다. 아라비아 숫자 금액 뒤에 괄호로 한글 금액을 함께 표기합니다(예: 45,230원(금사만오천이백삼십원정)).';
+  targetFn.fn = function(args){
+    var raw = args[0];
+    var digits = String(raw).trim().replace(/,/g, '');
+    var num = parseInt(digits, 10);
+    if (isNaN(num) || num < 0) throw '숫자 확인 필요';
+    var korean = num === 0 ? '영' : numberToKorean(num);
+    return commify(String(num)) + '원(금' + korean + '원정)';
+  };
+
+  // 사이드바 설명도 새 내용으로 갱신
+  var fnListEl6 = document.getElementById('fnList');
+  if (fnListEl6){
+    var detailsList = fnListEl6.querySelectorAll('details');
+    for (var d = 0; d < detailsList.length; d++){
+      var items = detailsList[d].querySelectorAll('.fn-item');
+      for (var k = 0; k < items.length; k++){
+        var strongEl = items[k].querySelector('strong');
+        if (strongEl && strongEl.textContent === targetFn.label){
+          items[k].innerHTML = '<strong>' + targetFn.label + '</strong><br>' + targetFn.example;
+        }
+      }
+    }
+  }
+})();
+</script>
 </body>
 </html>
