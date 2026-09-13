@@ -404,6 +404,28 @@
   </div>
   </div>
 
+  <div class="card" id="hwpCleanCard">
+    <h2>🧹 엑셀표 서식제거(한글 붙여넣기용)</h2>
+    <p class="lookup-desc">
+      엑셀에서 표를 복사해 아래 칸에 붙여넣으면(Ctrl+V), <strong>배경색은 제거</strong>하고 <strong>테두리는 유지</strong>하며, <strong>숫자는 표시된 형식(콤마 등) 그대로</strong> 유지하면서, <strong>셀 안의 줄바꿈은 제거</strong>한 값으로 정리합니다. 엑셀에서 <strong>굵게 표시했던 합계·소계 행이나 "합계·소계·총계" 등의 단어가 있는 행은 자동으로 굵게</strong> 표시해서 구분되게 합니다. 정리된 값을 복사해서 한글(HWP)에 붙여넣으면 배경색 없이 테두리 있는 표로, 합계 행은 굵게 표시된 채로 들어갑니다.
+    </p>
+    <div class="lookup-actions">
+      <span class="pivot-field-label">① 엑셀에서 복사한 표를 아래 칸에 붙여넣으세요(Ctrl+V)</span>
+    </div>
+    <textarea id="hwpCleanInput" placeholder="여기를 클릭하고 엑셀에서 복사한 표를 붙여넣으세요 (Ctrl+V)" style="width:100%;min-height:110px;font-family:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:6px;box-sizing:border-box;"></textarea>
+    <div class="lookup-actions" style="margin-top:8px;">
+      <button class="btn primary" id="hwpCleanRun">정리하기</button>
+      <button class="btn" id="hwpCleanCopy">정리된 표 복사(테두리 포함)</button>
+      <span class="pivot-field-label" id="hwpCleanStatus"></span>
+    </div>
+    <div class="lookup-actions">
+      <span class="pivot-field-label">② 정리된 결과 미리보기(표 서식 없이 값만 표시됩니다)</span>
+    </div>
+    <div id="hwpCleanPreviewWrap" style="overflow:auto;max-height:280px;border:1px solid var(--line);border-radius:6px;">
+      <table id="hwpCleanPreview" style="border-collapse:collapse;width:100%;font-size:13px;"></table>
+    </div>
+  </div>
+
   <div class="card lookup-card" id="lookupCard" style="display:none;">
     <div class="lookup-header">
       <h2>🔍 조회 참조표 <span id="lookupTitleSuffix">(XLOOKUP·COUNTIF·SUMIF 공용 데이터)</span><span class="split-mode-badge">📌 화면 분할 모드</span></h2>
@@ -545,7 +567,16 @@
       </p>
       <div class="lookup-actions">
         <span class="pivot-field"><span class="pivot-field-label">나눌 열</span><select id="tsCol"></select></span>
-        <span class="pivot-field"><span class="pivot-field-label">구분자</span><input type="text" id="tsSep" class="text-join-input" style="width:80px;"></span>
+        <span class="pivot-field"><span class="pivot-field-label">구분자</span>
+          <select id="tsSepChoice">
+            <option value=" ">띄어쓰기</option>
+            <option value=",">쉼표(,)</option>
+            <option value=".">마침표(.)</option>
+            <option value="__custom__">직접 입력</option>
+          </select>
+          <input type="text" id="tsSepCustom" class="text-join-input" style="width:60px;display:none;" placeholder="구분자">
+          <input type="hidden" id="tsSep" value=" ">
+        </span>
         <button class="btn primary" id="tsRun">나누기</button>
         <button class="btn" id="tsCopyResults">결과값 복사</button>
       </div>
@@ -998,6 +1029,355 @@
     }
   }
 })();
+</script>
+
+<script>
+  // ── 텍스트 나누기: 구분자를 목록(띄어쓰기 기본값/쉼표/마침표/직접입력)에서 고르도록 함 ──
+  // 실제 나누기 로직은 여전히 id="tsSep" 요소의 값을 읽으므로, 이 값을 항상 최신 상태로 동기화만 해준다.
+  (function () {
+    const choiceEl = document.getElementById('tsSepChoice');
+    const customEl = document.getElementById('tsSepCustom');
+    const hiddenEl = document.getElementById('tsSep');
+    if (!choiceEl || !customEl || !hiddenEl) return;
+
+    function syncTsSep() {
+      if (choiceEl.value === '__custom__') {
+        customEl.style.display = '';
+        hiddenEl.value = customEl.value;
+      } else {
+        customEl.style.display = 'none';
+        hiddenEl.value = choiceEl.value;
+      }
+    }
+    choiceEl.addEventListener('change', syncTsSep);
+    customEl.addEventListener('input', syncTsSep);
+    syncTsSep(); // 기본값(띄어쓰기) 반영
+  })();
+
+  // ── 텍스트 합치기: 참조표 열 개수에 맞춰 열 선택창을 자동 생성하고,
+  //     연결글자도 목록(띄어쓰기/언더스코어/슬래시/직접입력)에서 고르도록 함 ──
+  (function () {
+    const container = document.getElementById('tjFieldsContainer');
+    if (!container) return;
+
+    function buildSepControl(prevValue) {
+      const wrap = document.createElement('span');
+      wrap.className = 'tj-sep-wrap';
+      wrap.style.display = 'inline-flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.gap = '2px';
+
+      const choice = document.createElement('select');
+      choice.className = 'tjSepChoice';
+      choice.innerHTML =
+        '<option value=" ">띄어쓰기</option>' +
+        '<option value="_">_</option>' +
+        '<option value="/">/</option>' +
+        '<option value="__custom__">직접 입력</option>';
+
+      const custom = document.createElement('input');
+      custom.type = 'text';
+      custom.className = 'tjSepCustom text-join-input';
+      custom.style.width = '50px';
+      custom.style.display = 'none';
+      custom.placeholder = '직접입력';
+
+      // 실제 합치기 로직은 class="tjSep" 요소의 값을 읽으므로, 숨겨둔 input에 항상 최신 값을 반영
+      const hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.className = 'tj-sep';
+
+      function sync() {
+        if (choice.value === '__custom__') {
+          custom.style.display = '';
+          hidden.value = custom.value;
+        } else {
+          custom.style.display = 'none';
+          hidden.value = choice.value;
+        }
+      }
+      choice.addEventListener('change', sync);
+      custom.addEventListener('input', sync);
+
+      // 다시 그릴 때 기존에 쓰던 연결글자를 최대한 유지
+      if (prevValue !== undefined && prevValue !== '') {
+        if (prevValue === ' ' || prevValue === '_' || prevValue === '/') {
+          choice.value = prevValue;
+        } else {
+          choice.value = '__custom__';
+          custom.value = prevValue;
+        }
+      }
+      sync();
+
+      wrap.appendChild(choice);
+      wrap.appendChild(custom);
+      wrap.appendChild(hidden);
+      return wrap;
+    }
+
+    function myRenderTextJoinFields() {
+      // 기존 연결글자 값을 최대한 보존한 뒤 다시 그림
+      const prevSeps = [...container.querySelectorAll('.tj-sep')].map(el => el.value);
+
+      container.innerHTML = '';
+      for (let i = 0; i < tjColCount; i++) {
+        if (i > 0) container.appendChild(buildSepControl(prevSeps[i - 1]));
+        const colSel = document.createElement('select');
+        colSel.className = 'tj-col';
+        container.appendChild(colSel);
+      }
+      populateTextJoinSelectors();
+      // 각 열 선택창은 입력 없이 순서대로(1열, 2열...) 기본 선택되도록 함
+      [...container.querySelectorAll('.tj-col')].forEach((sel, i) => {
+        const wanted = String(i + 1);
+        if ([...sel.options].some(o => o.value === wanted)) sel.value = wanted;
+      });
+      const addBtn = document.getElementById('tjAddCol');
+      if (addBtn) addBtn.style.display = tjColCount >= TJ_MAX_COLS ? 'none' : '';
+    }
+
+    // 전역 renderTextJoinFields를 새 버전으로 교체(다른 코드에서 이름으로 호출해도 이 버전이 실행됨)
+    renderTextJoinFields = myRenderTextJoinFields;
+
+    // 참조표에 붙여넣기 등으로 열 개수가 바뀔 때마다 합치기 열 선택창 개수도 자동으로 맞춤
+    const origSyncLookupTableFromGrid = syncLookupTableFromGrid;
+    syncLookupTableFromGrid = function () {
+      origSyncLookupTableFromGrid();
+      const desired = Math.max(2, Math.min(TJ_MAX_COLS, lookupCols || 2));
+      if (tjColCount !== desired) tjColCount = desired;
+      renderTextJoinFields();
+    };
+
+    renderTextJoinFields(); // 새 버전으로 즉시 다시 그리기
+
+    // 페이지가 처음 열릴 때는 이미 초기 참조표(6열)가 만들어진 뒤라, 여기서 한 번 더 열 개수를 맞춰줌
+    tjColCount = Math.max(2, Math.min(TJ_MAX_COLS, lookupCols || 2));
+    renderTextJoinFields();
+  })();
+</script>
+
+<script>
+  // ── 🧹 엑셀표 서식제거(한글 붙여넣기용) ──
+  // 엑셀에서 복사한 범위를 받아 배경색은 없애고 테두리는 유지한 값으로 정리한다.
+  // 숫자는 엑셀 클립보드의 "표시된 그대로의 텍스트"를 그대로 쓰므로 콤마 등 숫자 서식이 유지되고,
+  // 엑셀에서 굵게 표시했던 합계·소계 행(또는 "합계/소계/총계" 등의 단어가 있는 행)은 굵게 표시해서
+  // 한글에 붙여넣었을 때도 구분되도록 한다.
+  (function () {
+    const inputEl = document.getElementById('hwpCleanInput');
+    const runBtn = document.getElementById('hwpCleanRun');
+    const copyBtn = document.getElementById('hwpCleanCopy');
+    const previewEl = document.getElementById('hwpCleanPreview');
+    const statusEl = document.getElementById('hwpCleanStatus');
+    if (!inputEl || !runBtn || !copyBtn || !previewEl) return;
+
+    let cleanedRows = [];
+    let cleanedRowsBold = [];
+
+    const TOTAL_KEYWORDS = ['합계', '총계', '소계', '부분합', '합 계', '총 합계', '총합계', '평균', 'Total', 'TOTAL', 'Sum', 'SUM'];
+    function looksLikeTotalRow(cells) {
+      return cells.some(c => TOTAL_KEYWORDS.some(k => c.includes(k)));
+    }
+
+    // 엑셀 클립보드 텍스트 파서(순수 텍스트만 있을 때의 대체 경로): 줄바꿈이 들어있는 셀은
+    // 큰따옴표로 감싸져 오므로, 따옴표 안에서는 탭/줄바꿈을 "행 구분"이 아니라 셀 내용의 일부로 취급한다.
+    function parseExcelClipboardText(text) {
+      const rows = [];
+      let row = [];
+      let field = '';
+      let inQuotes = false;
+      let i = 0;
+      const len = text.length;
+      while (i < len) {
+        const ch = text[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+            inQuotes = false; i++; continue;
+          }
+          field += ch; i++; continue;
+        } else {
+          if (ch === '"' && field === '') { inQuotes = true; i++; continue; }
+          if (ch === '\t') { row.push(field); field = ''; i++; continue; }
+          if (ch === '\r') { i++; if (text[i] === '\n') i++; row.push(field); field = ''; rows.push(row); row = []; continue; }
+          if (ch === '\n') { i++; row.push(field); field = ''; rows.push(row); row = []; continue; }
+          field += ch; i++; continue;
+        }
+      }
+      if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+      // 맨 끝의 빈 줄 제거
+      while (rows.length && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') rows.pop();
+      return rows;
+    }
+
+    // 셀 내부 줄바꿈 제거(공백으로 치환)
+    function cleanCellValue(v) {
+      return String(v == null ? '' : v).replace(/\r\n|\n|\r/g, ' ').replace(/[ \t]+/g, ' ').trim();
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // 엑셀에서 굵게 표시했던 셀인지 판단(인라인 style의 font-weight, 또는 b/strong 태그)
+    function isCellBold(el) {
+      if (!el) return false;
+      if (el.tagName === 'B' || el.tagName === 'STRONG') return true;
+      const style = (el.getAttribute && el.getAttribute('style')) || '';
+      if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(style)) return true;
+      if (el.querySelector && el.querySelector('b, strong')) return true;
+      if (el.querySelectorAll) {
+        const styled = el.querySelectorAll('[style]');
+        for (const s of styled) {
+          const st = s.getAttribute('style') || '';
+          if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(st)) return true;
+        }
+      }
+      return false;
+    }
+
+    // <br>은 줄바꿈이 셀 안에 있었다는 뜻이므로 공백으로 바꿔서 한 줄로 합침
+    function cellTextFlatten(td) {
+      const clone = td.cloneNode(true);
+      clone.querySelectorAll('br').forEach(br => br.replaceWith(' '));
+      return clone.textContent.replace(/\s+/g, ' ').trim();
+    }
+
+    // 엑셀에서 복사된 표 서식(text/html)에서 값과 "굵게 표시 여부"를 함께 추출
+    function extractRowsFromHtml(htmlString) {
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.left = '-99999px';
+      wrapper.style.top = '0';
+      wrapper.innerHTML = htmlString;
+      document.body.appendChild(wrapper);
+      const table = wrapper.querySelector('table');
+      const rows = [];
+      const boldFlags = [];
+      if (table) {
+        const trs = table.querySelectorAll('tr');
+        trs.forEach(tr => {
+          const cells = [];
+          let rowBold = false;
+          [...tr.children].forEach(td => {
+            if (td.tagName !== 'TD' && td.tagName !== 'TH') return;
+            cells.push(cellTextFlatten(td));
+            if (isCellBold(td)) rowBold = true;
+          });
+          if (cells.length === 0) return;
+          rows.push(cells);
+          boldFlags.push(rowBold || looksLikeTotalRow(cells));
+        });
+      }
+      document.body.removeChild(wrapper);
+      return { rows, boldFlags };
+    }
+
+    function updateStatus(rows) {
+      const rowCount = rows.length;
+      const colCount = Math.max(0, ...rows.map(r => r.length));
+      if (statusEl) statusEl.textContent = rowCount + '행 × ' + colCount + '열 정리 완료';
+    }
+
+    function renderPreview(rows, boldFlags) {
+      if (rows.length === 0) {
+        previewEl.innerHTML = '<tr><td style="padding:8px;color:var(--muted);">정리할 내용이 없습니다.</td></tr>';
+        return;
+      }
+      previewEl.innerHTML = rows.map((r, i) => {
+        const bold = boldFlags && boldFlags[i];
+        const cellStyle = 'border:1px solid #eee;padding:4px 8px;white-space:nowrap;' + (bold ? 'font-weight:bold;' : '');
+        return '<tr>' + r.map(c => '<td style="' + cellStyle + '">' + escapeHtml(c) + '</td>').join('') + '</tr>';
+      }).join('');
+    }
+
+    // 붙여넣기 시점에 표 서식(text/html)이 함께 들어오면 굵게 표시 여부까지 정확히 인식해서 처리
+    function handlePasteEvent(e) {
+      const cd = e.clipboardData || window.clipboardData;
+      if (!cd) return; // 클립보드 접근이 안 되면 브라우저 기본 붙여넣기에 맡김
+      const html = cd.getData('text/html');
+      const plain = cd.getData('text/plain');
+      e.preventDefault();
+
+      let rows, boldFlags;
+      if (html && html.indexOf('<table') !== -1) {
+        const extracted = extractRowsFromHtml(html);
+        rows = extracted.rows.map(r => r.map(cleanCellValue));
+        boldFlags = extracted.boldFlags;
+      } else {
+        rows = parseExcelClipboardText(plain).map(r => r.map(cleanCellValue));
+        boldFlags = rows.map(r => looksLikeTotalRow(r));
+      }
+      cleanedRows = rows;
+      cleanedRowsBold = boldFlags;
+      inputEl.value = rows.map(r => r.join('\t')).join('\n');
+      renderPreview(rows, boldFlags);
+      updateStatus(rows);
+    }
+
+    // '정리하기' 버튼(붙여넣기 이후 텍스트를 직접 편집한 경우 등, 서식 정보 없이 다시 정리할 때 사용).
+    // 이때는 굵게 표시 여부를 "합계/소계/총계" 등의 단어로만 판단한다.
+    function runClean() {
+      const raw = inputEl.value;
+      if (!raw || !raw.trim()) {
+        alert('먼저 엑셀에서 표를 복사해서 붙여넣으세요.');
+        return;
+      }
+      const parsedRows = parseExcelClipboardText(raw);
+      cleanedRows = parsedRows.map(r => r.map(cleanCellValue));
+      cleanedRowsBold = cleanedRows.map(r => looksLikeTotalRow(r));
+      renderPreview(cleanedRows, cleanedRowsBold);
+      updateStatus(cleanedRows);
+    }
+
+    // 테두리는 있고 배경색은 없는 표 HTML을 만듦(한글에 붙여넣었을 때 이 테두리·굵게가 그대로 반영됨)
+    function buildBorderedTableHtml(rows, boldFlags) {
+      const body = rows.map((r, i) => {
+        const bold = boldFlags && boldFlags[i];
+        const cellStyle = 'border:1px solid #000;padding:4px 8px;' + (bold ? 'font-weight:bold;' : '');
+        return '<tr>' + r.map(c => '<td style="' + cellStyle + '">' + escapeHtml(c) + '</td>').join('') + '</tr>';
+      }).join('');
+      return '<table style="border-collapse:collapse;">' + body + '</table>';
+    }
+
+    async function copyClean() {
+      if (cleanedRows.length === 0) {
+        alert("먼저 '정리하기'를 눌러주세요.");
+        return;
+      }
+      const plainText = cleanedRows.map(r => r.join('\t')).join('\n');
+      const htmlTable = buildBorderedTableHtml(cleanedRows, cleanedRowsBold);
+      const successMsg = '정리된 값(테두리 포함, 합계 행은 굵게)이 복사되었습니다. 한글(HWP)에 Ctrl+V로 붙여넣으세요.';
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.write || typeof ClipboardItem === 'undefined') {
+          throw new Error('클립보드 API 미지원');
+        }
+        const item = new ClipboardItem({
+          'text/html': new Blob([htmlTable], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' }),
+        });
+        await navigator.clipboard.write([item]);
+        if (typeof showToast === 'function') showToast(successMsg); else alert(successMsg);
+      } catch (e) {
+        // 표+테두리 복사가 안 되는 환경이면, 기존 방식대로 값만이라도 복사(테두리·굵게 없이 텍스트만)
+        const fallbackMsg = '정리된 값이 복사되었습니다(이 브라우저에서는 테두리·굵게 없이 텍스트만 복사됩니다). 한글(HWP)에 Ctrl+V로 붙여넣으세요.';
+        if (typeof copyTextToClipboard === 'function') {
+          copyTextToClipboard(plainText, fallbackMsg);
+        } else {
+          try {
+            await navigator.clipboard.writeText(plainText);
+            if (typeof showToast === 'function') showToast(fallbackMsg); else alert(fallbackMsg);
+          } catch (e2) {
+            alert('복사에 실패했습니다. 미리보기 내용을 직접 선택해서 복사해주세요.');
+          }
+        }
+      }
+    }
+
+    runBtn.addEventListener('click', runClean);
+    copyBtn.addEventListener('click', copyClean);
+    inputEl.addEventListener('paste', handlePasteEvent);
+  })();
 </script>
 </body>
 </html>
