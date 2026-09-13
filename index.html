@@ -1247,13 +1247,12 @@
 
     // 엑셀에서 복사된 표 서식(text/html)에서 값과 "굵게 표시 여부"를 함께 추출
     function extractRowsFromHtml(htmlString) {
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'fixed';
-      wrapper.style.left = '-99999px';
-      wrapper.style.top = '0';
-      wrapper.innerHTML = htmlString;
-      document.body.appendChild(wrapper);
-      const table = wrapper.querySelector('table');
+      // 보안: 클립보드에서 온 HTML을 절대 innerHTML로 살아있는 DOM(document.body)에 삽입하지 않는다.
+      // <img onerror=...>, <svg onload=...> 같은 태그가 실제 페이지에 붙는 순간 이벤트 핸들러가 실행되어
+      // DOM 기반 XSS로 이어질 수 있기 때문. DOMParser로 만든 문서는 렌더링되지 않는 비활성(inert) 문서라
+      // 리소스 로딩이나 이벤트 핸들러 실행 없이 <table> 구조만 안전하게 읽어올 수 있다.
+      const doc = new DOMParser().parseFromString(htmlString, 'text/html');
+      const table = doc.querySelector('table');
       const rows = [];
       const boldFlags = [];
       if (table) {
@@ -1271,7 +1270,6 @@
           boldFlags.push(rowBold || looksLikeTotalRow(cells));
         });
       }
-      document.body.removeChild(wrapper);
       return { rows, boldFlags };
     }
 
