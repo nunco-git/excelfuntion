@@ -1340,6 +1340,41 @@
       return '<table style="border-collapse:collapse;">' + body + '</table>';
     }
 
+    // 실제 화면에 서식 있는 표(검은 테두리, 합계행 굵게)를 잠깐 그려서 통째로 선택한 뒤
+    // 구형 execCommand('copy')로 복사한다. navigator.clipboard.write(ClipboardItem)보다
+    // 훨씬 오래전부터 지원되어 왔고, file://로 열었거나 보안정책으로 최신 클립보드 API가
+    // 막힌 환경(공공기관 PC 등)에서도 대부분 동작하며, 선택한 DOM 그대로(테두리·굵게 포함)
+    // text/html + text/plain 두 형식이 함께 클립보드에 올라간다.
+    function copyByExecCommandSelection(rows, boldFlags) {
+      const holder = document.createElement('div');
+      holder.setAttribute('contenteditable', 'true');
+      holder.style.position = 'fixed';
+      holder.style.top = '0';
+      holder.style.left = '0';
+      holder.style.opacity = '0';
+      holder.style.pointerEvents = 'none';
+      holder.style.zIndex = '-1';
+      holder.innerHTML = buildBorderedTableHtml(rows, boldFlags);
+      document.body.appendChild(holder);
+
+      const range = document.createRange();
+      range.selectNodeContents(holder);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (e) {
+        ok = false;
+      }
+
+      selection.removeAllRanges();
+      document.body.removeChild(holder);
+      return ok;
+    }
+
     async function copyClean() {
       if (cleanedRows.length === 0) {
         alert("먼저 '정리하기'를 눌러주세요.");
@@ -1358,18 +1393,24 @@
         });
         await navigator.clipboard.write([item]);
         if (typeof showToast === 'function') showToast(successMsg); else alert(successMsg);
+        return;
       } catch (e) {
-        // 표+테두리 복사가 안 되는 환경이면, 기존 방식대로 값만이라도 복사(테두리·굵게 없이 텍스트만)
-        const fallbackMsg = '정리된 값이 복사되었습니다(이 브라우저에서는 테두리·굵게 없이 텍스트만 복사됩니다). 한글(HWP)에 Ctrl+V로 붙여넣으세요.';
-        if (typeof copyTextToClipboard === 'function') {
-          copyTextToClipboard(plainText, fallbackMsg);
-        } else {
-          try {
-            await navigator.clipboard.writeText(plainText);
-            if (typeof showToast === 'function') showToast(fallbackMsg); else alert(fallbackMsg);
-          } catch (e2) {
-            alert('복사에 실패했습니다. 미리보기 내용을 직접 선택해서 복사해주세요.');
-          }
+        // 최신 클립보드 API가 막힌 환경: 화면에 실제 서식 있는 표를 그려서 선택 후 복사(구형 방식)
+        if (copyByExecCommandSelection(cleanedRows, cleanedRowsBold)) {
+          if (typeof showToast === 'function') showToast(successMsg); else alert(successMsg);
+          return;
+        }
+      }
+      // 그마저도 안 되면 텍스트만이라도 복사
+      const fallbackMsg = '정리된 값이 복사되었습니다(이 브라우저에서는 테두리·굵게 없이 텍스트만 복사됩니다). 한글(HWP)에 Ctrl+V로 붙여넣으세요.';
+      if (typeof copyTextToClipboard === 'function') {
+        copyTextToClipboard(plainText, fallbackMsg);
+      } else {
+        try {
+          await navigator.clipboard.writeText(plainText);
+          if (typeof showToast === 'function') showToast(fallbackMsg); else alert(fallbackMsg);
+        } catch (e2) {
+          alert('복사에 실패했습니다. 미리보기 내용을 직접 선택해서 복사해주세요.');
         }
       }
     }
