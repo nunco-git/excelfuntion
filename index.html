@@ -274,6 +274,8 @@
   body.show-sheetsplit-section #sheetSplitSection{display:block;}
   #hwpCleanCard{display:none;}
   body.show-hwpclean-section #hwpCleanCard{display:block;}
+  #addrVerifyCard{display:none;}
+  body.show-addrverify-section #addrVerifyCard{display:block;}
   body.show-judging-section #judgingSection{display:block;}
   body.show-textsplit-section #textSplitSection{display:block;}
   body.show-textjoin-section #textJoinSection{display:block;}
@@ -425,6 +427,24 @@
     </div>
     <div id="hwpCleanPreviewWrap" style="overflow:auto;max-height:280px;border:1px solid var(--line);border-radius:6px;">
       <table id="hwpCleanPreview" style="border-collapse:collapse;width:100%;font-size:13px;"></table>
+    </div>
+  </div>
+
+  <div class="card" id="addrVerifyCard">
+    <h2>🌐 주소 정밀 대조 (행정안전부 도로명주소 API, 인터넷 필요)</h2>
+    <p class="lookup-desc">
+      아래 참조표에 대조할 주소를 넣고, 행정안전부 도로명주소 API에서 발급받은 <strong>승인키(confmKey)</strong>를 입력한 뒤 "대조하기"를 누르면, 참조표의 각 주소를 정부의 실제 주소 데이터와 대조해서 정식 도로명주소로 바꿔 새 열에 채워줍니다. 승인키는 <a href="https://business.juso.go.kr/addrlink/openApi/apiReqUsageGuide.do" target="_blank" rel="noopener">business.juso.go.kr</a>에서 무료로 신청할 수 있습니다(신청할 때 등록한 "사용 URL"과 지금 이 페이지 주소가 일치해야 정상 동작합니다). <strong>이 기능은 인터넷에 연결되어 있을 때만 동작</strong>하며, 오프라인에서는 사용할 수 없습니다. 승인키는 이 브라우저에만 저장되며 서버로 전송되지 않습니다.
+    </p>
+    <div class="lookup-actions">
+      <span class="pivot-field-label">API 승인키(confmKey)</span>
+      <input type="text" id="addrConfmKey" placeholder="발급받은 승인키를 입력하세요" style="width:280px;">
+      <span class="pivot-field-label">대조할 열</span>
+      <select id="addrVerifyCol"></select>
+    </div>
+    <div class="lookup-actions" style="margin-top:8px;">
+      <button class="btn primary" id="addrVerifyRun">대조하기</button>
+      <button class="btn" id="addrVerifyCopyResults">결과 열 복사</button>
+      <span class="pivot-field-label" id="addrVerifyStatus"></span>
     </div>
   </div>
 
@@ -1438,5 +1458,424 @@
     };
   })();
 </script>
+
+<script>
+  // ── 🌐 주소 정밀 대조 (행정안전부 도로명주소 API, 인터넷 필요) ──
+  (function () {
+    // '서식 변환' 카테고리에 새 함수를 추가한다.
+    var targetCat = null;
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      if (CATEGORIES[i].name === '서식 변환') { targetCat = CATEGORIES[i]; break; }
+    }
+    if (!targetCat) return;
+
+    var newFn = {
+      key: '주소정밀대조',
+      label: '주소 정밀 대조(인터넷 필요, 행안부 API)',
+      example: '↓ 아래 참조표에 주소를 넣고, API 승인키를 입력한 뒤 대조하기를 누르세요',
+      note: '행정안전부 도로명주소 API로 참조표의 주소들을 실제 정부 주소 데이터와 대조해서 정식 도로명주소로 바꿔줍니다. 이 기능은 인터넷 연결이 있어야 동작하며, business.juso.go.kr에서 무료로 발급받은 승인키(confmKey)가 있어야 합니다.',
+      usesLookupTable: true,
+      isPivotMode: true,
+      params: [],
+      fn: function () { return '↓ 아래 참조표에 주소를 넣고, API 승인키를 입력한 뒤 대조하기를 누르세요'; }
+    };
+    targetCat.functions.push(newFn);
+
+    var fnListEl = document.getElementById('fnList');
+    if (fnListEl) {
+      var detailsList = fnListEl.querySelectorAll('details');
+      var targetIndex = -1;
+      for (var idx = 0; idx < CATEGORIES.length; idx++) {
+        if (CATEGORIES[idx] === targetCat) { targetIndex = idx; break; }
+      }
+      var targetDetails = detailsList[targetIndex];
+      if (targetDetails) {
+        var item = document.createElement('div');
+        item.className = 'fn-item';
+        item.innerHTML = '<strong>' + newFn.label + '</strong><br>' + newFn.example;
+        targetDetails.appendChild(item);
+      }
+    }
+
+    // 이 함수가 선택되어 있을 때만 전용 카드가 보이도록 연결 (엑셀표 서식제거와 같은 방식)
+    var addrVerifySeenThisPass = false;
+    var origSectionIdForFnKey2 = sectionIdForFnKey;
+    sectionIdForFnKey = function (key) {
+      if (key === '주소정밀대조') { addrVerifySeenThisPass = true; return 'addrverify'; }
+      return origSectionIdForFnKey2(key);
+    };
+    var origUpdateLookupCardVisibility2 = updateLookupCardVisibility;
+    updateLookupCardVisibility = function () {
+      addrVerifySeenThisPass = false;
+      origUpdateLookupCardVisibility2();
+      document.body.classList.toggle('show-addrverify-section', addrVerifySeenThisPass);
+    };
+
+    // 참조표 열이 바뀔 때마다 '대조할 열' 선택 목록을 갱신 (기존 syncLookupTableFromGrid를 감싼다)
+    function populateAddrVerifyColumnSelector() {
+      var sel = document.getElementById('addrVerifyCol');
+      if (!sel) return;
+      var cur = sel.value;
+      var opts = [];
+      for (var c = 1; c <= lookupCols; c++) opts.push('<option value="' + c + '">' + pivotColumnLabel(c) + '</option>');
+      sel.innerHTML = opts.join('');
+      if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+    }
+    var origSyncLookupTableFromGrid = syncLookupTableFromGrid;
+    syncLookupTableFromGrid = function () {
+      origSyncLookupTableFromGrid();
+      populateAddrVerifyColumnSelector();
+    };
+
+    function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+
+    async function lookupOneAddress(confmKey, keyword) {
+      var url = 'https://business.juso.go.kr/addrlink/addrLinkApi.do'
+        + '?confmKey=' + encodeURIComponent(confmKey)
+        + '&currentPage=1&countPerPage=1'
+        + '&keyword=' + encodeURIComponent(keyword)
+        + '&resultType=json';
+      var res = await fetch(url);
+      var data = await res.json();
+      var common = data && data.results && data.results.common;
+      if (!common) throw '응답을 해석할 수 없습니다';
+      if (common.errorCode !== '0') throw (common.errorMessage || ('오류코드 ' + common.errorCode));
+      var jusoList = data.results.juso;
+      if (!jusoList || jusoList.length === 0) throw '일치하는 주소를 찾지 못했습니다';
+      return jusoList[0].roadAddr || jusoList[0].roadAddrPart1 || '';
+    }
+
+    async function runAddrVerify() {
+      var confmKey = (document.getElementById('addrConfmKey').value || '').trim();
+      var statusEl = document.getElementById('addrVerifyStatus');
+      if (!confmKey) { alert('먼저 API 승인키(confmKey)를 입력하세요.'); return; }
+      var colSel = document.getElementById('addrVerifyCol');
+      var col = parseInt(colSel.value, 10);
+      if (isNaN(col)) { alert('대조할 열을 먼저 골라주세요(참조표에 주소를 붙여넣으면 자동으로 생깁니다).'); return; }
+      var dataRows = getLookupDataRows();
+      if (dataRows.length === 0) { alert('먼저 위 참조표에 주소를 붙여넣으세요.'); return; }
+
+      addLookupColumn();
+      var newColIndex = lookupCols;
+      var bodyEl = document.getElementById('lookupGridBody');
+      var rowEls = [...bodyEl.children];
+      if (lookupHasHeader && rowEls[0]) {
+        var headerCell = rowEls[0].children[newColIndex - 1].querySelector('input');
+        if (headerCell) headerCell.value = '표준주소(API 대조)';
+      }
+
+      var startRowIdx = lookupHasHeader ? 1 : 0;
+      var total = 0, done = 0, ok = 0;
+      for (var r = startRowIdx; r < rowEls.length; r++) {
+        var cells = [...rowEls[r].children];
+        var isEmptyRow = cells.every(function (td) {
+          var inp = td.querySelector('input');
+          return !inp || inp.value.trim() === '';
+        });
+        if (isEmptyRow) continue;
+        total++;
+      }
+      if (total === 0) { alert('대조할 주소가 없습니다.'); return; }
+
+      for (var r2 = startRowIdx; r2 < rowEls.length; r2++) {
+        var cells2 = [...rowEls[r2].children];
+        var isEmptyRow2 = cells2.every(function (td) {
+          var inp = td.querySelector('input');
+          return !inp || inp.value.trim() === '';
+        });
+        if (isEmptyRow2) continue;
+        var srcInput = cells2[col - 1] ? cells2[col - 1].querySelector('input') : null;
+        var keyword = srcInput ? srcInput.value.trim() : '';
+        var outInput = cells2[newColIndex - 1].querySelector('input');
+        if (!keyword) { outInput.value = '(입력값 없음)'; done++; continue; }
+        statusEl.textContent = '대조 중... (' + (done + 1) + '/' + total + ')';
+        try {
+          var result = await lookupOneAddress(confmKey, keyword);
+          outInput.value = result;
+          ok++;
+        } catch (e) {
+          outInput.value = '⚠ ' + (typeof e === 'string' ? e : '조회 실패(네트워크/승인키 확인)');
+        }
+        done++;
+        await sleep(150); // API 서버에 과도한 연속 요청을 피하기 위한 짧은 간격
+      }
+      syncLookupTableFromGrid();
+      addrVerifyLastCol = newColIndex;
+      statusEl.textContent = total + '건 중 ' + ok + '건 대조 완료';
+      showToast(total + '건 중 ' + ok + '건 대조를 완료했습니다.');
+    }
+    document.getElementById('addrVerifyRun').addEventListener('click', function () {
+      runAddrVerify().catch(function (e) {
+        console.error('주소 정밀 대조 오류:', e);
+        alert('처리 중 오류가 발생했습니다: ' + (e && e.message ? e.message : e));
+      });
+    });
+
+    var addrVerifyLastCol = null;
+    document.getElementById('addrVerifyCopyResults').addEventListener('click', function () {
+      if (!addrVerifyLastCol) { alert("먼저 '대조하기'를 실행하세요."); return; }
+      var rows = getLookupDataRows();
+      var text = rows.map(function (r) { return r[addrVerifyLastCol - 1] || ''; }).join('\n');
+      copyTextToClipboard(text, '대조된 주소 열이 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.');
+    });
+  })();
+</script>
 </body>
 </html>
+
+<script>
+(function(){
+  // '주민번호생년월일전환' 함수를 찾아서, 주민번호(13자리)뿐 아니라
+  // 8자리(YYYYMMDD)·6자리(YYMMDD)·마침표/하이픈 등이 붙은 생년월일도
+  // 입력값2에 지정한 형식대로 변환되도록 로직을 교체한다.
+  var targetCat = null;
+  for (var i = 0; i < CATEGORIES.length; i++){
+    if (CATEGORIES[i].name === '주민등록번호'){ targetCat = CATEGORIES[i]; break; }
+  }
+  if (!targetCat) return;
+  var targetFn = null;
+  for (var j = 0; j < targetCat.functions.length; j++){
+    if (targetCat.functions[j].key === '주민번호생년월일전환'){ targetFn = targetCat.functions[j]; break; }
+  }
+  if (!targetFn) return;
+
+  targetFn.params = ['텍스트 주민번호/생년월일', '원하는 형식 예시(예: 2015-05-02)'];
+  targetFn.example = "9001011234567 / 900101-1234567 / 19900101 / 900101 / 1990.01.01 / 90.1.1  (형식 예시: 2015-05-02)  → 1990-01-01";
+  targetFn.note = '주민등록번호(13자리, 하이픈 있어도 됨) 뿐 아니라, 생년월일 8자리(19900101), 6자리(900101), 마침표·하이픈이 붙은 생년월일(1990.01.01, 90.1.1, 1990-01-01)까지 자동으로 인식해서 날짜로 바꿔줍니다. 주민등록번호가 입력되면 뒷자리 성별 구분 숫자로 1900년대·2000년대·1800년대를 정확히 구분하고, 6자리처럼 연도 뒤 두 자리만 있는 경우에는 50 미만이면 2000년대, 50 이상이면 1900년대로 추정합니다. 입력값2에는 원하는 출력 형식을 예시로 입력하세요(예: "2015-05-02"라고 입력하면 결과도 그 모양대로, "15.5.2"라고 입력하면 그 모양대로, "2015년 5월 2일"처럼 한글로도 가능).';
+  targetFn.fn = function(args){
+    var raw = args[0];
+    var fmt = args[1];
+    var rawStr = String(raw === undefined || raw === null ? '' : raw);
+    var digitsOnly = rawStr.replace(/[^0-9]/g, '');
+    var y, m, d;
+
+    if (digitsOnly.length === 13){
+      // 주민등록번호(하이픈 유무 무관): 뒷자리 성별 구분 숫자로 세기 정확히 판별
+      var yy = digitsOnly.slice(0, 2), mm = digitsOnly.slice(2, 4), dd = digitsOnly.slice(4, 6);
+      var genderDigit = digitsOnly[6];
+      var century;
+      if ('1256'.indexOf(genderDigit) !== -1) century = 1900;
+      else if ('3478'.indexOf(genderDigit) !== -1) century = 2000;
+      else if (genderDigit === '9' || genderDigit === '0') century = 1800;
+      else throw '유효하지 않은 주민등록번호입니다';
+      y = century + parseInt(yy, 10);
+      m = parseInt(mm, 10);
+      d = parseInt(dd, 10);
+      var dt13 = new Date(y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0') + 'T00:00:00');
+      if (isNaN(dt13.getTime())) throw '유효하지 않은 날짜입니다';
+    } else {
+      var trimmed = rawStr.trim();
+      if (!trimmed) throw '값을 입력하세요';
+      // 8자리(YYYYMMDD)·6자리(YYMMDD) 순수 숫자, 또는 마침표·하이픈·한글이 섞인 날짜는
+      // 기존 범용 날짜 해석 함수(parseDateFlexible)에 맡긴다.
+      var parsed = parseDateFlexible(trimmed);
+      y = parsed.y; m = parsed.m; d = parsed.d;
+      if (parsed.guessed){
+        var century = y - (y % 100);
+        var result = formatDateLikeExample(y, m, d, fmt);
+        return result + ' (※ 연도가 2자리로 입력되어 ' + century + '년대로 추정한 결과입니다)';
+      }
+    }
+
+    return formatDateLikeExample(y, m, d, fmt);
+  };
+
+  // 사이드바 설명도 새 내용으로 갱신
+  var fnListEl = document.getElementById('fnList');
+  if (fnListEl){
+    var detailsList = fnListEl.querySelectorAll('details');
+    for (var k = 0; k < detailsList.length; k++){
+      var items = detailsList[k].querySelectorAll('.fn-item');
+      for (var n = 0; n < items.length; n++){
+        var strongEl = items[n].querySelector('strong');
+        if (strongEl && strongEl.textContent === targetFn.label){
+          var paramsHtml = targetFn.params.length > 1 ? ' <span class="fn-params">(' + targetFn.params.join(', ') + ')</span>' : '';
+          items[n].innerHTML = '<strong>' + targetFn.label + '</strong><br>' + targetFn.example + paramsHtml;
+        }
+      }
+    }
+  }
+})();
+</script>
+
+<script>
+(function(){
+  // 날짜 해석에서 "연도 두 자리"만 있을 때 세기(1900년대/2000년대)를 판별하는 규칙:
+  // "현재 연도로부터 5년 뒤"의 뒷 두 자리보다 작거나 같으면 2000년대, 크면 1900년대로 계산한다.
+  // (예: 2026년 기준이면 2031년의 뒷자리 31이 기준 → 31 이하는 2000년대, 32 이상은 1900년대)
+  // parseDateFlexible은 여러 날짜 관련 함수가 공통으로 쓰는 전역 함수라,
+  // 이걸 새로 정의해서 덮어쓰면 그 함수들에 일괄 적용된다.
+  function twoDigitYearToFull(yy){
+    var cutoffYY = (new Date().getFullYear() + 5) % 100;
+    return (yy <= cutoffYY ? 2000 : 1900) + yy;
+  }
+
+  parseDateFlexible = function(raw){
+    raw = (raw || '').trim();
+    if (!raw) throw '값을 입력하세요';
+    var y, m, d;
+    var guessed = false;
+    if (/^[0-9]+$/.test(raw)){
+      if (raw.length === 8){
+        y = raw.slice(0, 4); m = raw.slice(4, 6); d = raw.slice(6, 8);
+      } else if (raw.length === 6){
+        var yy6 = parseInt(raw.slice(0, 2), 10);
+        y = String(twoDigitYearToFull(yy6));
+        m = raw.slice(2, 4); d = raw.slice(4, 6);
+        guessed = true;
+      } else {
+        throw '날짜 형식을 인식할 수 없습니다';
+      }
+    } else {
+      var parts = raw.split(/[.\-\/년월일\s]+/).filter(Boolean);
+      if (parts.length < 3) throw '날짜 형식을 인식할 수 없습니다';
+      y = parts[0]; m = parts[1]; d = parts[2];
+      if (y.length === 2){
+        y = String(twoDigitYearToFull(parseInt(y, 10)));
+        guessed = true;
+      } else if (y.length !== 4){
+        throw '연도 형식을 인식할 수 없습니다';
+      }
+    }
+    m = String(parseInt(m, 10)).padStart(2, '0');
+    d = String(parseInt(d, 10)).padStart(2, '0');
+    var dt = new Date(y + '-' + m + '-' + d + 'T00:00:00');
+    if (isNaN(dt.getTime())) throw '유효하지 않은 날짜입니다';
+    if (dt.getFullYear() !== parseInt(y, 10) || dt.getMonth() + 1 !== parseInt(m, 10) || dt.getDate() !== parseInt(d, 10)){
+      throw '유효하지 않은 날짜입니다';
+    }
+    return { y: parseInt(y, 10), m: parseInt(m, 10), d: parseInt(d, 10), dt: dt, guessed: guessed };
+  };
+
+  // 주민번호생년월일전환 함수의 설명 문구도 새 규칙에 맞게 정리
+  var targetCat2 = null;
+  for (var i2 = 0; i2 < CATEGORIES.length; i2++){
+    if (CATEGORIES[i2].name === '주민등록번호'){ targetCat2 = CATEGORIES[i2]; break; }
+  }
+  if (targetCat2){
+    var targetFn2 = null;
+    for (var j2 = 0; j2 < targetCat2.functions.length; j2++){
+      if (targetCat2.functions[j2].key === '주민번호생년월일전환'){ targetFn2 = targetCat2.functions[j2]; break; }
+    }
+    if (targetFn2){
+      targetFn2.note = '주민등록번호(13자리, 하이픈 있어도 됨) 뿐 아니라, 생년월일 8자리(19900101), 6자리(900101), 마침표·하이픈이 붙은 생년월일(1990.01.01, 90.1.1, 1990-01-01)까지 자동으로 인식해서 날짜로 바꿔줍니다. 주민등록번호가 입력되면 뒷자리 성별 구분 숫자로 1900년대·2000년대·1800년대를 정확히 구분합니다. 6자리처럼 연도 뒤 두 자리만 있는 경우에는 현재 연도로부터 5년 뒤 연도의 뒷 두 자리보다 작거나 같으면 2000년대, 크면 1900년대로 계산합니다(연도가 100% 확실하지 않으므로, 이 경우 결과값 뒤에 "※ 연도가 2자리로 입력되어 OOOO년대로 추정한 결과입니다"라는 안내문이 함께 표시됩니다). 입력값2에는 원하는 출력 형식을 예시로 입력하세요(예: "2015-05-02"라고 입력하면 결과도 그 모양대로, "15.5.2"라고 입력하면 그 모양대로, "2015년 5월 2일"처럼 한글로도 가능).';
+    }
+  }
+})();
+</script>
+
+<script>
+(function(){
+  // '서식 변환' 카테고리에 '주소 형식 정리' 함수를 새로 추가
+  var targetCat = null;
+  for (var i = 0; i < CATEGORIES.length; i++){
+    if (CATEGORIES[i].name === '서식 변환'){ targetCat = CATEGORIES[i]; break; }
+  }
+  if (!targetCat) return;
+
+  var PROVINCE_ALIASES = {
+    '서울':'서울특별시', '서울시':'서울특별시', '서울특별시':'서울특별시',
+    '부산':'부산광역시', '부산시':'부산광역시', '부산광역시':'부산광역시',
+    '대구':'대구광역시', '대구시':'대구광역시', '대구광역시':'대구광역시',
+    '인천':'인천광역시', '인천시':'인천광역시', '인천광역시':'인천광역시',
+    '광주':'광주광역시', '광주시':'광주광역시', '광주광역시':'광주광역시',
+    '대전':'대전광역시', '대전시':'대전광역시', '대전광역시':'대전광역시',
+    '울산':'울산광역시', '울산시':'울산광역시', '울산광역시':'울산광역시',
+    '세종':'세종특별자치시', '세종시':'세종특별자치시', '세종특별자치시':'세종특별자치시',
+    '경기':'경기도', '경기도':'경기도',
+    '강원':'강원특별자치도', '강원도':'강원특별자치도', '강원특별자치도':'강원특별자치도',
+    '충북':'충청북도', '충청북도':'충청북도',
+    '충남':'충청남도', '충청남도':'충청남도',
+    '전북':'전북특별자치도', '전라북도':'전북특별자치도', '전북특별자치도':'전북특별자치도',
+    '전남':'전라남도', '전라남도':'전라남도',
+    '경북':'경상북도', '경상북도':'경상북도',
+    '경남':'경상남도', '경상남도':'경상남도',
+    '제주':'제주특별자치도', '제주도':'제주특별자치도', '제주특별자치도':'제주특별자치도'
+  };
+
+  function classifyAddrLevel(token){
+    if (!token) return null;
+    if (PROVINCE_ALIASES[token]) return 'sido';
+    if (/구$/.test(token)) return 'eupmyeon';
+    if (/(시|군)$/.test(token)) return 'sigun';
+    if (/(읍|면|동|리)$/.test(token)) return 'eupmyeon';
+    return null;
+  }
+
+  function tokenizeAddr(raw){
+    var cleaned = String(raw || '').replace(/[\u3000\t]+/g, ' ').replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+    return cleaned.length ? cleaned.split(' ') : [];
+  }
+
+  function normalizeAddrParts(raw){
+    var tokens = tokenizeAddr(raw);
+    var province = null;
+    var rest = tokens;
+    if (tokens.length && PROVINCE_ALIASES[tokens[0]]){
+      province = PROVINCE_ALIASES[tokens[0]];
+      rest = tokens.slice(1);
+    }
+    var city = null;
+    var remainder = rest;
+    if (rest.length && /(시|군)$/.test(rest[0])){
+      city = rest[0];
+      remainder = rest.slice(1);
+    }
+    return { province: province, city: city, remainder: remainder };
+  }
+
+  var newFn = {
+    key: '주소형식정리',
+    label: '주소 형식 정리',
+    example: '경기 성남시 분당구 판교역로 235 / 예시 "성남시..." → 성남시 분당구 판교역로 235',
+    note: '띄어쓰기가 뒤죽박죽이거나 시/도 이름이 "경기", "충남"처럼 줄여서 입력된 주소를 정리해줍니다. 줄임말은 "경기도", "충청남도"처럼 정식 명칭으로, 최근에 이름이 바뀐 시/도(강원도→강원특별자치도, 전라북도→전북특별자치도)는 새 명칭으로 바꿔줍니다. 입력값2에는 결과가 어느 단계부터 시작하길 원하는지 보여주는 예시 주소를 넣어주세요 — 예시가 "경기도 성남시..."처럼 시/도명으로 시작하면 시/도부터, "성남시..."처럼 시/군 이름으로 시작하면 시/군부터, "분당구..." 또는 "정자동..."처럼 구/읍/면/동으로 시작하면 그 아래 단계부터 시작하는 주소가 결과로 나옵니다. 입력값1에 원래 있던 시/도나 시/군 정보가 예시가 요구하는 단계보다 앞서 있으면 자동으로 잘라냅니다. 다만 이 기능은 전국의 모든 읍·면·동 이름을 대조하는 정밀한 주소 데이터베이스를 쓰는 것은 아니라서, 시/도 줄임말 교정과 시작 단계 자르기까지만 정리해주며 오탈자나 존재하지 않는 지명까지 바로잡지는 못합니다.',
+    params: ['원본 주소', '시작 단계 예시(예: 경기도 성남시... / 성남시... / 분당구...)'],
+    fn: function(args){
+      var raw = args[0];
+      var example = args[1];
+      var rawTrim = String(raw === undefined || raw === null ? '' : raw).trim();
+      if (!rawTrim) throw '주소를 입력하세요';
+      var exTokens = tokenizeAddr(example);
+      if (!exTokens.length) throw '입력값2에 원하는 시작 단계를 보여주는 예시 주소를 입력하세요';
+      var level = classifyAddrLevel(exTokens[0]);
+      if (!level) throw '입력값2(예시)의 첫 부분에서 시작 단계를 알아볼 수 없습니다. 시/도명, 시/군, 구/읍/면/동으로 시작하는 예시를 입력하세요';
+
+      var parsed = normalizeAddrParts(rawTrim);
+      var out = [];
+      if (level === 'sido'){
+        if (parsed.province) out.push(parsed.province);
+        if (parsed.city) out.push(parsed.city);
+        out = out.concat(parsed.remainder);
+      } else if (level === 'sigun'){
+        if (parsed.city) out.push(parsed.city);
+        out = out.concat(parsed.remainder);
+      } else {
+        out = parsed.remainder;
+      }
+      var result = out.join(' ').trim();
+      if (!result) throw '정리된 결과가 비어 있습니다. 입력값을 확인하세요';
+      return result;
+    }
+  };
+
+  targetCat.functions.push(newFn);
+
+  // 사이드바 함수 목록에도 맨 아래에 표시 추가
+  var fnListEl = document.getElementById('fnList');
+  if (fnListEl){
+    var detailsList = fnListEl.querySelectorAll('details');
+    var targetIndex = -1;
+    for (var idx = 0; idx < CATEGORIES.length; idx++){
+      if (CATEGORIES[idx] === targetCat){ targetIndex = idx; break; }
+    }
+    var targetDetails = detailsList[targetIndex];
+    if (targetDetails){
+      var item = document.createElement('div');
+      item.className = 'fn-item';
+      var paramsHtml = newFn.params.length > 1 ? ' <span class="fn-params">(' + newFn.params.join(', ') + ')</span>' : '';
+      item.innerHTML = '<strong>' + newFn.label + '</strong><br>' + newFn.example + paramsHtml;
+      targetDetails.appendChild(item);
+    }
+  }
+})();
+</script>
