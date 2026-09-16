@@ -274,8 +274,6 @@
   body.show-sheetsplit-section #sheetSplitSection{display:block;}
   #hwpCleanCard{display:none;}
   body.show-hwpclean-section #hwpCleanCard{display:block;}
-  #addrVerifyCard{display:none;}
-  body.show-addrverify-section #addrVerifyCard{display:block;}
   body.show-judging-section #judgingSection{display:block;}
   body.show-textsplit-section #textSplitSection{display:block;}
   body.show-textjoin-section #textJoinSection{display:block;}
@@ -355,7 +353,7 @@
           <input type="number" id="addRowCount" min="1" max="500" value="10">
         </span>
         <button class="btn primary" id="addRow">+ 행 추가</button>
-        <span class="row-add-hint">① 구분 → ② 세부 기능 선택 → 연한 색 <strong>입력값1</strong> 열에 변환할 원본 자료 입력(엑셀에서 여러 행을 통째로 복사해 붙여넣기 가능). 우측 상단 설명을 보며 입력값2·3에 세부 조건을 입력해 원하는 결과값을 찾아보세요.</span>
+        <span class="row-add-hint">① 구분 → ② 세부 기능 선택 → 연한 색 <strong>입력값1</strong> 열에 변환할 원본 자료 입력(엑셀에서 여러 행을 통째로 복사해 붙여넣기 가능).<br>우측 상단 설명을 보며 입력값2·3에 세부 조건을 입력해 원하는 결과값을 찾아보세요.</span>
         <span style="flex:1"></span>
         <button class="btn primary" id="copyResults">결과값 복사</button>
       </div>
@@ -427,24 +425,6 @@
     </div>
     <div id="hwpCleanPreviewWrap" style="overflow:auto;max-height:280px;border:1px solid var(--line);border-radius:6px;">
       <table id="hwpCleanPreview" style="border-collapse:collapse;width:100%;font-size:13px;"></table>
-    </div>
-  </div>
-
-  <div class="card" id="addrVerifyCard">
-    <h2>🌐 주소 정밀 대조 (행정안전부 도로명주소 API, 인터넷 필요)</h2>
-    <p class="lookup-desc">
-      아래 참조표에 대조할 주소를 넣고, 행정안전부 도로명주소 API에서 발급받은 <strong>승인키(confmKey)</strong>를 입력한 뒤 "대조하기"를 누르면, 참조표의 각 주소를 정부의 실제 주소 데이터와 대조해서 정식 도로명주소로 바꿔 새 열에 채워줍니다. 승인키는 <a href="https://business.juso.go.kr/addrlink/openApi/apiReqUsageGuide.do" target="_blank" rel="noopener">business.juso.go.kr</a>에서 무료로 신청할 수 있습니다(신청할 때 등록한 "사용 URL"과 지금 이 페이지 주소가 일치해야 정상 동작합니다). <strong>이 기능은 인터넷에 연결되어 있을 때만 동작</strong>하며, 오프라인에서는 사용할 수 없습니다. 승인키는 이 브라우저에만 저장되며 서버로 전송되지 않습니다.
-    </p>
-    <div class="lookup-actions">
-      <span class="pivot-field-label">API 승인키(confmKey)</span>
-      <input type="text" id="addrConfmKey" placeholder="발급받은 승인키를 입력하세요" style="width:280px;">
-      <span class="pivot-field-label">대조할 열</span>
-      <select id="addrVerifyCol"></select>
-    </div>
-    <div class="lookup-actions" style="margin-top:8px;">
-      <button class="btn primary" id="addrVerifyRun">대조하기</button>
-      <button class="btn" id="addrVerifyCopyResults">결과 열 복사</button>
-      <span class="pivot-field-label" id="addrVerifyStatus"></span>
     </div>
   </div>
 
@@ -1458,168 +1438,6 @@
     };
   })();
 </script>
-
-<script>
-  // ── 🌐 주소 정밀 대조 (행정안전부 도로명주소 API, 인터넷 필요) ──
-  (function () {
-    // '서식 변환' 카테고리에 새 함수를 추가한다.
-    var targetCat = null;
-    for (var i = 0; i < CATEGORIES.length; i++) {
-      if (CATEGORIES[i].name === '서식 변환') { targetCat = CATEGORIES[i]; break; }
-    }
-    if (!targetCat) return;
-
-    var newFn = {
-      key: '주소정밀대조',
-      label: '주소 정밀 대조(인터넷 필요, 행안부 API)',
-      example: '↓ 아래 참조표에 주소를 넣고, API 승인키를 입력한 뒤 대조하기를 누르세요',
-      note: '행정안전부 도로명주소 API로 참조표의 주소들을 실제 정부 주소 데이터와 대조해서 정식 도로명주소로 바꿔줍니다. 이 기능은 인터넷 연결이 있어야 동작하며, business.juso.go.kr에서 무료로 발급받은 승인키(confmKey)가 있어야 합니다.',
-      usesLookupTable: true,
-      isPivotMode: true,
-      params: [],
-      fn: function () { return '↓ 아래 참조표에 주소를 넣고, API 승인키를 입력한 뒤 대조하기를 누르세요'; }
-    };
-    targetCat.functions.push(newFn);
-
-    var fnListEl = document.getElementById('fnList');
-    if (fnListEl) {
-      var detailsList = fnListEl.querySelectorAll('details');
-      var targetIndex = -1;
-      for (var idx = 0; idx < CATEGORIES.length; idx++) {
-        if (CATEGORIES[idx] === targetCat) { targetIndex = idx; break; }
-      }
-      var targetDetails = detailsList[targetIndex];
-      if (targetDetails) {
-        var item = document.createElement('div');
-        item.className = 'fn-item';
-        item.innerHTML = '<strong>' + newFn.label + '</strong><br>' + newFn.example;
-        targetDetails.appendChild(item);
-      }
-    }
-
-    // 이 함수가 선택되어 있을 때만 전용 카드가 보이도록 연결 (엑셀표 서식제거와 같은 방식)
-    var addrVerifySeenThisPass = false;
-    var origSectionIdForFnKey2 = sectionIdForFnKey;
-    sectionIdForFnKey = function (key) {
-      if (key === '주소정밀대조') { addrVerifySeenThisPass = true; return 'addrverify'; }
-      return origSectionIdForFnKey2(key);
-    };
-    var origUpdateLookupCardVisibility2 = updateLookupCardVisibility;
-    updateLookupCardVisibility = function () {
-      addrVerifySeenThisPass = false;
-      origUpdateLookupCardVisibility2();
-      document.body.classList.toggle('show-addrverify-section', addrVerifySeenThisPass);
-    };
-
-    // 참조표 열이 바뀔 때마다 '대조할 열' 선택 목록을 갱신 (기존 syncLookupTableFromGrid를 감싼다)
-    function populateAddrVerifyColumnSelector() {
-      var sel = document.getElementById('addrVerifyCol');
-      if (!sel) return;
-      var cur = sel.value;
-      var opts = [];
-      for (var c = 1; c <= lookupCols; c++) opts.push('<option value="' + c + '">' + pivotColumnLabel(c) + '</option>');
-      sel.innerHTML = opts.join('');
-      if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
-    }
-    var origSyncLookupTableFromGrid = syncLookupTableFromGrid;
-    syncLookupTableFromGrid = function () {
-      origSyncLookupTableFromGrid();
-      populateAddrVerifyColumnSelector();
-    };
-
-    function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
-
-    async function lookupOneAddress(confmKey, keyword) {
-      var url = 'https://business.juso.go.kr/addrlink/addrLinkApi.do'
-        + '?confmKey=' + encodeURIComponent(confmKey)
-        + '&currentPage=1&countPerPage=1'
-        + '&keyword=' + encodeURIComponent(keyword)
-        + '&resultType=json';
-      var res = await fetch(url);
-      var data = await res.json();
-      var common = data && data.results && data.results.common;
-      if (!common) throw '응답을 해석할 수 없습니다';
-      if (common.errorCode !== '0') throw (common.errorMessage || ('오류코드 ' + common.errorCode));
-      var jusoList = data.results.juso;
-      if (!jusoList || jusoList.length === 0) throw '일치하는 주소를 찾지 못했습니다';
-      return jusoList[0].roadAddr || jusoList[0].roadAddrPart1 || '';
-    }
-
-    async function runAddrVerify() {
-      var confmKey = (document.getElementById('addrConfmKey').value || '').trim();
-      var statusEl = document.getElementById('addrVerifyStatus');
-      if (!confmKey) { alert('먼저 API 승인키(confmKey)를 입력하세요.'); return; }
-      var colSel = document.getElementById('addrVerifyCol');
-      var col = parseInt(colSel.value, 10);
-      if (isNaN(col)) { alert('대조할 열을 먼저 골라주세요(참조표에 주소를 붙여넣으면 자동으로 생깁니다).'); return; }
-      var dataRows = getLookupDataRows();
-      if (dataRows.length === 0) { alert('먼저 위 참조표에 주소를 붙여넣으세요.'); return; }
-
-      addLookupColumn();
-      var newColIndex = lookupCols;
-      var bodyEl = document.getElementById('lookupGridBody');
-      var rowEls = [...bodyEl.children];
-      if (lookupHasHeader && rowEls[0]) {
-        var headerCell = rowEls[0].children[newColIndex - 1].querySelector('input');
-        if (headerCell) headerCell.value = '표준주소(API 대조)';
-      }
-
-      var startRowIdx = lookupHasHeader ? 1 : 0;
-      var total = 0, done = 0, ok = 0;
-      for (var r = startRowIdx; r < rowEls.length; r++) {
-        var cells = [...rowEls[r].children];
-        var isEmptyRow = cells.every(function (td) {
-          var inp = td.querySelector('input');
-          return !inp || inp.value.trim() === '';
-        });
-        if (isEmptyRow) continue;
-        total++;
-      }
-      if (total === 0) { alert('대조할 주소가 없습니다.'); return; }
-
-      for (var r2 = startRowIdx; r2 < rowEls.length; r2++) {
-        var cells2 = [...rowEls[r2].children];
-        var isEmptyRow2 = cells2.every(function (td) {
-          var inp = td.querySelector('input');
-          return !inp || inp.value.trim() === '';
-        });
-        if (isEmptyRow2) continue;
-        var srcInput = cells2[col - 1] ? cells2[col - 1].querySelector('input') : null;
-        var keyword = srcInput ? srcInput.value.trim() : '';
-        var outInput = cells2[newColIndex - 1].querySelector('input');
-        if (!keyword) { outInput.value = '(입력값 없음)'; done++; continue; }
-        statusEl.textContent = '대조 중... (' + (done + 1) + '/' + total + ')';
-        try {
-          var result = await lookupOneAddress(confmKey, keyword);
-          outInput.value = result;
-          ok++;
-        } catch (e) {
-          outInput.value = '⚠ ' + (typeof e === 'string' ? e : '조회 실패(네트워크/승인키 확인)');
-        }
-        done++;
-        await sleep(150); // API 서버에 과도한 연속 요청을 피하기 위한 짧은 간격
-      }
-      syncLookupTableFromGrid();
-      addrVerifyLastCol = newColIndex;
-      statusEl.textContent = total + '건 중 ' + ok + '건 대조 완료';
-      showToast(total + '건 중 ' + ok + '건 대조를 완료했습니다.');
-    }
-    document.getElementById('addrVerifyRun').addEventListener('click', function () {
-      runAddrVerify().catch(function (e) {
-        console.error('주소 정밀 대조 오류:', e);
-        alert('처리 중 오류가 발생했습니다: ' + (e && e.message ? e.message : e));
-      });
-    });
-
-    var addrVerifyLastCol = null;
-    document.getElementById('addrVerifyCopyResults').addEventListener('click', function () {
-      if (!addrVerifyLastCol) { alert("먼저 '대조하기'를 실행하세요."); return; }
-      var rows = getLookupDataRows();
-      var text = rows.map(function (r) { return r[addrVerifyLastCol - 1] || ''; }).join('\n');
-      copyTextToClipboard(text, '대조된 주소 열이 복사되었습니다. 엑셀 셀을 선택하고 Ctrl+V로 붙여넣으세요.');
-    });
-  })();
-</script>
 </body>
 </html>
 
@@ -1875,6 +1693,242 @@
       var paramsHtml = newFn.params.length > 1 ? ' <span class="fn-params">(' + newFn.params.join(', ') + ')</span>' : '';
       item.innerHTML = '<strong>' + newFn.label + '</strong><br>' + newFn.example + paramsHtml;
       targetDetails.appendChild(item);
+    }
+  }
+})();
+</script>
+
+<script>
+(function(){
+  // 입력값1·입력값2 칸 아래에 뜨는 "값", "자리수" 같은 안내 캡션이
+  // 같은 기능을 채워 쓴 모든 행마다 반복 표시되던 것을, 맨 위(첫) 행에만 남기고
+  // 나머지 행에서는 빼서 화면을 덜 복잡하게 만든다.
+  function clearParamLabelsIfNotFirstRow(row){
+    if (!row) return;
+    var allRows = rowsInGrid();
+    var isFirstRow = allRows.length > 0 && allRows[0] === row;
+    if (isFirstRow) return; // 첫 행은 그대로 둔다
+    var labels = row.querySelectorAll('.param-label');
+    labels.forEach(function(el){
+      // '-'(입력값 없음 표시)는 그대로 두고, 실제로 채워진 안내 문구만 지운다
+      if (el.textContent && el.textContent !== '-'){
+        el.textContent = '';
+      }
+    });
+  }
+
+  // 행의 '세부 기능' 선택이 바뀌면(그 순간 각 행 자신의 로직이 캡션을 먼저 채운 뒤)
+  // 문서 레벨에서 한 번 더 검사해서, 첫 행이 아니면 캡션을 비운다.
+  document.addEventListener('change', function(e){
+    var target = e.target;
+    if (target && target.classList && target.classList.contains('fnSel')){
+      clearParamLabelsIfNotFirstRow(target.closest('tr'));
+    }
+  });
+
+  // 붙여넣기 등으로 여러 행에 한꺼번에 기능이 채워지는 경우까지 대비해서
+  // 짧은 지연 후 전체 행을 한 번 훑어 정리한다.
+  function clearAllExceptFirstRow(){
+    var allRows = rowsInGrid();
+    for (var i = 1; i < allRows.length; i++){
+      clearParamLabelsIfNotFirstRow(allRows[i]);
+    }
+  }
+  document.addEventListener('input', function(e){
+    var target = e.target;
+    if (target && target.classList && (target.classList.contains('catSel') || target.classList.contains('fnSel'))){
+      setTimeout(clearAllExceptFirstRow, 0);
+    }
+  });
+  setTimeout(clearAllExceptFirstRow, 0);
+})();
+</script>
+
+<script>
+(function(){
+  // formatDateLikeExample에 "19950502"처럼 마침표 없는 순수 8자리(또는 6자리) 숫자
+  // 형식 예시도 지원하도록 로직을 교체(그 모양 그대로 마침표 없이 출력).
+  // 기존 하이픈/마침표/슬래시/한글(년월일) 형식은 그대로 유지.
+  formatDateLikeExample = function(y, m, d, example){
+    const ex = (example || '').trim();
+    if (/^[0-9]+$/.test(ex)){
+      if (ex.length === 8) return String(y) + String(m).padStart(2, '0') + String(d).padStart(2, '0');
+      if (ex.length === 6) return String(y).slice(-2) + String(m).padStart(2, '0') + String(d).padStart(2, '0');
+    }
+    if (/년/.test(ex) && /월/.test(ex) && /일/.test(ex)){
+      const ym = ex.match(/(\d+)\s*년/), mm2 = ex.match(/년\s*(\d+)\s*월/), dm = ex.match(/월\s*(\d+)\s*일/);
+      const yl = ym ? ym[1].length : 4, ml = mm2 ? mm2[1].length : 2, dl = dm ? dm[1].length : 2;
+      const ys = yl <= 2 ? String(y).slice(-2) : String(y);
+      const ms = ml >= 2 ? String(m).padStart(2, '0') : String(m);
+      const ds = dl >= 2 ? String(d).padStart(2, '0') : String(d);
+      return ys + '년 ' + ms + '월 ' + ds + '일';
+    }
+    const sepMatch = ex.match(/[.\-\/]/);
+    const sep = sepMatch ? sepMatch[0] : '-';
+    const trailing = new RegExp('\\' + sep + '$').test(ex);
+    const parts = ex.split(/[.\-\/]/).filter(Boolean);
+    if (parts.length < 3) return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const yl2 = parts[0].length, ml2 = parts[1].length, dl2 = parts[2].length;
+    const ys2 = yl2 <= 2 ? String(y).slice(-2) : String(y);
+    const ms2 = ml2 >= 2 ? String(m).padStart(2, '0') : String(m);
+    const ds2 = dl2 >= 2 ? String(d).padStart(2, '0') : String(d);
+    let out = '' + ys2 + sep + ms2 + sep + ds2;
+    if (trailing) out += sep;
+    return out;
+  };
+
+  // 카테고리명 변경: 뒤에 실행되어야 앞선 스크립트들의 이름 기반 조회('주민등록번호','서식 변환')가 깨지지 않는다.
+  function renameCategory(oldName, newName){
+    var cat = null, idx = -1;
+    for (var i = 0; i < CATEGORIES.length; i++){
+      if (CATEGORIES[i].name === oldName){ cat = CATEGORIES[i]; idx = i; break; }
+    }
+    if (!cat) return;
+    cat.name = newName;
+    var fnListEl = document.getElementById('fnList');
+    if (fnListEl){
+      var detailsList = fnListEl.querySelectorAll('details');
+      var d = detailsList[idx];
+      if (d){
+        var summary = d.querySelector('summary');
+        if (summary) summary.textContent = newName;
+      }
+    }
+  }
+  renameCategory('주민등록번호', '주민번호/생년월일');
+  renameCategory('서식 변환', '서식변환/서식정리');
+
+  // 이미 만들어진 행들의 '구분' 선택 목록 옵션 텍스트도 새 이름으로 갱신
+  var newOptionsHtml = '<option value="">구분 선택</option>' +
+    CATEGORIES.map(function(cat, idx){ return '<option value="' + idx + '">' + cat.name + '</option>'; }).join('');
+  rowsInGrid().forEach(function(row){
+    var catSel = row.querySelector('.catSel');
+    if (!catSel) return;
+    var curVal = catSel.value;
+    catSel.innerHTML = newOptionsHtml;
+    catSel.value = curVal;
+  });
+})();
+</script>
+
+<script>
+(function(){
+  // '서식변환/서식정리' 카테고리에 계좌번호 관련 함수 두 개를 추가/수정한다.
+  var targetCat = null;
+  for (var i = 0; i < CATEGORIES.length; i++){
+    if (CATEGORIES[i].name === '서식변환/서식정리'){ targetCat = CATEGORIES[i]; break; }
+  }
+  if (!targetCat) return;
+
+  // 지수 표기(예: 1.23457E+12)를 실제 자릿수로 되돌린다.
+  // 유효숫자가 실제 자릿수를 전부 채울 만큼 충분하면(missing===0) 완전히 정확하게 복구하고,
+  // 부족하면(missing>0) 뒷자리를 0으로 채운 "그럴듯하지만 틀릴 수 있는" 값을 만들지 않고 오류로 알린다.
+  function tryRecoverScientific(str){
+    var m = str.match(/^([+-]?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/);
+    if (!m) return null;
+    var sign = m[1] === '-' ? '-' : '';
+    var intPart = m[2];
+    var fracPart = m[3] || '';
+    var exp = parseInt(m[4], 10);
+    var mantissa = intPart + fracPart;
+    var pointPos = intPart.length;
+    var newPointPos = pointPos + exp;
+    if (newPointPos < mantissa.length) return { ok: false, notInteger: true };
+    var missing = newPointPos - mantissa.length;
+    var digits = mantissa + '0'.repeat(missing);
+    return { ok: missing === 0, digits: sign + digits, missing: missing };
+  }
+
+  function cleanAccountDigits(trimmed){
+    var sci = tryRecoverScientific(trimmed);
+    if (sci){
+      if (sci.ok) return sci.digits;
+      if (sci.notInteger) throw '지수 표기를 해석했지만 정수 형태의 계좌번호로 보이지 않습니다. 원본을 확인해 주세요.';
+      throw '이미 지수 표기(' + trimmed + ')로 표시되어 있고, 표시된 유효숫자만으로는 뒷자리 ' + sci.missing + '개를 정확히 알 수 없습니다(그 뒷자리를 0으로 채우면 실제와 다른 계좌번호가 될 수 있어 억지로 채우지 않았습니다). 셀 서식을 "숫자"나 "텍스트"로 바꾼 뒤 다시 복사하거나, 원본 자료에서 정확한 값을 확인해 주세요.';
+    }
+    var cleaned = trimmed.replace(/[^0-9]/g, '');
+    if (!cleaned) throw '숫자를 확인할 수 없습니다';
+    return cleaned;
+  }
+
+  var cleanupFn = {
+    key: '계좌번호정리',
+    label: '계좌번호 검증/정리',
+    example: "0012345678 → '0012345678  /  123-456-789012 → '123456789012  /  1.234567890123E+12 → '1234567890123",
+    note: '숫자·텍스트가 섞여서 입력된 계좌번호에서 하이픈(-), 쉼표(,), 마침표(.), 공백 등 숫자가 아닌 문자를 모두 제거해서 순수 숫자만 남기고, 결과를 복사해서 엑셀에 붙여넣어도 뒤에 E가 붙는 지수 표기로 바뀌거나 맨 앞의 0이 사라지지 않도록 결과 맨 앞에 홑따옴표(\')를 붙여줍니다. 입력값이 이미 지수 표기(예: 1.23457E+12)라면, 그 안에 표시된 유효숫자만으로 뒷자리까지 정확히 복구되는 경우(예: 1.234567890123E+12처럼 유효숫자가 충분한 경우)에는 정확하게 원래 숫자로 되돌려줍니다. 반대로 표시된 유효숫자가 부족해서(예: 1.23457E+12) 뒷자리를 알 수 없는 경우에는, 틀릴 수도 있는 값을 억지로 만들지 않고 오류로 표시하니 원본에서 다시 확인해 주세요. 계좌번호가 텍스트가 아니라 숫자로 저장된 원본에서 앞자리 0이 이미 사라진 경우는, 그 시점에 정보 자체가 없어진 것이라 이 기능으로는 되살릴 수 없습니다.',
+    params: ['값'],
+    fn: function(args){
+      var raw = args[0];
+      var trimmed = String(raw === undefined || raw === null ? '' : raw).trim();
+      if (!trimmed) throw '값을 입력하세요';
+      return "'" + cleanAccountDigits(trimmed);
+    }
+  };
+  targetCat.functions.push(cleanupFn);
+
+  // 참고용 은행별 계좌번호 자릿수(공개된 일반적인 정보 기준). 같은 은행이라도 신계좌/구계좌,
+  // 계좌 종류(예금·적금·대출 등)에 따라 자릿수가 달라질 수 있어 여러 자릿수를 함께 표시한다.
+  var BANK_DIGITS = {
+    '국민': [14], 'kb': [14], 'kb국민': [14],
+    '기업': [14], 'ibk': [14],
+    '농협': [11, 12, 13], 'nh': [11, 12, 13], 'nh농협': [11, 12, 13],
+    '신한': [11, 12],
+    '씨티': [12], '한국씨티': [12],
+    '우리': [13],
+    '우체국': [14],
+    '하나': [14],
+    '대구': [11, 12], 'im뱅크': [11, 12], 'im': [11, 12],
+    '부산': [13],
+    'sc제일': [11], 'sc': [11],
+    '카카오': [13], '카카오뱅크': [13]
+  };
+  function normalizeBankName(v){
+    return String(v || '').trim().toLowerCase().replace(/\s+/g, '').replace(/(은행|뱅크)$/, '');
+  }
+
+  var digitCheckFn = {
+    key: '계좌번호자릿수확인',
+    label: '계좌번호 자릿수 확인(은행별)',
+    example: "123456789012 / 국민은행 → '123456789012 (⚠ 자릿수 확인 필요: 국민은행은(는) 보통 14자리인데 입력값은 12자리입니다)",
+    note: '입력값1의 계좌번호를 정리(계좌번호 검증/정리와 동일)한 뒤, 입력값2에 적은 은행명을 기준으로 그 은행에서 일반적으로 쓰는 계좌번호 자릿수와 맞는지 참고용으로 비교해서 결과 뒤에 덧붙여줍니다. 자릿수가 안 맞으면 "⚠ 자릿수 확인 필요"라고 표시하고, 맞으면 "자릿수 정상"이라고 표시합니다. 다만 같은 은행이라도 신계좌·구계좌, 예금·적금·대출 등 계좌 종류에 따라 자릿수가 여러 가지일 수 있어서 이 확인은 참고용 정보일 뿐입니다 — 자릿수가 맞다고 해서 실제 존재하는 계좌번호라는 뜻은 아니고, 자릿수가 다르다고 해서 반드시 틀렸다는 뜻도 아닙니다. 이 기능은 자릿수만 참고로 알려줄 뿐 숫자를 임의로 채우거나 바꾸지는 않습니다. 은행명을 알아보지 못하면 자릿수 확인 없이 정리만 해서 돌려줍니다. 현재 자릿수 정보가 있는 은행: 국민, 기업, 농협, 신한, 씨티, 우리, 우체국, 하나, 대구(iM뱅크), 부산, SC제일, 카카오뱅크.',
+    params: ['값', '은행명'],
+    fn: function(args){
+      var raw = args[0];
+      var bank = args[1];
+      var trimmed = String(raw === undefined || raw === null ? '' : raw).trim();
+      if (!trimmed) throw '값을 입력하세요';
+      var digits = cleanAccountDigits(trimmed);
+      var bankTrim = String(bank === undefined || bank === null ? '' : bank).trim();
+      if (!bankTrim) throw '은행명을 입력하세요';
+      var key = normalizeBankName(bankTrim);
+      var lens = BANK_DIGITS[key];
+      var base = "'" + digits;
+      if (!lens) return base + ' (은행명을 인식하지 못해 자릿수 확인은 생략했습니다)';
+      if (lens.indexOf(digits.length) !== -1) return base + ' (자릿수 정상: ' + bankTrim + ' 일반적으로 ' + lens.join('/') + '자리)';
+      return base + ' (⚠ 자릿수 확인 필요: ' + bankTrim + '은(는) 보통 ' + lens.join('/') + '자리인데 입력값은 ' + digits.length + '자리입니다)';
+    }
+  };
+  targetCat.functions.push(digitCheckFn);
+
+  var fnListEl = document.getElementById('fnList');
+  if (fnListEl){
+    var detailsList = fnListEl.querySelectorAll('details');
+    var targetIndex = -1;
+    for (var idx = 0; idx < CATEGORIES.length; idx++){
+      if (CATEGORIES[idx] === targetCat){ targetIndex = idx; break; }
+    }
+    var targetDetails = detailsList[targetIndex];
+    if (targetDetails){
+      var item1 = document.createElement('div');
+      item1.className = 'fn-item';
+      item1.innerHTML = '<strong>' + cleanupFn.label + '</strong><br>' + cleanupFn.example;
+      targetDetails.appendChild(item1);
+
+      var item2 = document.createElement('div');
+      item2.className = 'fn-item';
+      var paramsHtml = digitCheckFn.params.length > 1 ? ' <span class="fn-params">(' + digitCheckFn.params.join(', ') + ')</span>' : '';
+      item2.innerHTML = '<strong>' + digitCheckFn.label + '</strong><br>' + digitCheckFn.example + paramsHtml;
+      targetDetails.appendChild(item2);
     }
   }
 })();
