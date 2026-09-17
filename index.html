@@ -1933,3 +1933,46 @@
   }
 })();
 </script>
+
+<script>
+  // ── 포털(스마트 업무앱 모음) 챗봇 연동용: URL의 ?fn=기능키 값으로
+  // 특정 기능을 자동으로 선택해서 보여주는 딥링크 기능 ──
+  (function applyDeepLinkFromURL() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var fnKey = params.get('fn');
+      if (!fnKey) return;
+
+      var catIdx = -1, fnIdx = -1;
+      for (var ci = 0; ci < CATEGORIES.length; ci++) {
+        var fi = CATEGORIES[ci].functions.findIndex(function (f) { return f.key === fnKey; });
+        if (fi !== -1) { catIdx = ci; fnIdx = fi; break; }
+      }
+      if (catIdx === -1) return; // 못 찾으면 그냥 기본 화면 그대로 둔다
+
+      var apply = function () {
+        var rows = rowsInGrid();
+        var firstRow = rows[0];
+        if (!firstRow) { setTimeout(apply, 50); return; }
+        var catSel = firstRow.querySelector('.catSel');
+        var fnSel = firstRow.querySelector('.fnSel');
+        if (!catSel || !fnSel) { setTimeout(apply, 50); return; }
+
+        catSel.value = String(catIdx);
+        catSel.dispatchEvent(new Event('change'));
+
+        // change 핸들러가 fnSel의 옵션 목록을 다시 그리므로, 그 다음에 값을 넣는다
+        fnSel.value = String(fnIdx);
+        fnSel.dispatchEvent(new Event('change'));
+
+        setTimeout(function () {
+          var topSection = document.querySelector('.top-section');
+          if (topSection) topSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 60);
+      };
+      apply();
+    } catch (e) {
+      // 딥링크 적용에 실패해도 화면 자체는 정상적으로 뜨도록 조용히 무시
+    }
+  })();
+</script>
