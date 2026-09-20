@@ -1924,6 +1924,125 @@
 })();
 </script>
 
+
+<script>
+(function(){
+  // ══════════════════════════════════════════════════════════════
+  //  '숫자 / 금액' 카테고리 → '숫자/금액/계좌번호' 로 개편 (은행코드:은행명 입력 추가, 계좌번호·숫자만 추출 이동, 순서 재배치)
+  //  (참고 파일: 은행명_코드.xlsx  →  결과값 형식 = 은행코드:은행명, 예) 004:국민은행)
+  //  ※ 뒤쪽의 URL 딥링크(?fn=) 스크립트가 함수 순번을 쓰므로, 순서 변경은 그보다 먼저 실행되어야 한다.
+  // ══════════════════════════════════════════════════════════════
+  var BANKS = [["002","산업은행","산업",""],["003","기업은행","기업",""],["004","국민은행","국민","","KB국민","KB국민은행"],["005","외환은행","외환",""],["007","수협","수협",""],["011","농협은행","농협은행","농협"],["012","지역농축협","지역농축협","지역농협","지역축협","축협"],["020","우리은행","우리",""],["023","SC은행","SC은행",""],["027","한국씨티은행","씨티",""],["031","대구은행","대구",""],["032","부산은행","부산",""],["034","광주은행","광주",""],["035","제주은행","제주",""],["037","전북은행","전북",""],["039","경남은행","경남",""],["045","새마을금고","새마을",""],["048","신용협동조합","신협",""],["050","상호저축은행","상호저축","저축은행"],["054","홍콩샹하이(HSBC)","홍콩상",""],["055","도이치은행","도이치",""],["056","에이비엔암로","ABN",""],["057","JP모건체이스","JP모건체이스",""],["058","미즈호","미즈호",""],["060","뱅크오브아메리카","BOA",""],["061","BNP파리바","BNP파리바",""],["062","중국공상은행","중국공상은행",""],["063","중국은행 서울지점","BOC",""],["064","산림조합","산림",""],["065","대화은행","대화",""],["071","우체국","우체국",""],["081","KEB하나은행","하나","하나은행"],["088","신한은행","신한",""],["089","케이뱅크","케이뱅크","K뱅크"],["090","카카오뱅크","카카오뱅크","카카오"],["092","토스뱅크","토스뱅크","토스"],["209","동양종합금융증권","동양종금",""],["218","현대증권","현대",""],["230","미래에셋증권","미래에셋",""],["238","대우증권","대우",""],["240","삼성증권","삼성",""],["243","한국투자증권","한국투자",""],["247","NH투자증권","NH투자증권",""],["261","교보증권","교보",""],["262","하이투자증권","하이투자",""],["263","에이치엠씨투자증권","에이치엠씨",""],["264","키움증권","키움",""],["265","이베스트투자증권","이베스트",""],["266","에스케이증권","에스케이",""],["267","대신증권","대신",""],["269","한화증권","한화",""],["270","하나대투증권","하나대투",""],["278","신한금융투자","신한투자",""],["279","동부증권","동부",""],["280","유진투자증권","유진",""],["287","메리츠종금증권","메리츠",""],["288","카카오페이증권","카카오페이증권",""],["289","NH투자증권","NK투자",""],["290","부국증권","부국",""],["291","신영증권","신영",""],["292","LIG투자증권","LIG",""]];   // [은행코드, 은행명, 은행약어1, 은행약어2, (추가 별칭 …)]
+
+  var numCat = null, numIdx = -1;
+  for (var i = 0; i < CATEGORIES.length; i++){
+    for (var j = 0; j < CATEGORIES[i].functions.length; j++){
+      if (CATEGORIES[i].functions[j].key === '한글금액변환'){ numCat = CATEGORIES[i]; numIdx = i; break; }
+    }
+    if (numCat) break;
+  }
+  if (!numCat) return;
+
+  // 공백(전각 공백 포함)·대소문자·전각/반각 차이를 무시하고 비교하기 위한 정규화
+  function normBank(s){ return String(s).normalize('NFKC').replace(/\s+/g, '').toUpperCase(); }
+
+  // 은행명 / 은행약어1 / 은행약어2 → 은행 목록 위치들
+  var bankIndex = {};
+  BANKS.forEach(function(b, n){
+    b.slice(1).forEach(function(name){       // 은행명·은행약어1·은행약어2·추가 별칭
+      if (!name) return;
+      var k = normBank(name);
+      if (!bankIndex[k]) bankIndex[k] = [];
+      if (bankIndex[k].indexOf(n) === -1) bankIndex[k].push(n);
+    });
+  });
+
+  var bankFn = {
+    key: '은행코드은행명',
+    label: '은행코드:은행명 입력 (VLOOKUP)',
+    example: '국민은행 / 국민 → 004:국민은행  /  농협 → 011:농협은행  /  하나은행 → 081:KEB하나은행',
+    note: '은행명이나 은행약어를 입력하면 "은행코드:은행명" 형태로 바꿔줍니다. 은행명, 은행약어1, 은행약어2 중 어느 것을 입력해도 같은 결과가 나옵니다(예: 국민은행 · 국민 · KB국민 · KB국민은행 → 004:국민은행, 농협은행 · 농협 → 011:농협은행, 지역농축협 · 지역농협 · 지역축협 · 축협 → 012:지역농축협). 띄어쓰기와 영문 대소문자는 구분하지 않습니다(예: sc은행 → 023:SC은행). 목록(은행·증권사·조합 등 ' + BANKS.length + '곳)에 없는 이름은 오류로 표시됩니다. 은행코드 앞자리의 0은 그대로 유지됩니다(002). 같은 이름을 쓰는 곳이 둘 이상이면(NH투자증권: 247, 289) 첫 번째 코드로 표시하고, 옆의 "설명" 열에 안내문이 따로 나옵니다.',
+    params: ['은행명 또는 은행약어'],
+    multiResult: true,     // [결과값, 설명문] 형태로 돌려주고, 설명문이 있을 때만 옆에 '설명' 열이 나타난다
+    noteColumn: true,
+    fn: function(args){
+      var raw = String(args[0] === undefined || args[0] === null ? '' : args[0]).trim();
+      if (!raw) throw '은행명을 입력하세요';
+      var hits = bankIndex[normBank(raw)];
+      if (!hits) throw '목록에 없는 은행명/은행약어입니다';
+      var b = BANKS[hits[0]];
+      var result = b[0] + ':' + b[1];
+      if (hits.length > 1){
+        var codes = hits.map(function(n){ return BANKS[n][0]; }).join(', ');
+        return [result, '※ 같은 이름이 ' + hits.length + '곳(코드 ' + codes + ')이라 첫 번째로 표시'];
+      }
+      return [result];
+    }
+  };
+
+  // ── 카테고리 재구성 ──
+  //  이름: '숫자 / 금액' → '숫자/금액/계좌번호'
+  //  순서: 1 은행코드:은행명 입력 · 2 한글 금액 변환 · 3 계좌번호 검증/정리(서식변환에서 이동)
+  //        4 숫자만 추출(서식변환에서 이동) · 5 텍스트 → 숫자 변환 · 그 뒤 나머지(단위변환, 반올림, 내림, 올림)
+  var fns = numCat.functions;
+
+  // 다른 카테고리에서 함수를 떼어 낸다 (사이드바 항목을 찾을 수 있도록 원래 카테고리 위치도 함께 기억)
+  function takeFn(key){
+    for (var ci = 0; ci < CATEGORIES.length; ci++){
+      var list = CATEGORIES[ci].functions;
+      for (var fi = 0; fi < list.length; fi++){
+        if (list[fi].key === key) return { fn: list.splice(fi, 1)[0], catIdx: ci };
+      }
+    }
+    return null;
+  }
+  var moved = [takeFn('한글금액변환'), takeFn('계좌번호정리'), takeFn('숫자만추출'), takeFn('텍스트를숫자로변환')];
+  var head = [bankFn];
+  moved.forEach(function(m){ if (m) head.push(m.fn); });       // 한글금액 → 계좌번호 → 숫자만 추출 → 텍스트→숫자
+  var rest = fns.slice();                                        // 남은 것: 단위변환 3종, 반올림, 내림, 올림
+  fns.length = 0;
+  head.concat(rest).forEach(function(f){ fns.push(f); });
+
+  numCat.name = '숫자/금액/계좌번호';
+
+  // 사이드바(사용 가능한 기능)도 같은 순서·같은 이름으로 맞춘다
+  var fnListEl = document.getElementById('fnList');
+  if (fnListEl){
+    var detailsList = fnListEl.querySelectorAll('details');
+    var det = detailsList[numIdx];
+    if (det){
+      var summary = det.querySelector('summary');
+      if (summary) summary.textContent = numCat.name;
+      // 라벨로 기존 항목 찾기: 숫자 카테고리 + 항목을 가져온 원래 카테고리
+      var byLabel = {};
+      function collect(d){
+        if (!d) return;
+        [].slice.call(d.querySelectorAll('.fn-item')).forEach(function(it){
+          var st = it.querySelector('strong');
+          if (st && !byLabel[st.textContent]) byLabel[st.textContent] = it;
+        });
+      }
+      collect(det);
+      moved.forEach(function(m){ if (m) collect(detailsList[m.catIdx]); });
+      var newItem = document.createElement('div');
+      newItem.className = 'fn-item';
+      newItem.innerHTML = '<strong>' + bankFn.label + '</strong><br>' + bankFn.example;
+      fns.forEach(function(f){
+        var it = (f === bankFn) ? newItem : byLabel[f.label];
+        if (it) det.appendChild(it);      // 이미 있는 항목은 (다른 카테고리에서도) 이동, 새 항목은 추가
+      });
+    }
+  }
+
+  // 이미 만들어져 있는 행들의 '구분' 선택 목록 글자도 새 이름으로 바꾼다
+  [].slice.call(document.querySelectorAll('#grid .catSel')).forEach(function(sel){
+    [].slice.call(sel.options).forEach(function(o){
+      if (o.value !== '' && CATEGORIES[o.value]) o.textContent = CATEGORIES[o.value].name;
+    });
+  });
+})();
+</script>
+
 <script>
   // ── 포털(스마트 업무앱 모음) 챗봇 연동용: URL의 ?fn=기능키 값으로
   // 특정 기능을 자동으로 선택해서 보여주는 딥링크 기능 ──
