@@ -311,6 +311,16 @@
   .copy-modal-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end;}
   td.result-cell.err input.fresult,
   td.result-cell.err input.fresult-extra{color:#dc2626;font-weight:600;background:#fef2f2;}
+
+  /* ── 함수 실행 버튼 / 상태 표시 (입력값 100건 초과 시 수동 실행) ── */
+  .run-status{font-size:.82rem;color:var(--muted);}
+  .run-status.need{color:#b45309;font-weight:700;}
+  .btn.run-btn{background:#fff;border-color:var(--green-btn);color:#047857;font-weight:700;}
+  .btn.run-btn:hover{background:#ecfdf5;}
+  .btn.run-btn.need{background:#f97316;border-color:#f97316;color:#fff;animation:runPulse 1.4s ease-in-out infinite;}
+  .btn.run-btn.need:hover{background:#ea580c;}
+  .btn.run-btn:disabled{opacity:.65;cursor:progress;animation:none;}
+  @keyframes runPulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,.5);}50%{box-shadow:0 0 0 6px rgba(249,115,22,0);}}
 </style>
 </head>
 <body>
@@ -330,7 +340,7 @@
         </div>
         <ul class="security-features">
           <li><span class="feat-icon">🌐</span><span><strong>외부 서버 전송 ZERO</strong> <span class="feat-desc">: 입력값과 계산 결과가 브라우저 안에서만 처리</span></span></li>
-          <li><span class="feat-icon">⚡</span><span><strong>실시간 자동 계산</strong> <span class="feat-desc">: 값 입력 즉시 결과 표시, 별도 실행 버튼 불필요</span></span></li>
+          <li><span class="feat-icon">⚡</span><span><strong>실시간 자동 계산</strong> <span class="feat-desc">: 값 입력 즉시 결과 표시 (입력값이 100건을 넘으면 '▶ 함수 실행' 버튼으로 계산)</span></span></li>
           
           <li><span class="feat-icon">🧮</span><span><strong>엑셀함수 쉽게 활용</strong> <span class="feat-desc">: 쉬운 설명과 예시문으로 누구나 엑셀 함수 활용 가능</span></span></li>
         </ul>
@@ -355,6 +365,8 @@
         <button class="btn primary" id="addRow">+ 행 추가</button>
         <span class="row-add-hint">① 구분 → ② 세부 기능 선택 → 연한 색 <strong>입력값1</strong> 열에 변환할 원본 자료 입력(엑셀에서 여러 행을 통째로 복사해 붙여넣기 가능).<br>우측 상단 설명을 보며 입력값2·3에 세부 조건을 입력해 원하는 결과값을 찾아보세요.</span>
         <span style="flex:1"></span>
+        <span class="run-status" id="runStatus" aria-live="polite"></span>
+        <button class="btn run-btn" id="runFunctions" title="입력값이 100건 이하면 자동으로 계산됩니다. 100건을 넘으면 자동 계산이 꺼지므로 이 버튼을 눌러 계산합니다.">▶ 함수 실행</button>
         <button class="btn primary" id="copyResults">결과값 복사</button>
       </div>
       <div class="table-scroll">
@@ -1458,8 +1470,8 @@
   if (!targetFn) return;
 
   targetFn.params = ['텍스트 주민번호/생년월일', '원하는 형식 예시(예: 2015-05-02)'];
-  targetFn.example = "9001011234567 / 900101-1234567 / 19900101 / 900101 / 1990.01.01 / 90.1.1  (형식 예시: 2015-05-02)  → 1990-01-01";
-  targetFn.note = '주민등록번호(13자리, 하이픈 있어도 됨) 뿐 아니라, 생년월일 8자리(19900101), 6자리(900101), 마침표·하이픈이 붙은 생년월일(1990.01.01, 90.1.1, 1990-01-01)까지 자동으로 인식해서 날짜로 바꿔줍니다. 주민등록번호가 입력되면 뒷자리 성별 구분 숫자로 1900년대·2000년대·1800년대를 정확히 구분하고, 6자리처럼 연도 뒤 두 자리만 있는 경우에는 50 미만이면 2000년대, 50 이상이면 1900년대로 추정합니다. 입력값2에는 원하는 출력 형식을 예시로 입력하세요(예: "2015-05-02"라고 입력하면 결과도 그 모양대로, "15.5.2"라고 입력하면 그 모양대로, "2015년 5월 2일"처럼 한글로도 가능).';
+  targetFn.example = "9001011234567 / 900101-1234567 / 19900101 / 900101 / 1990.01.01 / 1990,01,01 / 90.1.1  (형식 예시: 2015-05-02)  → 1990-01-01";
+  targetFn.note = '주민등록번호(13자리, 하이픈 있어도 됨) 뿐 아니라, 생년월일 8자리(19900101), 6자리(900101), 마침표·쉼표·하이픈이 붙은 생년월일(1990.01.01, 1990,01,01, 90.1.1, 1990-01-01)까지 자동으로 인식해서 날짜로 바꿔줍니다. 주민등록번호가 입력되면 뒷자리 성별 구분 숫자로 1900년대·2000년대·1800년대를 정확히 구분하고, 6자리처럼 연도 뒤 두 자리만 있는 경우에는 50 미만이면 2000년대, 50 이상이면 1900년대로 추정합니다. 입력값2에는 원하는 출력 형식을 예시로 입력하세요(예: "2015-05-02"라고 입력하면 결과도 그 모양대로, "15.5.2"라고 입력하면 그 모양대로, "2015년 5월 2일"처럼 한글로도 가능).';
   targetFn.fn = function(args){
     var raw = args[0];
     var fmt = args[1];
@@ -1491,12 +1503,17 @@
       if (parsed.guessed){
         var century = y - (y % 100);
         var result = formatDateLikeExample(y, m, d, fmt);
-        return result + ' (※ 연도가 2자리로 입력되어 ' + century + '년대로 추정한 결과입니다)';
+        // 결과값 칸에는 변환된 날짜만 넣고, 설명문은 옆 열(설명)에 따로 넣는다
+        return [result, '※ 연도가 2자리로 입력되어 ' + century + '년대로 추정한 결과입니다'];
       }
     }
 
-    return formatDateLikeExample(y, m, d, fmt);
+    return [formatDateLikeExample(y, m, d, fmt)];
   };
+  // 이 함수는 [결과값, 설명문] 형태로 돌려주므로 '여러 결과' 방식으로 표시한다.
+  // 설명문이 있는 행이 하나라도 있을 때만 결과값 오른쪽에 '설명' 열이 나타난다.
+  targetFn.multiResult = true;
+  targetFn.noteColumn = true;
 
   // 사이드바 설명도 새 내용으로 갱신
   var fnListEl = document.getElementById('fnList');
@@ -1529,7 +1546,9 @@
   }
 
   parseDateFlexible = function(raw){
-    raw = (raw || '').trim();
+    raw = String(raw === undefined || raw === null ? '' : raw).trim();
+    // 쉼표(,)와 전각 쉼표(，)는 마침표(.)와 똑같이 취급한다. (예: 1990,01,01 → 1990.01.01)
+    raw = raw.replace(/[,，]/g, '.');
     if (!raw) throw '값을 입력하세요';
     var y, m, d;
     var guessed = false;
@@ -1576,7 +1595,7 @@
       if (targetCat2.functions[j2].key === '주민번호생년월일전환'){ targetFn2 = targetCat2.functions[j2]; break; }
     }
     if (targetFn2){
-      targetFn2.note = '주민등록번호(13자리, 하이픈 있어도 됨) 뿐 아니라, 생년월일 8자리(19900101), 6자리(900101), 마침표·하이픈이 붙은 생년월일(1990.01.01, 90.1.1, 1990-01-01)까지 자동으로 인식해서 날짜로 바꿔줍니다. 주민등록번호가 입력되면 뒷자리 성별 구분 숫자로 1900년대·2000년대·1800년대를 정확히 구분합니다. 6자리처럼 연도 뒤 두 자리만 있는 경우에는 현재 연도로부터 5년 뒤 연도의 뒷 두 자리보다 작거나 같으면 2000년대, 크면 1900년대로 계산합니다(연도가 100% 확실하지 않으므로, 이 경우 결과값 뒤에 "※ 연도가 2자리로 입력되어 OOOO년대로 추정한 결과입니다"라는 안내문이 함께 표시됩니다). 입력값2에는 원하는 출력 형식을 예시로 입력하세요(예: "2015-05-02"라고 입력하면 결과도 그 모양대로, "15.5.2"라고 입력하면 그 모양대로, "2015년 5월 2일"처럼 한글로도 가능).';
+      targetFn2.note = '주민등록번호(13자리, 하이픈 있어도 됨) 뿐 아니라, 생년월일 8자리(19900101), 6자리(900101), 마침표·쉼표·하이픈이 붙은 생년월일(1990.01.01, 1990,01,01, 90.1.1, 1990-01-01)까지 자동으로 인식해서 날짜로 바꿔줍니다. 주민등록번호가 입력되면 뒷자리 성별 구분 숫자로 1900년대·2000년대·1800년대를 정확히 구분합니다. 6자리처럼 연도 뒤 두 자리만 있는 경우에는 현재 연도로부터 5년 뒤 연도의 뒷 두 자리보다 작거나 같으면 2000년대, 크면 1900년대로 계산합니다(연도가 100% 확실하지 않으므로, 이 경우 결과값은 변환된 날짜만 표시하고, 바로 옆 "설명" 열에 "※ 연도가 2자리로 입력되어 OOOO년대로 추정한 결과입니다"라는 안내문이 따로 표시됩니다. 결과값 복사를 누르면 엑셀에 두 칸으로 나뉘어 붙여넣어집니다). 입력값2에는 원하는 출력 형식을 예시로 입력하세요(예: "2015-05-02"라고 입력하면 결과도 그 모양대로, "15.5.2"라고 입력하면 그 모양대로, "2015년 5월 2일"처럼 한글로도 가능).';
     }
   }
 })();
@@ -1770,7 +1789,8 @@
   // 형식 예시도 지원하도록 로직을 교체(그 모양 그대로 마침표 없이 출력).
   // 기존 하이픈/마침표/슬래시/한글(년월일) 형식은 그대로 유지.
   formatDateLikeExample = function(y, m, d, example){
-    const ex = (example || '').trim();
+    // 형식 예시에 쉼표(,)나 전각 쉼표(，)가 있으면 마침표(.)와 똑같이 취급한다. (예: 2015,05,02 → 2015.05.02)
+    const ex = String(example === undefined || example === null ? '' : example).trim().replace(/[,，]/g, '.');
     if (/^[0-9]+$/.test(ex)){
       if (ex.length === 8) return String(y) + String(m).padStart(2, '0') + String(d).padStart(2, '0');
       if (ex.length === 6) return String(y).slice(-2) + String(m).padStart(2, '0') + String(d).padStart(2, '0');
@@ -1972,5 +1992,257 @@
       }
     });
   }
+})();
+</script>
+
+<script>
+(function(){
+  // ══════════════════════════════════════════════════════════════
+  //  대량 입력 대응
+  //  ① 입력값1이 채워진 행이 100건을 넘으면 '자동(실시간) 계산'을 끄고
+  //     [▶ 함수 실행] 버튼을 눌렀을 때만 계산한다.
+  //  ② 열 너비/표시 갱신을 행마다 다시 하지 않고 한 번에 모아서 처리한다.
+  //     (원래는 행 하나를 계산할 때마다 표 전체를 다시 훑어서, 행이 늘수록 제곱으로 느려졌다)
+  // ══════════════════════════════════════════════════════════════
+  var AUTO_LIMIT = 100;   // 이 건수를 '넘으면' 수동 실행 모드
+  var BUDGET_MS = 300;    // 실행 버튼으로 계산할 때 한 번에 몰아서 처리하는 최대 시간(ms). 넘으면 잠깐 쉬고 진행 상황을 갱신
+
+  var gridEl   = document.getElementById('grid');
+  var runBtn   = document.getElementById('runFunctions');
+  var statusEl = document.getElementById('runStatus');
+  if (!gridEl || !runBtn || !statusEl) return;
+
+  // ── 행의 세부 기능 객체 찾기 ──
+  function fnOfRow(row){
+    var c = row.querySelector('.catSel'), f = row.querySelector('.fnSel');
+    if (!c || !f || c.value === '' || f.value === '') return null;
+    var cat = CATEGORIES[c.value];
+    return cat ? (cat.functions[f.value] || null) : null;
+  }
+
+  // ── 결과 열 머리글: 설명문만 나오는 열이면 '설명', 아니면 기존 '결과값2' ──
+  function relabelExtraHeader(){
+    var th = document.getElementById('thResult2');
+    if (!th) return;
+    var hasNote = false, hasOther = false, rows = gridEl.children;
+    for (var i = 0; i < rows.length; i++){
+      var f = fnOfRow(rows[i]);
+      if (f && f.multiResult){ if (f.noteColumn) hasNote = true; else hasOther = true; }
+    }
+    var noteOnly = hasNote && !hasOther;
+    th.textContent = noteOnly ? '설명' : '결과값2';
+    // 자동 폭 계산은 한글을 실제보다 넓게 잡으므로, 설명 열은 문구가 들어갈 만큼(약 46ch)으로 제한해서
+    // 다른 입력/결과 열이 지나치게 좁아지지 않게 한다.
+    var col2 = document.getElementById('colResult2');
+    if (noteOnly && col2 && !(parseFloat(col2.style.width) <= 46)) col2.style.width = '46ch';
+  }
+
+  // ── ② 표 전체를 다시 훑는 무거운 갱신 함수들을 '모아서 한 번만' 실행 ──
+  var origResultVis = updateResultColumnVisibility;
+  var origValueVis  = updateValueColumnVisibility;
+  var origLookupVis = updateLookupCardVisibility;
+  var tResult = null, tValue = null, tLookup = null;
+  // 원본은 <col>(열 너비 지정 요소)에도 display:table-cell 을 넣어서 '결과값2~8' 열의 너비 설정이 무시되었다.
+  // 설명문처럼 긴 값이 잘리지 않도록 table-column 으로 바로잡는다.
+  function fixColDisplay(){
+    for (var i = 2; i <= 8; i++){
+      var c = document.getElementById('colResult' + i);
+      if (c && c.style.display === 'table-cell') c.style.display = 'table-column';
+    }
+  }
+  function runResultVis(){ origResultVis(); fixColDisplay(); relabelExtraHeader(); }
+  updateResultColumnVisibility = function(){
+    if (tResult === null) tResult = setTimeout(function(){ tResult = null; runResultVis(); }, 0);
+  };
+  updateValueColumnVisibility = function(){
+    if (tValue === null) tValue = setTimeout(function(){ tValue = null; origValueVis(); }, 0);
+  };
+  updateLookupCardVisibility = function(){
+    if (tLookup === null) tLookup = setTimeout(function(){ tLookup = null; origLookupVis(); }, 0);
+  };
+  function flushVisibility(){
+    if (tResult !== null){ clearTimeout(tResult); tResult = null; }
+    if (tValue  !== null){ clearTimeout(tValue);  tValue  = null; }
+    if (tLookup !== null){ clearTimeout(tLookup); tLookup = null; }
+    runResultVis(); origValueVis(); origLookupVis();
+  }
+
+  // ── ① 입력값 건수 세기 (입력값1이 비어 있지 않은 행) ──
+  var filled  = 0;       // 채워진 행 수(입력할 때마다 가감하는 캐시)
+  var dirty   = false;   // 자동 계산이 꺼진 상태에서 입력이 바뀌어, 결과가 최신이 아님
+  var running = false;   // [함수 실행] 계산 중 (이때는 자동 계산 차단을 통과시킨다)
+
+  function recount(){
+    filled = 0;
+    var list = gridEl.querySelectorAll('.pval[data-idx="0"]');
+    for (var i = 0; i < list.length; i++){
+      var f = list[i].value.trim() !== '';
+      list[i].dataset.f = f ? '1' : '0';
+      if (f) filled++;
+    }
+  }
+  function track(el){
+    if (el.dataset.idx !== '0') return;
+    var f = el.value.trim() !== '', was = el.dataset.f === '1';
+    if (f !== was){ el.dataset.f = f ? '1' : '0'; filled += f ? 1 : -1; }
+  }
+  function isManual(){ return filled > AUTO_LIMIT; }
+
+  function clearResult(row){
+    var cell = row.querySelector('.result-cell'), res = row.querySelector('.fresult');
+    if (res) res.value = '';
+    var ex = row.querySelectorAll('.fresult-extra');
+    for (var i = 0; i < ex.length; i++) ex[i].value = '';
+    if (cell){ cell.classList.remove('err'); cell.classList.add('empty'); }
+  }
+
+  // ── 상태 문구 / 버튼 강조 ──
+  function render(){
+    var manual = isManual(), need = manual && dirty;
+    runBtn.classList.toggle('need', need);
+    if (!manual){ statusEl.textContent = ''; statusEl.className = 'run-status'; return; }
+    if (need){
+      statusEl.textContent = '입력값 ' + filled + '건(100건 초과) → \u2018▶ 함수 실행\u2019을 눌러야 계산됩니다';
+      statusEl.className = 'run-status need';
+    } else {
+      statusEl.textContent = '입력값 ' + filled + '건 · 계산 완료';
+      statusEl.className = 'run-status';
+    }
+  }
+
+  var statusTimer = null;
+  function scheduleStatus(){
+    if (statusTimer !== null) return;
+    statusTimer = setTimeout(function(){ statusTimer = null; refreshStatus(); }, 0);
+  }
+  function refreshStatus(){
+    if (running) return;
+    recount();
+    // 100건 이하로 줄었는데 결과가 최신이 아니면, 자동으로 한 번 맞춰 준다
+    if (!isManual() && dirty){ dirty = false; computeRowsSync(); }
+    render();
+  }
+
+  // 각 행의 계산을 원래 로직 그대로 다시 실행 (입력값1 칸에 input 이벤트를 한 번 보낸다)
+  function computeRow(row){
+    var pv = row.querySelector('.pval');
+    if (pv && !pv.disabled) pv.dispatchEvent(new Event('input'));
+  }
+  function computeRowsSync(){
+    running = true;
+    try {
+      var rows = gridEl.children;
+      for (var i = 0; i < rows.length; i++) computeRow(rows[i]);
+    } finally { running = false; }
+    flushVisibility();
+  }
+
+  // ── 입력 이벤트 가로채기(캡처 단계) ──
+  //   수동 모드에서는 행의 실시간 계산을 실행하지 않는다.
+  //   (1행 입력값2·3 → 아래 행에 같은 값 채우기 기능은 그대로 유지한다)
+  gridEl.addEventListener('input', function(e){
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('pval')) return;
+    track(t);
+    scheduleStatus();
+    if (running || !isManual()) return;            // 자동 모드 → 원래대로 즉시 계산
+    e.stopPropagation();                            // 수동 모드 → 이 행의 자동 계산 막기
+    dirty = true;
+    var row = t.closest('tr'), idx = parseInt(t.dataset.idx, 10);
+    var bulk = (typeof isBulkPasting !== 'undefined' && isBulkPasting);
+    if (!bulk && idx >= 1 && !t.disabled && row === gridEl.firstElementChild){
+      var rows = gridEl.children;
+      for (var i = 1; i < rows.length; i++){
+        var pv = rows[i].querySelectorAll('.pval')[idx];
+        if (pv && !pv.disabled) pv.value = t.value;
+        clearResult(rows[i]);
+      }
+    }
+    clearResult(row);                               // 옛 결과가 남아 잘못 복사되지 않도록 비운다
+    updateResultColumnVisibility();
+  }, true);
+
+  gridEl.addEventListener('change', function(e){
+    var t = e.target;
+    if (t && t.classList && (t.classList.contains('catSel') || t.classList.contains('fnSel'))) scheduleStatus();
+  }, true);
+
+  new MutationObserver(function(){ scheduleStatus(); }).observe(gridEl, { childList: true });
+
+  // ── [▶ 함수 실행] ──
+  function runAll(){
+    if (running) return;
+    recount();
+    running = true;
+    runBtn.disabled = true;
+    var rows = Array.prototype.slice.call(gridEl.children);
+    var total = rows.length, i = 0;
+    function step(){
+      var t0 = performance.now();
+      while (i < total && performance.now() - t0 < BUDGET_MS) computeRow(rows[i++]);
+      if (i < total){
+        statusEl.className = 'run-status';
+        statusEl.textContent = '계산 중… ' + i + ' / ' + total + '행';
+        setTimeout(step, 0);
+      } else {
+        finish();
+      }
+    }
+    function finish(){
+      running = false;
+      dirty = false;
+      runBtn.disabled = false;
+      flushVisibility();
+      recount();
+      render();
+      if (typeof showToast === 'function') showToast('계산을 완료했습니다. (입력값 ' + filled + '건)');
+    }
+    statusEl.className = 'run-status';
+    statusEl.textContent = '계산 중… 0 / ' + total + '행';
+    setTimeout(step, 0);
+  }
+  runBtn.addEventListener('click', runAll);
+
+  // ── 결과값 복사: 계산이 최신이 아닐 때 빈 값/옛 값이 복사되지 않도록 막는다 ──
+  document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('#copyResults') : null;
+    if (!b) return;
+    if (running){
+      e.stopImmediatePropagation(); e.preventDefault();
+      alert('계산이 진행 중입니다. 완료된 뒤에 다시 눌러주세요.');
+      return;
+    }
+    recount();
+    if (isManual() && dirty){
+      e.stopImmediatePropagation(); e.preventDefault();
+      alert('입력값이 100건을 넘어 자동 계산이 꺼져 있습니다.\n먼저 \u2018▶ 함수 실행\u2019 버튼을 눌러 계산한 뒤 복사해 주세요.');
+    }
+  }, true);
+
+  // ── 전체 지우기: 처음 화면(빈 8행)으로 되돌리고, 선택해 두었던 함수는 다시 선택된 상태로 둔다 ──
+  //   (원본은 행을 1줄만 남겨서 매번 행을 다시 추가해야 했다)
+  var INITIAL_ROWS = 8;
+  var savedSel = null;
+  document.addEventListener('click', function(e){
+    if (!(e.target && e.target.closest && e.target.closest('#clearAll'))) return;
+    var first = gridEl.firstElementChild;      // 원본 핸들러가 행을 지우기 전에 1행의 함수 선택값을 기억
+    var c = first && first.querySelector('.catSel'), f = first && first.querySelector('.fnSel');
+    savedSel = (c && f && c.value !== '' && f.value !== '') ? { cat: c.value, fn: f.value } : null;
+  }, true);
+  var clearBtn = document.getElementById('clearAll');
+  if (clearBtn) clearBtn.addEventListener('click', function(){   // 원본 핸들러 다음에 실행됨
+    while (gridEl.children.length < INITIAL_ROWS) addRow();
+    if (savedSel){
+      var first = gridEl.firstElementChild;
+      var c = first.querySelector('.catSel'), f = first.querySelector('.fnSel');
+      c.value = savedSel.cat; c.dispatchEvent(new Event('change'));   // 구분 → 아래 행 전체에 채워짐
+      f.value = savedSel.fn;  f.dispatchEvent(new Event('change'));   // 세부 기능 → 아래 행 전체에 채워짐
+    }
+    savedSel = null;
+    scheduleStatus();
+  });
+
+  recount();
+  render();
 })();
 </script>
