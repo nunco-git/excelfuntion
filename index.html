@@ -2525,6 +2525,9 @@
   var btn = oldBtn.cloneNode(true);
   oldBtn.parentNode.replaceChild(btn, oldBtn);
 
+  // 브라우저가 연속 다운로드를 막지 않는 개수(이하이면 기존처럼 바로 내려받기, 초과하면 폴더 선택 창)
+  var DIRECT_DOWNLOAD_LIMIT = 10;
+
   function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 
   function buildFiles(){
@@ -2554,14 +2557,34 @@
     if (getMacroHeaderAndData().data.length === 0){ alert('먼저 위 참조표에 데이터를 붙여넣으세요.'); return; }
     if (typeof XLSX === 'undefined'){ alert('엑셀 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.'); return; }
 
+    // 파일 개수를 먼저 셈(가벼운 작업) → 한도 이하면 기존처럼 바로 내려받기
+    var colSel = parseInt(document.getElementById('splitSheetCol').value, 10);
+    var count = groupLookupRowsByColumn(colSel).order.length;
+
+    if (count <= DIRECT_DOWNLOAD_LIMIT){
+      var direct = buildFiles();
+      direct.forEach(function(f){ downloadBlob(f.blob, f.name); });
+      showToast(direct.length + '개 파일로 나눠서 다운로드했습니다.');
+      return;
+    }
+
+    // 한도 초과 → 저장할 폴더를 고르는 창을 띄움(버튼을 누른 직후에만 열 수 있어서 파일 만들기 전에 띄움)
+    var dir = null;
+    if (typeof window.showDirectoryPicker === 'function'){
+      try { dir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+      catch (e) {
+        if (e && e.name === 'AbortError') { showToast('취소했습니다.'); return; } // 사용자가 취소
+        console.warn('폴더 선택을 쓸 수 없어 개별 다운로드로 전환:', e);
+        dir = null;
+      }
+    }
+
+    showToast(count + '개 파일을 만드는 중입니다...');
+    await sleep(30);
     var files = buildFiles();
     if (!files.length) return;
 
-    // 1) 폴더 선택 저장(크롬·엣지): 개수 제한 없음
-    if (typeof window.showDirectoryPicker === 'function'){
-      var dir;
-      try { dir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
-      catch (e) { return; } // 사용자가 취소
+    if (dir){
       var ok = 0;
       for (var i = 0; i < files.length; i++){
         try {
