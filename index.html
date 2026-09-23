@@ -2514,3 +2514,76 @@
   }, true);
 })();
 </script>
+
+<script>
+// ── 열 기준 복수 엑셀 파일 만들기: 파일 개수 제한 없이 저장 ──
+// 브라우저는 한 번에 연속으로 내려받는 파일이 10개쯤 넘으면 나머지를 막기 때문에,
+// 가능하면 폴더를 골라 그 안에 바로 저장하고, 안 되면 간격을 두고 하나씩 내려받음
+(function(){
+  var oldBtn = document.getElementById('splitFilesRun');
+  if (!oldBtn) return;
+  var btn = oldBtn.cloneNode(true);
+  oldBtn.parentNode.replaceChild(btn, oldBtn);
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  function buildFiles(){
+    var hd = getMacroHeaderAndData();
+    var col = parseInt(document.getElementById('splitSheetCol').value, 10);
+    var g = groupLookupRowsByColumn(col);
+    var used = new Set();
+    return g.order.map(function(key){
+      var base = sanitizeSheetName(key), name = base, k = 2;
+      while (used.has(name)) { name = sanitizeSheetName(base + k); k++; }
+      used.add(name);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([hd.header].concat(g.groups[key])), sanitizeSheetName(key));
+      var out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+      return { name: name + '.xlsx', blob: new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }) };
+    });
+  }
+
+  function downloadBlob(blob, name){
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  }
+
+  btn.addEventListener('click', async function(){
+    if (getMacroHeaderAndData().data.length === 0){ alert('먼저 위 참조표에 데이터를 붙여넣으세요.'); return; }
+    if (typeof XLSX === 'undefined'){ alert('엑셀 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.'); return; }
+
+    var files = buildFiles();
+    if (!files.length) return;
+
+    // 1) 폴더 선택 저장(크롬·엣지): 개수 제한 없음
+    if (typeof window.showDirectoryPicker === 'function'){
+      var dir;
+      try { dir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+      catch (e) { return; } // 사용자가 취소
+      var ok = 0;
+      for (var i = 0; i < files.length; i++){
+        try {
+          var fh = await dir.getFileHandle(files[i].name, { create: true });
+          var w = await fh.createWritable();
+          await w.write(files[i].blob); await w.close();
+          ok++;
+          showToast(ok + '/' + files.length + '개 파일 저장 중...');
+        } catch (err) { console.error('파일 저장 실패:', files[i].name, err); }
+      }
+      showToast(ok === files.length ? ok + '개 파일을 선택한 폴더에 저장했습니다.'
+                                    : ok + '/' + files.length + '개 파일만 저장했습니다. 나머지는 콘솔을 확인하세요.');
+      return;
+    }
+
+    // 2) 폴더 저장이 안 되는 브라우저: 하나씩 간격을 두고 내려받기
+    for (var j = 0; j < files.length; j++){
+      downloadBlob(files[j].blob, files[j].name);
+      showToast((j + 1) + '/' + files.length + '개 파일 내려받는 중...');
+      await sleep(700);
+    }
+    showToast(files.length + '개 파일 내려받기를 요청했습니다. 브라우저가 "여러 파일 다운로드"를 물으면 허용을 눌러주세요.');
+  });
+})();
+</script>
