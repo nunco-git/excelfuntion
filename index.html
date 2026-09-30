@@ -274,6 +274,36 @@
   body.show-sheetsplit-section #sheetSplitSection{display:block;}
   #hwpCleanCard{display:none;}
   body.show-hwpclean-section #hwpCleanCard{display:block;}
+  #cpGridWrap{display:none;margin:10px 0;}
+  #cpTabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;}
+  #cpTabs button{border:1px solid var(--line);background:#fff;padding:4px 12px;border-radius:6px 6px 0 0;font-size:12.5px;cursor:pointer;}
+  #cpTabs button.on{background:#2563eb;color:#fff;border-color:#2563eb;}
+  #cpGrid{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:#fff;user-select:none;-webkit-user-select:none;}
+  #cpGrid table{border-collapse:collapse;font-size:12px;}
+  #cpGrid th{position:sticky;top:0;background:#f1f5f9;border:1px solid #d5dbe3;padding:2px 8px;font-weight:600;cursor:pointer;z-index:1;min-width:28px;}
+  #cpGrid th.cp-rh{position:sticky;left:0;top:auto;z-index:2;text-align:center;}
+  #cpGrid th.cp-corner{left:0;z-index:3;cursor:default;}
+  #cpGrid td{border:1px solid #e3e8ef;padding:2px 6px;max-width:180px;min-width:54px;height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:cell;}
+  #cpGrid td.cp-locked{background:#fde2e2;}
+  #cpGrid td.cp-locked::before{content:"🔒";font-size:9px;margin-right:2px;}
+  #cpGrid td.cp-sel,#cpGrid th.cp-sel{background:#bfdbfe !important;}
+  #cpGridNote{font-size:12px;color:#64748b;margin-top:4px;}
+  #favBar{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;flex-wrap:nowrap;overflow:hidden;}
+  #favBar .fav-title{flex:0 0 auto;font-size:13px;font-weight:700;color:#92400e;white-space:nowrap;}
+  #favBar .fav-title small{font-weight:600;color:#b45309;margin-left:2px;}
+  #favList{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;flex:1 1 auto;min-width:0;padding-bottom:2px;scrollbar-width:thin;}
+  #favList .fav-empty{font-size:12px;color:#a16207;white-space:nowrap;}
+  .fav-chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;max-width:220px;background:#fff;border:1px solid #fcd34d;border-radius:999px;padding:3px 4px 3px 10px;font-size:12px;cursor:pointer;color:#78350f;}
+  .fav-chip:hover{background:#fef3c7;}
+  .fav-chip .fav-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fav-chip .fav-x{border:0;background:transparent;color:#b45309;cursor:pointer;font-size:13px;line-height:1;padding:0 4px;border-radius:50%;}
+  .fav-chip .fav-x:hover{background:#fde68a;}
+  .fn-item.has-fav{position:relative;padding-right:34px;}
+  .fn-star{position:absolute;right:6px;top:6px;border:0;background:transparent;font-size:17px;line-height:1;cursor:pointer;color:#cbd5e1;padding:2px 4px;border-radius:4px;}
+  .fn-star:hover{background:#fef3c7;color:#f59e0b;}
+  .fn-star.on{color:#f59e0b;}
+  #cellProtectCard{display:none;}
+  body.show-cellprotect-section #cellProtectCard{display:block;}
   body.show-judging-section #judgingSection{display:block;}
   body.show-textsplit-section #textSplitSection{display:block;}
   body.show-textjoin-section #textJoinSection{display:block;}
@@ -356,6 +386,8 @@
     </div>
   </div>
 
+  <div id="favBar"><span class="fav-title">⭐ 즐겨찾기<small id="favCount">(0/10)</small></span><div id="favList"></div></div>
+
   <div class="layout">
     <div class="card">
       <div class="toolbar">
@@ -363,11 +395,10 @@
           <input type="number" id="addRowCount" min="1" max="500" value="10">
         </span>
         <button class="btn primary" id="addRow">+ 행 추가</button>
-        <span class="row-add-hint">① 구분 → ② 세부 기능 선택 → 연한 색 <strong>입력값1</strong> 열에 변환할 원본 자료 입력(엑셀에서 여러 행을 통째로 복사해 붙여넣기 가능).<br>우측 상단 설명을 보며 입력값2·3에 세부 조건을 입력해 원하는 결과값을 찾아보세요.</span>
-        <span style="flex:1"></span>
         <span class="run-status" id="runStatus" aria-live="polite"></span>
         <button class="btn run-btn" id="runFunctions" title="입력값이 100건 이하면 자동으로 계산됩니다. 100건을 넘으면 자동 계산이 꺼지므로 이 버튼을 눌러 계산합니다.">▶ 함수 실행</button>
         <button class="btn primary" id="copyResults">결과값 복사</button>
+        <span class="row-add-hint" style="flex:1 1 100%;order:10;">① 구분 → ② 세부 기능 선택 → 연한 색 <strong>입력값1</strong> 열에 변환할 원본 자료 입력(엑셀에서 여러 행을 통째로 복사해 붙여넣기 가능).<br>우측 상단 설명을 보며 입력값2·3에 세부 조건을 입력해 원하는 결과값을 찾아보세요.</span>
       </div>
       <div class="table-scroll">
       <table>
@@ -438,6 +469,42 @@
     <div id="hwpCleanPreviewWrap" style="overflow:auto;max-height:280px;border:1px solid var(--line);border-radius:6px;">
       <table id="hwpCleanPreview" style="border-collapse:collapse;width:100%;font-size:13px;"></table>
     </div>
+  </div>
+
+  <div class="card lookup-card" id="cellProtectCard">
+    <div class="lookup-header"><h2>🔐 엑셀 셀 보호 (지정한 범위 수정 방지)</h2></div>
+    <p class="lookup-desc">
+      엑셀 파일을 올리고 <strong>보호할 셀 주소 범위</strong>를 입력하면, 그 범위는 <strong>수정할 수 없게 잠기고 나머지 칸은 그대로 수정할 수 있는</strong> 새 엑셀 파일을 만들어 줍니다. 서식·수식·그림·차트 등 파일 내용은 그대로 두고 셀 보호 설정만 바꾸며, 파일은 서버로 전송되지 않고 브라우저 안에서만 처리됩니다.<br>
+      <strong>범위 입력 예:</strong> <code>A1:C10</code>(사각형 범위), <code>E5</code>(셀 1개), <code>F:F</code>(F열 전체), <code>3:5</code>(3~5행 전체), <code>Sheet1!A1:B20</code>(특정 시트만) — 여러 개는 쉼표(,) 또는 줄바꿈으로 구분합니다. 시트 이름 없이 입력하면 <strong>모든 시트</strong>에 적용되고, 시트 이름을 붙인 범위만 입력하면 그 시트만 보호됩니다(시트 이름에 공백이 있으면 <code>'시트 1'!A1:B2</code>처럼 작은따옴표로 감싸세요).<br>
+      ※ 암호를 비워두면 누구나 [검토 → 시트 보호 해제]로 풀 수 있으므로 실수 방지용입니다. 암호를 넣으면 해제할 때 암호가 필요합니다. .xlsx / .xlsm 만 지원합니다(.xls는 다른 이름으로 저장 → xlsx 후 사용).
+    </p>
+    <div class="lookup-actions">
+      <button class="btn primary" id="cpPick">📂 엑셀 파일 올리기</button>
+      <input type="file" id="cpFile" accept=".xlsx,.xlsm" style="display:none;">
+      <span class="lookup-status" id="cpFileInfo">선택된 파일 없음</span>
+    </div>
+    <div id="cpGridWrap">
+      <div class="lookup-actions" style="margin-bottom:4px;">
+        <span class="pivot-field-label">📋 참조표 — 보호할 칸을 마우스로 드래그하세요 (열/행 머리글 클릭도 가능)</span>
+        <button class="btn" id="cpClear" type="button">선택 범위 모두 지우기</button>
+      </div>
+      <div id="cpTabs"></div>
+      <div id="cpGrid"></div>
+      <div id="cpGridNote">🔒 분홍색 칸이 보호될 범위입니다. 드래그할 때마다 아래 입력칸에 범위가 자동으로 추가되며, 입력칸에서 직접 고치거나 지울 수도 있습니다.</div>
+    </div>
+    <div class="lookup-actions" style="align-items:flex-start;">
+      <span class="pivot-field-label" style="padding-top:6px;">보호할 셀 범위</span>
+      <textarea id="cpRanges" placeholder="예) A1:C10, E5, Sheet1!F:F" style="flex:1;min-width:260px;min-height:64px;font-family:inherit;font-size:13px;padding:8px;border:1px solid var(--line);border-radius:6px;box-sizing:border-box;"></textarea>
+    </div>
+    <div class="lookup-actions">
+      <span class="pivot-field-label">시트 보호 암호(선택, 15자 이내)</span>
+      <input type="password" id="cpPassword" class="text-join-input" style="width:150px;" maxlength="15" placeholder="비워두면 암호 없음" autocomplete="new-password">
+      <span class="lookup-status" id="cpParseInfo"></span>
+    </div>
+    <div class="lookup-actions">
+      <button class="btn success" id="cpRun">🔒 보호 적용해서 다운로드</button>
+    </div>
+    <div class="cs-result-box" id="cpResult" style="display:none;white-space:pre-line;font-size:.85rem;font-weight:600;"></div>
   </div>
 
   <div class="card lookup-card" id="lookupCard" style="display:none;">
@@ -1449,6 +1516,633 @@
       document.body.classList.toggle('show-hwpclean-section', hwpCleanSeenThisPass);
     };
   })();
+</script>
+<script>
+(function(){
+  var FN_KEY = '매크로셀보호';
+  var MAX_COL = 16384, MAX_ROW = 1048576;
+  var NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+  // ── 1) '매크로 등 기타' 카테고리에 세부 기능 등록 ──
+  var cat = null, catIdx = -1;
+  for (var i = 0; i < CATEGORIES.length; i++){ if (CATEGORIES[i].name === '매크로 등 기타'){ cat = CATEGORIES[i]; catIdx = i; break; } }
+  if (!cat) return;
+  var fn = {
+    key: FN_KEY,
+    label: '엑셀 셀 보호 (지정 범위 수정 방지)',
+    example: '엑셀 파일 올리기 + 보호할 범위(A1:C10, E5, F:F, 3:5, Sheet1!A1:B2) 입력 → 그 범위만 수정 불가로 잠근 새 파일 저장',
+    note: '이 기능을 선택하면 아래에 전용 칸이 나타납니다. 엑셀 파일(.xlsx/.xlsm)을 올리고 보호할 셀 주소 범위를 입력한 뒤 [보호 적용해서 다운로드]를 누르면, 지정한 범위는 수정할 수 없게 잠기고 나머지 칸은 자유롭게 수정할 수 있는 파일이 만들어집니다. 범위는 A1:C10(사각형), E5(셀 1개), F:F(열 전체), 3:5(행 전체)로 입력하며 쉼표나 줄바꿈으로 여러 개를 입력할 수 있습니다. 시트 이름을 앞에 붙이면(Sheet1!A1:B2) 그 시트에만 적용되고, 붙이지 않으면 모든 시트에 적용됩니다. 암호를 입력하면 시트 보호를 해제할 때 암호가 필요합니다(비워두면 암호 없이 해제 가능). 서식·수식·그림 등 기존 내용은 그대로 유지됩니다.',
+    usesLookupTable: false,
+    isPivotMode: false,
+    params: [],
+    fn: function(){ return '↓ 아래 전용 칸에서 엑셀 파일을 올리고 보호할 범위를 입력하세요'; }
+  };
+  cat.functions.push(fn);
+  var listEl = document.getElementById('fnList');
+  if (listEl){
+    var d = listEl.querySelectorAll('details')[catIdx];
+    if (d){ var it = document.createElement('div'); it.className = 'fn-item'; it.innerHTML = '<strong>' + fn.label + '</strong><br>' + fn.example; d.appendChild(it); }
+  }
+
+  // 목록 순서 재배치: 셀 보호 → 통합셀 해제 → 동적목록 → 사진 일괄입력 → 표 서식제거 → (나머지 기존 순서) → 심사표(맨 아래)
+  var ORDER_TOP = ['매크로셀보호', '매크로통합셀해제', '매크로동적목록', '매크로사진일괄입력', '매크로엑셀표서식제거'];
+  var ORDER_BOTTOM = ['심사표'];
+  function rankOf(k, idx){
+    var t = ORDER_TOP.indexOf(k); if (t > -1) return t - 1000;
+    var u = ORDER_BOTTOM.indexOf(k); if (u > -1) return 1000 + u;
+    return idx;
+  }
+  var origOrder = cat.functions.slice();
+  cat.functions.sort(function(x, y){ return rankOf(x.key, origOrder.indexOf(x)) - rankOf(y.key, origOrder.indexOf(y)); });
+  if (listEl){
+    var d2 = listEl.querySelectorAll('details')[catIdx];
+    if (d2){
+      var items = [].slice.call(d2.querySelectorAll('.fn-item'));
+      var byLabel = {};
+      items.forEach(function(el){ var st = el.querySelector('strong'); if (st) byLabel[st.textContent] = el; });
+      cat.functions.forEach(function(f){ var el = byLabel[f.label]; if (el) d2.appendChild(el); });
+    }
+  }
+
+  // ── 2) 이 기능이 선택되었을 때만 전용 카드 표시 ──
+  var seen = false;
+  var prevSection = sectionIdForFnKey;
+  sectionIdForFnKey = function(key){
+    if (key === FN_KEY){ seen = true; return 'cellprotect'; }
+    return prevSection(key);
+  };
+  var prevUpdate = updateLookupCardVisibility;
+  updateLookupCardVisibility = function(){
+    seen = false;
+    prevUpdate();
+    document.body.classList.toggle('show-cellprotect-section', seen);
+  };
+
+  // ── 3) 범위 해석 ──
+  function colNum(s){ var n = 0; for (var i = 0; i < s.length; i++) n = n * 26 + s.charCodeAt(i) - 64; return n; }
+  function colName(n){ var s = ''; while (n > 0){ var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+
+  function parseRanges(text){
+    var rects = [], errors = [];
+    String(text || '').split(/[,;\n\r]+/).forEach(function(raw){
+      var tok = raw.trim(); if (!tok) return;
+      var sheet = null, ref = tok, ix = tok.lastIndexOf('!');
+      if (ix > -1){
+        sheet = tok.slice(0, ix).trim(); ref = tok.slice(ix + 1).trim();
+        if (sheet.length > 1 && sheet.charAt(0) === "'" && sheet.charAt(sheet.length - 1) === "'") sheet = sheet.slice(1, -1).replace(/''/g, "'");
+        if (!sheet){ errors.push("'" + tok + "' : 시트 이름이 비어 있습니다"); return; }
+      }
+      ref = ref.replace(/\$/g, '').replace(/\s+/g, '').toUpperCase();
+      var m, r1, r2, c1, c2, type;
+      if ((m = ref.match(/^([A-Z]{1,3})(\d+)(?::([A-Z]{1,3})(\d+))?$/))){
+        c1 = colNum(m[1]); r1 = parseInt(m[2], 10);
+        c2 = m[3] ? colNum(m[3]) : c1; r2 = m[4] ? parseInt(m[4], 10) : r1; type = 'cell';
+      } else if ((m = ref.match(/^([A-Z]{1,3}):([A-Z]{1,3})$/))){
+        c1 = colNum(m[1]); c2 = colNum(m[2]); r1 = 1; r2 = MAX_ROW; type = 'col';
+      } else if ((m = ref.match(/^(\d+):(\d+)$/))){
+        r1 = parseInt(m[1], 10); r2 = parseInt(m[2], 10); c1 = 1; c2 = MAX_COL; type = 'row';
+      } else { errors.push("'" + tok + "' : 범위 형식을 알 수 없습니다"); return; }
+      if (c1 > c2){ var t = c1; c1 = c2; c2 = t; }
+      if (r1 > r2){ var t2 = r1; r1 = r2; r2 = t2; }
+      if (r1 < 1 || r2 > MAX_ROW || c1 < 1 || c2 > MAX_COL){ errors.push("'" + tok + "' : 엑셀 범위(XFD열, 1048576행)를 벗어났습니다"); return; }
+      rects.push({ sheet: sheet, type: type, r1: r1, r2: r2, c1: c1, c2: c2 });
+    });
+    return { rects: rects, errors: errors };
+  }
+
+  // ── 4) XML 도우미 ──
+  function parseXml(s){
+    var d = new DOMParser().parseFromString(s, 'application/xml');
+    if (d.getElementsByTagName('parsererror').length) throw new Error('엑셀 내부 XML을 읽지 못했습니다');
+    return d;
+  }
+  function kids(parent, name){
+    var r = [];
+    for (var n = parent.firstChild; n; n = n.nextSibling) if (n.nodeType === 1 && n.localName === name) r.push(n);
+    return r;
+  }
+  function serialize(doc){ return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(doc); }
+  function resolveTarget(t){
+    if (t.charAt(0) === '/') return t.slice(1);
+    var out = [];
+    ('xl/' + t).split('/').forEach(function(p){ if (p === '..') out.pop(); else if (p !== '.') out.push(p); });
+    return out.join('/');
+  }
+  function legacyHash(pw){
+    var h = 0;
+    for (var i = pw.length - 1; i >= 0; i--){ h = ((h >> 14) & 1) | ((h << 1) & 0x7fff); h ^= pw.charCodeAt(i); }
+    h = ((h >> 14) & 1) | ((h << 1) & 0x7fff);
+    h ^= pw.length; h ^= 0xCE4B;
+    return h.toString(16).toUpperCase().padStart(4, '0');
+  }
+
+  async function readSheetList(zip){
+    var wbFile = zip.file('xl/workbook.xml'), relFile = zip.file('xl/_rels/workbook.xml.rels');
+    if (!wbFile || !relFile) throw new Error('엑셀(.xlsx/.xlsm) 형식이 아니거나 암호가 걸린 파일입니다');
+    var wb = parseXml(await wbFile.async('string')), rel = parseXml(await relFile.async('string'));
+    var map = {};
+    [].slice.call(rel.getElementsByTagName('Relationship')).forEach(function(r){ map[r.getAttribute('Id')] = r.getAttribute('Target'); });
+    var list = [];
+    [].slice.call(wb.getElementsByTagName('sheet')).forEach(function(s){
+      var id = s.getAttributeNS(NS_R, 'id'), t = map[id];
+      if (t) list.push({ name: s.getAttribute('name'), path: resolveTarget(t) });
+    });
+    return list;
+  }
+
+  // ── 5) 한 시트 처리 ──
+  function processSheet(doc, rs, n, pwHash){
+    var root = doc.documentElement, ns = root.namespaceURI;
+    var sheetData = kids(root, 'sheetData')[0];
+    if (!sheetData) throw new Error('시트 데이터를 찾을 수 없습니다');
+    function L(s){ return n + (s < n ? s : 0); }
+    function U(s){ return 2 * n + (s < n ? s : 0); }
+    var colRects = rs.filter(function(x){ return x.type === 'col'; });
+    var rowRects = rs.filter(function(x){ return x.type === 'row'; });
+    function lockedAt(r, c){ for (var i = 0; i < rs.length; i++){ var x = rs[i]; if (r >= x.r1 && r <= x.r2 && c >= x.c1 && c <= x.c2) return true; } return false; }
+    function rowLocked(r){ for (var i = 0; i < rowRects.length; i++) if (r >= rowRects[i].r1 && r <= rowRects[i].r2) return true; return false; }
+
+    // 기존 열 정보
+    var colsEl = kids(root, 'cols')[0], exist = [];
+    if (colsEl) kids(colsEl, 'col').forEach(function(el){ exist.push({ el: el, min: parseInt(el.getAttribute('min'), 10), max: parseInt(el.getAttribute('max'), 10) }); });
+    function findCol(c){ for (var i = 0; i < exist.length; i++) if (c >= exist[i].min && c <= exist[i].max) return exist[i]; return null; }
+    function colBase(c){ var e = findCol(c); var s = e ? parseInt(e.el.getAttribute('style'), 10) : 0; return (isNaN(s) || s >= n) ? 0 : s; }
+
+    // 행 준비 (잠글 행이 없으면 새로 만든다)
+    var rowMap = {}, last = 0;
+    kids(sheetData, 'row').forEach(function(el){
+      var r = parseInt(el.getAttribute('r'), 10); if (isNaN(r)) r = last + 1;
+      last = r; el.setAttribute('r', String(r)); rowMap[r] = el;
+    });
+    var newRows = 0;
+    function need(r){
+      if (rowMap[r]) return;
+      if (++newRows > 20000) throw new Error('새로 만들어야 할 행이 너무 많습니다(2만 행 초과). 범위를 줄여주세요');
+      var el = doc.createElementNS(ns, 'row'); el.setAttribute('r', String(r)); rowMap[r] = el;
+    }
+    rs.forEach(function(x){ if (x.type === 'row' || x.type === 'cell') for (var r = x.r1; r <= x.r2; r++) need(r); });
+    var rowNums = Object.keys(rowMap).map(Number).sort(function(a, b){ return a - b; });
+    rowNums.forEach(function(r){ sheetData.appendChild(rowMap[r]); });   // 행 번호 순서로 정렬
+
+    var created = 0;
+    rowNums.forEach(function(r){
+      var row = rowMap[r];
+      row.removeAttribute('spans');
+      var rl = rowLocked(r);
+      var cf = /^(1|true)$/i.test(row.getAttribute('customFormat') || '');
+      var rowS = parseInt(row.getAttribute('s'), 10); if (isNaN(rowS) || rowS >= n) rowS = 0;
+      if (rl){ row.setAttribute('s', String(L(cf ? rowS : 0))); row.setAttribute('customFormat', '1'); }
+      else if (cf){ row.setAttribute('s', String(U(rowS))); }
+
+      var cells = [], lastC = 0;
+      kids(row, 'c').forEach(function(c){
+        var ref = c.getAttribute('r'), col;
+        if (ref){ var mm = ref.match(/^([A-Z]+)/); col = mm ? colNum(mm[1]) : lastC + 1; } else col = lastC + 1;
+        lastC = col;
+        if (!ref) c.setAttribute('r', colName(col) + r);
+        var s = parseInt(c.getAttribute('s'), 10); if (isNaN(s) || s >= n) s = 0;
+        c.setAttribute('s', String(lockedAt(r, col) ? L(s) : U(s)));
+        cells.push({ c: col, el: c });
+      });
+
+      if (!rl){   // 셀이 아직 없는 잠금 대상 칸은 빈 셀을 만들어 잠근다
+        var have = {}; cells.forEach(function(x){ have[x.c] = 1; });
+        var added = false;
+        rs.forEach(function(x){
+          if (r < x.r1 || r > x.r2 || x.type === 'row') return;
+          if (x.type === 'col' && !cf) return;   // 열 전체 잠금은 열 서식이 처리
+          for (var c = x.c1; c <= x.c2; c++){
+            if (have[c]) continue;
+            have[c] = 1;
+            if (++created > 300000) throw new Error('잠글 셀이 너무 많습니다. 범위를 줄이거나 열/행 전체 지정을 사용하세요');
+            var el = doc.createElementNS(ns, 'c');
+            el.setAttribute('r', colName(c) + r);
+            el.setAttribute('s', String(L(cf ? rowS : colBase(c))));
+            cells.push({ c: c, el: el }); added = true;
+          }
+        });
+        if (added){
+          cells.sort(function(a, b){ return a.c - b.c; });
+          cells.forEach(function(x){ row.appendChild(x.el); });
+        }
+      }
+    });
+
+    // 열 서식 재구성: 기본은 '잠금 해제', 열 전체 잠금 대상만 '잠금'
+    var bset = {}; bset[1] = 1; bset[MAX_COL + 1] = 1;
+    exist.forEach(function(e){ bset[e.min] = 1; bset[e.max + 1] = 1; });
+    colRects.forEach(function(x){ bset[x.c1] = 1; bset[x.c2 + 1] = 1; });
+    var bs = Object.keys(bset).map(Number).sort(function(a, b){ return a - b; }).filter(function(b){ return b >= 1 && b <= MAX_COL + 1; });
+    var fmt = kids(root, 'sheetFormatPr')[0];
+    var defW = (fmt && fmt.getAttribute('defaultColWidth')) || '9.140625';
+    var newCols = doc.createElementNS(ns, 'cols');
+    for (var k = 0; k < bs.length - 1; k++){
+      var a = bs[k], b = bs[k + 1] - 1;
+      var ex = findCol(a);
+      var base = colBase(a);
+      var locked = colRects.some(function(x){ return a >= x.c1 && a <= x.c2; });
+      var el = doc.createElementNS(ns, 'col');
+      if (ex){ [].slice.call(ex.el.attributes).forEach(function(at){ el.setAttribute(at.name, at.value); }); }
+      else el.setAttribute('width', defW);
+      el.setAttribute('min', String(a)); el.setAttribute('max', String(b));
+      el.setAttribute('style', String(locked ? L(base) : U(base)));
+      newCols.appendChild(el);
+    }
+    if (colsEl) root.replaceChild(newCols, colsEl); else root.insertBefore(newCols, sheetData);
+
+    // 시트 보호 켜기
+    kids(root, 'sheetProtection').forEach(function(p){ root.removeChild(p); });
+    var sp = doc.createElementNS(ns, 'sheetProtection');
+    sp.setAttribute('sheet', '1'); sp.setAttribute('objects', '1'); sp.setAttribute('scenarios', '1');
+    if (pwHash) sp.setAttribute('password', pwHash);
+    var after = sheetData, nx = sheetData.nextSibling;
+    while (nx && nx.nodeType !== 1) nx = nx.nextSibling;
+    if (nx && nx.localName === 'sheetCalcPr') after = nx;
+    root.insertBefore(sp, after.nextSibling);
+  }
+
+  // ── 6) 파일 전체 처리 ──
+  async function applyProtection(file, rects, password){
+    var zip;
+    try { zip = await JSZip.loadAsync(await file.arrayBuffer()); }
+    catch (e) { throw new Error('엑셀 파일을 열 수 없습니다. 암호가 걸려 있거나 손상된 파일일 수 있습니다'); }
+    var sheets = await readSheetList(zip);
+
+    rects.forEach(function(x){
+      if (x.sheet && !sheets.some(function(s){ return s.name.toLowerCase() === x.sheet.toLowerCase(); }))
+        throw new Error("파일에 '" + x.sheet + "' 시트가 없습니다. (시트: " + sheets.map(function(s){ return s.name; }).join(', ') + ')');
+    });
+
+    var stFile = zip.file('xl/styles.xml');
+    if (!stFile) throw new Error('styles.xml 이 없어 처리할 수 없습니다');
+    var stDoc = parseXml(await stFile.async('string'));
+    var cellXfs = stDoc.getElementsByTagName('cellXfs')[0];
+    if (!cellXfs) throw new Error('셀 서식 정보(cellXfs)를 찾을 수 없습니다');
+    var xfs = kids(cellXfs, 'xf'), n = xfs.length;
+    if (n === 0) throw new Error('셀 서식 정보가 비어 있습니다');
+    var ns = stDoc.documentElement.namespaceURI;
+    function variant(xf, locked){
+      var c = xf.cloneNode(true);
+      kids(c, 'protection').forEach(function(p){ c.removeChild(p); });
+      c.setAttribute('applyProtection', '1');
+      var p = stDoc.createElementNS(ns, 'protection'); p.setAttribute('locked', locked ? '1' : '0');
+      var ext = kids(c, 'extLst')[0];
+      if (ext) c.insertBefore(p, ext); else c.appendChild(p);
+      return c;
+    }
+    xfs.forEach(function(xf){ cellXfs.appendChild(variant(xf, true)); });    // n ~ 2n-1 : 잠금
+    xfs.forEach(function(xf){ cellXfs.appendChild(variant(xf, false)); });   // 2n ~ 3n-1 : 잠금 해제
+    cellXfs.setAttribute('count', String(3 * n));
+    zip.file('xl/styles.xml', serialize(stDoc));
+
+    var pwHash = password ? legacyHash(password) : '';
+    var lines = [], done = 0;
+    for (var i = 0; i < sheets.length; i++){
+      var sh = sheets[i];
+      var rs = rects.filter(function(x){ return !x.sheet || x.sheet.toLowerCase() === sh.name.toLowerCase(); });
+      if (!rs.length) { lines.push('· ' + sh.name + ' : 적용 안 함(해당 범위 없음)'); continue; }
+      var f = zip.file(sh.path);
+      if (!f) continue;
+      var doc = parseXml(await f.async('string'));
+      if (doc.documentElement.localName !== 'worksheet') { lines.push('· ' + sh.name + ' : 워크시트가 아니어서 건너뜀'); continue; }
+      try { processSheet(doc, rs, n, pwHash); }
+      catch (e) { throw new Error("'" + sh.name + "' 시트: " + e.message); }
+      zip.file(sh.path, serialize(doc));
+      done++;
+      lines.push('· ' + sh.name + ' : ' + rs.length + '개 범위 잠금');
+    }
+    if (!done) throw new Error('적용된 시트가 없습니다');
+    var blob = await zip.generateAsync({ type: 'blob', mimeType: file.name.toLowerCase().endsWith('.xlsm') ? 'application/vnd.ms-excel.sheet.macroEnabled.12' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
+    return { blob: blob, lines: lines };
+  }
+
+  // ── 7) 화면 연결 ──
+  var fileInput = document.getElementById('cpFile'), pickBtn = document.getElementById('cpPick');
+  var infoEl = document.getElementById('cpFileInfo'), rangesEl = document.getElementById('cpRanges');
+  var pwEl = document.getElementById('cpPassword'), parseEl = document.getElementById('cpParseInfo');
+  var runBtn = document.getElementById('cpRun'), resultEl = document.getElementById('cpResult');
+  var curFile = null;
+
+
+  // ── 참조표(미리보기) 및 마우스 범위 선택 ──
+  var gridWrap = document.getElementById('cpGridWrap'), tabsEl = document.getElementById('cpTabs'), gridEl = document.getElementById('cpGrid');
+  var PREV_ROWS = 300, PREV_COLS = 60;
+  var preview = { sheets: [], cur: 0 };
+  var drag = null;
+
+  function quoteSheet(n){ return /^[A-Za-z0-9_가-힣]+$/.test(n) ? n : "'" + n.replace(/'/g, "''") + "'"; }
+
+  async function buildPreview(f){
+    preview = { sheets: [], cur: 0 };
+    try {
+      var wb = XLSX.read(await f.arrayBuffer(), { type: 'array', sheetRows: PREV_ROWS + 1 });
+      wb.SheetNames.forEach(function(nm){
+        var ws = wb.Sheets[nm], rows = 20, cols = 10, cells = {};
+        if (ws && ws['!ref']){
+          var rg = XLSX.utils.decode_range(ws['!ref']);
+          rows = Math.max(rows, rg.e.r + 1); cols = Math.max(cols, rg.e.c + 1);
+          Object.keys(ws).forEach(function(k){
+            if (k.charAt(0) === '!') return;
+            var c = ws[k]; var a = XLSX.utils.decode_cell(k);
+            if (a.r < PREV_ROWS && a.c < PREV_COLS) cells[a.r + ',' + a.c] = (c.w != null ? c.w : (c.v != null ? String(c.v) : ''));
+          });
+        }
+        preview.sheets.push({ name: nm, rows: Math.min(rows, PREV_ROWS), cols: Math.min(cols, PREV_COLS), cells: cells });
+      });
+    } catch (e) { console.warn('preview failed', e); preview.sheets = []; }
+    renderTabs(); renderGrid();
+    gridWrap.style.display = preview.sheets.length ? 'block' : 'none';
+  }
+
+  function renderTabs(){
+    tabsEl.textContent = '';
+    preview.sheets.forEach(function(sh, i){
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = sh.name;
+      if (i === preview.cur) b.className = 'on';
+      b.addEventListener('click', function(){ preview.cur = i; renderTabs(); renderGrid(); });
+      tabsEl.appendChild(b);
+    });
+  }
+
+  function renderGrid(){
+    gridEl.textContent = '';
+    var sh = preview.sheets[preview.cur]; if (!sh) return;
+    var t = document.createElement('table'), thead = document.createElement('tr');
+    var corner = document.createElement('th'); corner.className = 'cp-corner'; thead.appendChild(corner);
+    for (var c = 1; c <= sh.cols; c++){
+      var th = document.createElement('th'); th.textContent = colName(c); th.dataset.c = c; th.dataset.k = 'col'; thead.appendChild(th);
+    }
+    t.appendChild(thead);
+    for (var r = 1; r <= sh.rows; r++){
+      var tr = document.createElement('tr');
+      var rh = document.createElement('th'); rh.className = 'cp-rh'; rh.textContent = r; rh.dataset.r = r; rh.dataset.k = 'row'; tr.appendChild(rh);
+      for (var c2 = 1; c2 <= sh.cols; c2++){
+        var td = document.createElement('td'); td.dataset.r = r; td.dataset.c = c2; td.dataset.k = 'cell';
+        var v = sh.cells[(r - 1) + ',' + (c2 - 1)]; if (v) { td.textContent = v; td.title = v; }
+        tr.appendChild(td);
+      }
+      t.appendChild(tr);
+    }
+    gridEl.appendChild(t);
+    refreshHighlight();
+  }
+
+  function refreshHighlight(){
+    var sh = preview.sheets[preview.cur]; if (!sh) return;
+    var rs = parseRanges(rangesEl.value).rects.filter(function(x){ return !x.sheet || x.sheet.toLowerCase() === sh.name.toLowerCase(); });
+    [].forEach.call(gridEl.querySelectorAll('td'), function(td){
+      var r = +td.dataset.r, c = +td.dataset.c;
+      var lk = rs.some(function(x){ return r >= x.r1 && r <= x.r2 && c >= x.c1 && c <= x.c2; });
+      if (lk !== td.classList.contains('cp-locked')) td.classList.toggle('cp-locked', lk);
+    });
+  }
+
+  function selRect(d){
+    var sh = preview.sheets[preview.cur];
+    if (d.k === 'col') return { c1: Math.min(d.c, d.c2), c2: Math.max(d.c, d.c2), r1: 1, r2: MAX_ROW, k: 'col' };
+    if (d.k === 'row') return { r1: Math.min(d.r, d.r2), r2: Math.max(d.r, d.r2), c1: 1, c2: MAX_COL, k: 'row' };
+    return { r1: Math.min(d.r, d.r2), r2: Math.max(d.r, d.r2), c1: Math.min(d.c, d.c2), c2: Math.max(d.c, d.c2), k: 'cell' };
+  }
+  function paintSel(){
+    [].forEach.call(gridEl.querySelectorAll('.cp-sel'), function(e){ e.classList.remove('cp-sel'); });
+    if (!drag) return;
+    var q = selRect(drag);
+    [].forEach.call(gridEl.querySelectorAll('td'), function(td){
+      var r = +td.dataset.r, c = +td.dataset.c;
+      if (r >= q.r1 && r <= q.r2 && c >= q.c1 && c <= q.c2) td.classList.add('cp-sel');
+    });
+    [].forEach.call(gridEl.querySelectorAll('th[data-k]'), function(th){
+      if (q.k === 'col' && th.dataset.k === 'col' && +th.dataset.c >= q.c1 && +th.dataset.c <= q.c2) th.classList.add('cp-sel');
+      if (q.k === 'row' && th.dataset.k === 'row' && +th.dataset.r >= q.r1 && +th.dataset.r <= q.r2) th.classList.add('cp-sel');
+    });
+  }
+  function posOf(e){
+    var el = e.target.closest ? e.target.closest('td,th') : null;
+    if (!el || !el.dataset.k) return null;
+    return { k: el.dataset.k, r: +el.dataset.r || 0, c: +el.dataset.c || 0 };
+  }
+  gridEl.addEventListener('mousedown', function(e){
+    if (e.button !== 0) return;
+    var p = posOf(e); if (!p) return;
+    drag = { k: p.k, r: p.r, c: p.c, r2: p.r, c2: p.c };
+    paintSel(); e.preventDefault();
+  });
+  gridEl.addEventListener('mouseover', function(e){
+    if (!drag) return;
+    var p = posOf(e); if (!p) return;
+    if (drag.k === 'cell' && p.k === 'cell'){ drag.r2 = p.r; drag.c2 = p.c; }
+    else if (drag.k === 'col' && p.c){ drag.c2 = p.c; }
+    else if (drag.k === 'row' && p.r){ drag.r2 = p.r; }
+    paintSel();
+  });
+  document.addEventListener('mouseup', function(){
+    if (!drag) return;
+    var q = selRect(drag), sh = preview.sheets[preview.cur]; drag = null; paintSel();
+    if (!sh) return;
+    var ref;
+    if (q.k === 'col') ref = colName(q.c1) + ':' + colName(q.c2);
+    else if (q.k === 'row') ref = q.r1 + ':' + q.r2;
+    else ref = (q.r1 === q.r2 && q.c1 === q.c2) ? colName(q.c1) + q.r1 : colName(q.c1) + q.r1 + ':' + colName(q.c2) + q.r2;
+    var tok = quoteSheet(sh.name) + '!' + ref;
+    rangesEl.value = rangesEl.value.replace(/\s+$/, '') + (rangesEl.value.trim() ? '\n' : '') + tok;
+    rangesEl.dispatchEvent(new Event('input'));
+  });
+  document.getElementById('cpClear').addEventListener('click', function(){
+    rangesEl.value = ''; rangesEl.dispatchEvent(new Event('input'));
+  });
+
+  pickBtn.addEventListener('click', function(){ fileInput.value = ''; fileInput.click(); });
+  fileInput.addEventListener('change', async function(){
+    var f = fileInput.files && fileInput.files[0];
+    if (!f) return;
+    if (!/\.(xlsx|xlsm)$/i.test(f.name)){ alert('.xlsx 또는 .xlsm 파일만 올릴 수 있습니다. (.xls는 xlsx로 저장한 뒤 사용하세요)'); return; }
+    curFile = null; infoEl.textContent = '파일 확인 중...';
+    try {
+      var zip = await JSZip.loadAsync(await f.arrayBuffer());
+      var list = await readSheetList(zip);
+      curFile = f;
+      buildPreview(f);
+      infoEl.textContent = f.name + ' · 시트 ' + list.length + '개 (' + list.map(function(s){ return s.name; }).join(', ') + ')';
+    } catch (e) {
+      infoEl.textContent = '선택된 파일 없음'; gridWrap.style.display = 'none';
+      alert('엑셀 파일을 열 수 없습니다. 암호가 걸려 있거나 손상된 파일일 수 있습니다.');
+    }
+  });
+  rangesEl.addEventListener('input', function(){
+    var p = parseRanges(rangesEl.value);
+    refreshHighlight();
+    parseEl.textContent = p.errors.length ? '⚠ ' + p.errors[0] : (p.rects.length ? p.rects.length + '개 범위 인식' : '');
+  });
+
+  runBtn.addEventListener('click', async function(){
+    if (!curFile){ alert('먼저 엑셀 파일을 올려주세요.'); return; }
+    var p = parseRanges(rangesEl.value);
+    if (p.errors.length){ alert('범위를 확인해주세요.\n' + p.errors.join('\n')); return; }
+    if (!p.rects.length){ alert('보호할 셀 범위를 입력하세요. (예: A1:C10)'); return; }
+    runBtn.disabled = true; resultEl.style.display = 'none';
+    showToast('보호 적용 중...');
+    try {
+      var res = await applyProtection(curFile, p.rects, pwEl.value);
+      var base = curFile.name.replace(/\.(xlsx|xlsm)$/i, ''), ext = (curFile.name.match(/\.(xlsx|xlsm)$/i) || ['', 'xlsx'])[1].toLowerCase();
+      var url = URL.createObjectURL(res.blob), a = document.createElement('a');
+      a.href = url; a.download = base + '_셀보호.' + ext;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+      resultEl.textContent = '✅ 셀 보호 완료 → ' + base + '_셀보호.' + ext + '\n' + res.lines.join('\n') + '\n' + (pwEl.value ? '시트 보호 암호가 설정되었습니다.' : '암호 없이 보호되었습니다(검토 → 시트 보호 해제로 풀 수 있음).');
+      resultEl.style.display = '';
+      showToast('셀 보호 파일을 다운로드했습니다.');
+    } catch (e) {
+      console.error(e);
+      alert('처리하지 못했습니다: ' + (e && e.message ? e.message : e));
+    } finally { runBtn.disabled = false; }
+  });
+})();
+</script>
+<script>
+// ── 즐겨찾기: 오른쪽 '사용 가능한 기능' 목록의 ★ 버튼으로 최대 10개 등록, 상단 한 줄 바로가기 ──
+(function(){
+  var MAX = 10, LS_KEY = 'xlFuncFavorites';
+  var bar = document.getElementById('favList'), countEl = document.getElementById('favCount'), listEl = document.getElementById('fnList');
+  if (!bar || !listEl) return;
+  var favs = [];
+  try { var raw = localStorage.getItem(LS_KEY); if (raw) favs = JSON.parse(raw); } catch (e) {}
+  if (!Array.isArray(favs)) favs = [];
+
+  function findFn(id){
+    var pr = String(id).split('||');
+    for (var i = 0; i < CATEGORIES.length; i++){
+      if (CATEGORIES[i].name !== pr[0]) continue;
+      for (var j = 0; j < CATEGORIES[i].functions.length; j++){
+        var f = CATEGORIES[i].functions[j];
+        if ((f.key || f.label) === pr[1]) return { ci: i, fi: j, fn: f, cat: CATEGORIES[i] };
+      }
+    }
+    return null;
+  }
+  function idOf(cat, fn){ return cat.name + '||' + (fn.key || fn.label); }
+  function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(favs)); } catch (e) {} }
+  function toast(m){ if (typeof showToast === 'function') showToast(m); else alert(m); }
+
+  favs = favs.filter(function(id){ return findFn(id); }).slice(0, MAX);
+
+  function useFav(id){
+    var t = findFn(id); if (!t) return;
+    var rows = [].slice.call(document.querySelectorAll('#grid tr'));
+    // 드롭다운으로 바꿀 때와 똑같이: 지금 작업 중인 행의 함수를 바꿈 (그래야 이전 함수의 참조표/전용 카드가 사라짐)
+    var row = (lastRow && lastRow.parentNode && rows.indexOf(lastRow) > -1) ? lastRow : null;
+    if (!row) row = rows.filter(function(r){ var c = r.querySelector('.catSel'); return c && !c.value; })[0];
+    if (!row){
+      var add = document.getElementById('addRow');
+      if (add) { add.click(); rows = [].slice.call(document.querySelectorAll('#grid tr')); row = rows[rows.length - 1]; }
+    }
+    if (!row){ toast('빈 행이 없습니다. 행을 추가해 주세요.'); return; }
+    var c = row.querySelector('.catSel'); c.value = String(t.ci); c.dispatchEvent(new Event('change', { bubbles: true }));
+    var f = row.querySelector('.fnSel'); f.value = String(t.fi); f.dispatchEvent(new Event('change', { bubbles: true }));
+    lastRow = row; setTimeout(updateFavBtns, 30);
+    var inp = row.querySelector('.pval'); if (inp && !inp.disabled) inp.focus();
+  }
+
+  function renderBar(){
+    bar.textContent = '';
+    countEl.textContent = '(' + favs.length + '/' + MAX + ')';
+    if (!favs.length){
+      var e = document.createElement('span'); e.className = 'fav-empty';
+      e.textContent = '오른쪽 "사용 가능한 기능" 목록에서 ☆를 눌러 자주 쓰는 기능을 추가하세요 (최대 ' + MAX + '개)';
+      bar.appendChild(e); return;
+    }
+    favs.forEach(function(id){
+      var t = findFn(id); if (!t) return;
+      var chip = document.createElement('span'); chip.className = 'fav-chip'; chip.title = t.cat.name + ' › ' + t.fn.label + ' (클릭하면 현재 행의 함수를 이 기능으로 바꿈)';
+      var nm = document.createElement('span'); nm.className = 'fav-name'; nm.textContent = t.fn.label;
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'fav-x'; x.textContent = '×'; x.title = '즐겨찾기에서 제거';
+      x.addEventListener('click', function(ev){ ev.stopPropagation(); toggle(id); });
+      chip.addEventListener('click', function(){ useFav(id); });
+      chip.appendChild(nm); chip.appendChild(x); bar.appendChild(chip);
+    });
+  }
+
+  function toggle(id){
+    var i = favs.indexOf(id);
+    if (i > -1) favs.splice(i, 1);
+    else {
+      if (favs.length >= MAX){ toast('즐겨찾기는 최대 ' + MAX + '개까지 추가할 수 있습니다.'); return; }
+      favs.push(id);
+    }
+    save(); renderBar(); decorate(); if (typeof updateFavBtns === 'function') updateFavBtns();
+  }
+
+  // 오른쪽 목록의 각 함수 우측에 ★ 버튼 붙이기 (CATEGORIES 순서와 1:1 대응)
+  var busy = false;
+  function decorate(){
+    busy = true;
+    var ds = listEl.querySelectorAll('details');
+    CATEGORIES.forEach(function(cat, ci){
+      var d = ds[ci]; if (!d) return;
+      var items = d.querySelectorAll('.fn-item');
+      cat.functions.forEach(function(fn, fi){
+        var it = items[fi]; if (!it) return;
+        var id = idOf(cat, fn), on = favs.indexOf(id) > -1;
+        var b = it.querySelector('.fn-star');
+        if (!b){
+          it.classList.add('has-fav');
+          b = document.createElement('button'); b.type = 'button'; b.className = 'fn-star';
+          b.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); toggle(b.dataset.id); });
+          it.appendChild(b);
+        }
+        b.dataset.id = id;
+        var ch = on ? '★' : '☆'; if (b.textContent !== ch) b.textContent = ch;
+        b.classList.toggle('on', on);
+        b.title = on ? '즐겨찾기에서 제거' : '즐겨찾기에 추가';
+      });
+    });
+    busy = false; if (mo) mo.takeRecords();
+  }
+  var mo = new MutationObserver(function(){ if (!busy) decorate(); });
+  mo.observe(listEl, { childList: true, subtree: true });
+
+
+  // ── '결과값 복사' 버튼 오른쪽: 현재 함수 즐겨찾기 저장 버튼 ──
+  var COPY_IDS = ['copyResults', 'pivotCopyResults', 'csCopyResults', 'tsCopyResults', 'tjCopyResults', 'judgeCopyResults', 'unmergeCopyResults'];
+  var lastRow = null;
+  function currentFn(){
+    var rows = [].slice.call(document.querySelectorAll('#grid tr'));
+    function of(r){
+      if (!r) return null;
+      var c = r.querySelector('.catSel'), f = r.querySelector('.fnSel');
+      if (!c || !f || c.value === '' || f.value === '') return null;
+      var cat = CATEGORIES[+c.value], fn = cat && cat.functions[+f.value];
+      return fn ? { cat: cat, fn: fn } : null;
+    }
+    var t = of(lastRow);
+    for (var i = rows.length - 1; !t && i >= 0; i--) t = of(rows[i]);
+    return t;
+  }
+  function updateFavBtns(){
+    var t = currentFn(), on = t && favs.indexOf(idOf(t.cat, t.fn)) > -1;
+    [].forEach.call(document.querySelectorAll('.fav-save-btn'), function(b){
+      b.textContent = on ? '★ 즐겨찾기 해제' : '☆ 현재 함수 즐겨찾기 저장';
+      b.title = t ? ('현재 함수: ' + t.fn.label) : '먼저 세부 기능을 선택하세요';
+    });
+  }
+  COPY_IDS.forEach(function(id){
+    var cb = document.getElementById(id); if (!cb) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'btn fav-save-btn'; b.textContent = '☆ 현재 함수 즐겨찾기 저장';
+    b.addEventListener('click', function(){
+      var t = currentFn();
+      if (!t){ toast('먼저 구분과 세부 기능을 선택하세요.'); return; }
+      toggle(idOf(t.cat, t.fn));
+    });
+    cb.parentNode.insertBefore(b, cb.nextSibling);
+  });
+  var gridEl = document.getElementById('grid');
+  if (gridEl){
+    gridEl.addEventListener('focusin', function(e){ lastRow = e.target.closest('tr'); setTimeout(updateFavBtns, 0); });
+    gridEl.addEventListener('click', function(e){ var r = e.target.closest('tr'); if (r) lastRow = r; setTimeout(updateFavBtns, 0); });
+    gridEl.addEventListener('change', function(e){ var r = e.target.closest('tr'); if (r) lastRow = r; setTimeout(updateFavBtns, 30); });
+  }
+  updateFavBtns();
+  renderBar(); decorate();
+})();
 </script>
 </body>
 </html>
