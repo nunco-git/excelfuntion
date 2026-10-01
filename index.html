@@ -1621,7 +1621,11 @@
     for (var n = parent.firstChild; n; n = n.nextSibling) if (n.nodeType === 1 && n.localName === name) r.push(n);
     return r;
   }
-  function serialize(doc){ return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + new XMLSerializer().serializeToString(doc); }
+  function serialize(doc){
+    // 브라우저(Chrome 등)는 직렬화할 때 XML 선언을 스스로 붙이는 경우가 있어, 먼저 제거한 뒤 한 번만 붙인다
+    var x = new XMLSerializer().serializeToString(doc).replace(/^\s*(<\?xml[^?]*\?>\s*)+/, '');
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + x;
+  }
   function resolveTarget(t){
     if (t.charAt(0) === '/') return t.slice(1);
     var out = [];
