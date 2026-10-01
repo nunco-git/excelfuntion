@@ -1958,9 +1958,46 @@
     else if (drag.k === 'row' && p.r){ drag.r2 = p.r; }
     paintSel();
   });
+  // ── 드래그 중 가장자리로 마우스를 가져가면 표/화면이 자동으로 스크롤 ──
+  var ptr = { x: 0, y: 0 }, scrollRaf = 0;
+  function extendTo(el){
+    if (!drag || !el || !el.dataset || !el.dataset.k) return;
+    var k = el.dataset.k;
+    if (drag.k === 'cell' && k === 'cell'){ drag.r2 = +el.dataset.r; drag.c2 = +el.dataset.c; }
+    else if (drag.k === 'col' && el.dataset.c){ drag.c2 = +el.dataset.c; }
+    else if (drag.k === 'row' && el.dataset.r){ drag.r2 = +el.dataset.r; }
+    paintSel();
+  }
+  function speedFor(d){ return Math.min(40, 4 + Math.abs(d) * 0.35); }
+  function autoScrollTick(){
+    scrollRaf = 0;
+    if (!drag) return;
+    var rc = gridEl.getBoundingClientRect(), EDGE = 36, moved = false;
+    // 표 안쪽 스크롤
+    if (ptr.y > rc.bottom - EDGE){ gridEl.scrollTop += speedFor(ptr.y - (rc.bottom - EDGE)); moved = true; }
+    else if (ptr.y < rc.top + EDGE + 22){ gridEl.scrollTop -= speedFor((rc.top + EDGE + 22) - ptr.y); moved = true; }
+    if (ptr.x > rc.right - EDGE){ gridEl.scrollLeft += speedFor(ptr.x - (rc.right - EDGE)); moved = true; }
+    else if (ptr.x < rc.left + EDGE + 40){ gridEl.scrollLeft -= speedFor((rc.left + EDGE + 40) - ptr.x); moved = true; }
+    // 페이지 전체 스크롤 (표 바깥으로 나가거나 화면 가장자리일 때)
+    var vh = window.innerHeight;
+    if (ptr.y > vh - 40){ window.scrollBy(0, speedFor(ptr.y - (vh - 40))); moved = true; }
+    else if (ptr.y < 40){ window.scrollBy(0, -speedFor(40 - ptr.y)); moved = true; }
+    // 포인터를 표 안쪽으로 보정한 위치의 칸까지 선택 확장
+    var rc2 = gridEl.getBoundingClientRect();
+    var x = Math.max(rc2.left + 60, Math.min(ptr.x, rc2.right - 24)), y = Math.max(rc2.top + 30, Math.min(ptr.y, rc2.bottom - 24));
+    var el = document.elementFromPoint(x, y);
+    if (el && el.closest) extendTo(el.closest('td,th'));
+    if (moved || true) scrollRaf = requestAnimationFrame(autoScrollTick);
+  }
+  document.addEventListener('mousemove', function(e){
+    ptr.x = e.clientX; ptr.y = e.clientY;
+    if (drag && !scrollRaf) scrollRaf = requestAnimationFrame(autoScrollTick);
+  });
+  gridEl.addEventListener('wheel', function(){ if (drag && !scrollRaf) scrollRaf = requestAnimationFrame(autoScrollTick); }, { passive: true });
+
   document.addEventListener('mouseup', function(){
     if (!drag) return;
-    var q = selRect(drag), sh = preview.sheets[preview.cur]; drag = null; paintSel();
+    var q = selRect(drag), sh = preview.sheets[preview.cur]; drag = null; if (scrollRaf){ cancelAnimationFrame(scrollRaf); scrollRaf = 0; } paintSel();
     if (!sh) return;
     var ref;
     if (q.k === 'col') ref = colName(q.c1) + ':' + colName(q.c2);
