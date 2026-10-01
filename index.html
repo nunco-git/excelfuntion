@@ -1651,12 +1651,12 @@
   }
 
   // ── 5) 한 시트 처리 ──
-  function processSheet(doc, rs, n, pwHash){
+  function processSheet(doc, rs, n, pwHash, styler){
     var root = doc.documentElement, ns = root.namespaceURI;
     var sheetData = kids(root, 'sheetData')[0];
     if (!sheetData) throw new Error('시트 데이터를 찾을 수 없습니다');
-    function L(s){ return n + (s < n ? s : 0); }
-    function U(s){ return 2 * n + (s < n ? s : 0); }
+    function L(s){ return styler.get(s < n ? s : 0, true); }
+    function U(s){ return styler.get(s < n ? s : 0, false); }
     var colRects = rs.filter(function(x){ return x.type === 'col'; });
     var rowRects = rs.filter(function(x){ return x.type === 'row'; });
     function lockedAt(r, c){ for (var i = 0; i < rs.length; i++){ var x = rs[i]; if (r >= x.r1 && r <= x.r2 && c >= x.c1 && c <= x.c2) return true; } return false; }
@@ -1728,6 +1728,20 @@
       }
     });
 
+    // 새로 만든 행·셀이 있으면 dimension(사용 범위)도 맞춰 준다
+    (function(){
+      var dim = kids(root, 'dimension')[0]; if (!dim || !rowNums.length) return;
+      var mr = rowNums[rowNums.length - 1], mc = 1;
+      rs.forEach(function(x){ if (x.type === 'cell' && x.c2 > mc) mc = x.c2; });
+      var m = (dim.getAttribute('ref') || '').match(/^([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$/);
+      if (!m) return;
+      var c1 = colNum(m[1]), r1 = +m[2], c2 = m[3] ? colNum(m[3]) : c1, r2 = m[4] ? +m[4] : r1;
+      if (!(mr > r2 || mc > c2)) return;
+      var lastRowWithCells = r2;
+      rowNums.forEach(function(r){ if (r > lastRowWithCells && kids(rowMap[r], 'c').length) lastRowWithCells = r; });
+      dim.setAttribute('ref', colName(c1) + r1 + ':' + colName(Math.max(c2, mc)) + Math.max(r2, lastRowWithCells));
+    })();
+
     // 열 서식 재구성: 기본은 '잠금 해제', 열 전체 잠금 대상만 '잠금'
     var bset = {}; bset[1] = 1; bset[MAX_COL + 1] = 1;
     exist.forEach(function(e){ bset[e.min] = 1; bset[e.max + 1] = 1; });
@@ -1781,19 +1795,22 @@
     var xfs = kids(cellXfs, 'xf'), n = xfs.length;
     if (n === 0) throw new Error('셀 서식 정보가 비어 있습니다');
     var ns = stDoc.documentElement.namespaceURI;
-    function variant(xf, locked){
-      var c = xf.cloneNode(true);
-      kids(c, 'protection').forEach(function(p){ c.removeChild(p); });
-      c.setAttribute('applyProtection', '1');
-      var p = stDoc.createElementNS(ns, 'protection'); p.setAttribute('locked', locked ? '1' : '0');
-      var ext = kids(c, 'extLst')[0];
-      if (ext) c.insertBefore(p, ext); else c.appendChild(p);
-      return c;
-    }
-    xfs.forEach(function(xf){ cellXfs.appendChild(variant(xf, true)); });    // n ~ 2n-1 : 잠금
-    xfs.forEach(function(xf){ cellXfs.appendChild(variant(xf, false)); });   // 2n ~ 3n-1 : 잠금 해제
-    cellXfs.setAttribute('count', String(3 * n));
-    zip.file('xl/styles.xml', serialize(stDoc));
+    var made = {}, nxf = n;
+    var styler = { get: function(base, locked){
+      var key = (locked ? 'L' : 'U') + base;
+      if (made[key] === undefined){
+        var xf = xfs[base].cloneNode(true);
+        kids(xf, 'protection').forEach(function(p){ xf.removeChild(p); });
+        xf.setAttribute('applyProtection', '1');
+        var p = stDoc.createElementNS(ns, 'protection'); p.setAttribute('locked', locked ? '1' : '0');
+        var ext = kids(xf, 'extLst')[0];
+        if (ext) xf.insertBefore(p, ext); else xf.appendChild(p);
+        cellXfs.appendChild(xf);
+        made[key] = nxf++;
+        if (made[key] >= 64000) throw new Error('이 파일은 셀 서식 종류가 너무 많아(6만 개 초과) 보호를 적용할 수 없습니다');
+      }
+      return made[key];
+    } };
 
     var pwHash = password ? legacyHash(password) : '';
     var lines = [], done = 0;
@@ -1805,13 +1822,15 @@
       if (!f) continue;
       var doc = parseXml(await f.async('string'));
       if (doc.documentElement.localName !== 'worksheet') { lines.push('· ' + sh.name + ' : 워크시트가 아니어서 건너뜀'); continue; }
-      try { processSheet(doc, rs, n, pwHash); }
+      try { processSheet(doc, rs, n, pwHash, styler); }
       catch (e) { throw new Error("'" + sh.name + "' 시트: " + e.message); }
       zip.file(sh.path, serialize(doc));
       done++;
       lines.push('· ' + sh.name + ' : ' + rs.length + '개 범위 잠금');
     }
     if (!done) throw new Error('적용된 시트가 없습니다');
+    cellXfs.setAttribute('count', String(kids(cellXfs, 'xf').length));
+    zip.file('xl/styles.xml', serialize(stDoc));
     var blob = await zip.generateAsync({ type: 'blob', mimeType: file.name.toLowerCase().endsWith('.xlsm') ? 'application/vnd.ms-excel.sheet.macroEnabled.12' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
     return { blob: blob, lines: lines };
   }
