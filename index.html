@@ -501,6 +501,12 @@
       <input type="password" id="cpPassword" class="text-join-input" style="width:150px;" maxlength="15" placeholder="비워두면 암호 없음" autocomplete="new-password">
       <span class="lookup-status" id="cpParseInfo"></span>
     </div>
+    <div class="lookup-actions" style="align-items:center;">
+      <span class="pivot-field-label">추가로 막을 작업</span>
+      <label style="font-size:13px;white-space:nowrap;"><input type="checkbox" class="cp-block" data-attr="deleteColumns" checked> 열 삭제 막기</label>
+      <label style="font-size:13px;white-space:nowrap;"><input type="checkbox" class="cp-block" data-attr="formatColumns" checked> 열 숨기기·열 너비 조절 막기</label>
+    </div>
+    <div class="lookup-status" style="margin:-4px 0 8px;font-size:12px;">※ 위 두 가지(체크 = 막음)를 제외한 나머지 편집(셀 서식, 행 삽입·삭제, 열 삽입, 행 높이·숨기기, 정렬, 자동 필터 등)은 항상 허용됩니다. 잠긴 칸의 <strong>내용</strong>은 수정할 수 없지만, 엑셀의 시트 보호는 시트 전체에 적용되므로 잠긴 칸의 서식도 바꿀 수 있습니다. 열 숨기기와 열 너비 조절은 엑셀에서 한 항목이라 함께 막힙니다.</div>
     <div class="lookup-actions">
       <button class="btn success" id="cpRun">🔒 보호 적용해서 다운로드</button>
     </div>
@@ -1655,7 +1661,7 @@
   }
 
   // ── 5) 한 시트 처리 ──
-  function processSheet(doc, rs, n, pwHash, styler){
+  function processSheet(doc, rs, n, pwHash, styler, allow){
     var root = doc.documentElement, ns = root.namespaceURI;
     var sheetData = kids(root, 'sheetData')[0];
     if (!sheetData) throw new Error('시트 데이터를 찾을 수 없습니다');
@@ -1771,7 +1777,8 @@
     // 시트 보호 켜기
     kids(root, 'sheetProtection').forEach(function(p){ root.removeChild(p); });
     var sp = doc.createElementNS(ns, 'sheetProtection');
-    sp.setAttribute('sheet', '1'); sp.setAttribute('objects', '1'); sp.setAttribute('scenarios', '1');
+    sp.setAttribute('sheet', '1'); sp.setAttribute('objects', (allow && allow.indexOf('objects') > -1) ? '0' : '1'); sp.setAttribute('scenarios', '1');
+    (allow || []).forEach(function(nm){ sp.setAttribute(nm, '0'); });
     if (pwHash) sp.setAttribute('password', pwHash);
     var after = sheetData, nx = sheetData.nextSibling;
     while (nx && nx.nodeType !== 1) nx = nx.nextSibling;
@@ -1780,7 +1787,7 @@
   }
 
   // ── 6) 파일 전체 처리 ──
-  async function applyProtection(file, rects, password){
+  async function applyProtection(file, rects, password, allow){
     var zip;
     try { zip = await JSZip.loadAsync(await file.arrayBuffer()); }
     catch (e) { throw new Error('엑셀 파일을 열 수 없습니다. 암호가 걸려 있거나 손상된 파일일 수 있습니다'); }
@@ -1826,7 +1833,7 @@
       if (!f) continue;
       var doc = parseXml(await f.async('string'));
       if (doc.documentElement.localName !== 'worksheet') { lines.push('· ' + sh.name + ' : 워크시트가 아니어서 건너뜀'); continue; }
-      try { processSheet(doc, rs, n, pwHash, styler); }
+      try { processSheet(doc, rs, n, pwHash, styler, allow); }
       catch (e) { throw new Error("'" + sh.name + "' 시트: " + e.message); }
       zip.file(sh.path, serialize(doc));
       done++;
@@ -2042,7 +2049,9 @@
     runBtn.disabled = true; resultEl.style.display = 'none';
     showToast('보호 적용 중...');
     try {
-      var res = await applyProtection(curFile, p.rects, pwEl.value);
+      var allow = ['formatCells', 'formatRows', 'insertRows', 'deleteRows', 'insertColumns', 'insertHyperlinks', 'sort', 'autoFilter', 'pivotTables', 'objects'];
+      [].forEach.call(document.querySelectorAll('.cp-block'), function(c){ if (!c.checked) allow.push(c.dataset.attr); });
+      var res = await applyProtection(curFile, p.rects, pwEl.value, allow);
       var base = curFile.name.replace(/\.(xlsx|xlsm)$/i, ''), ext = (curFile.name.match(/\.(xlsx|xlsm)$/i) || ['', 'xlsx'])[1].toLowerCase();
       var url = URL.createObjectURL(res.blob), a = document.createElement('a');
       a.href = url; a.download = base + '_셀보호.' + ext;
