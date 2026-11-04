@@ -3410,3 +3410,61 @@
   }
 })();
 </script>
+<script>
+(function(){
+  var targetCat=null, targetIndex=-1;
+  for (var i=0;i<CATEGORIES.length;i++){
+    if (CATEGORIES[i].functions.some(function(f){return f.key==='왼쪽N글자';})){targetCat=CATEGORIES[i];targetIndex=i;break;}
+  }
+  if(!targetCat) return;
+
+  // "부여군(2)" → 2번째로 나오는 "부여군". 번호가 없으면 1번째.
+  function parseKey(raw){
+    var k=String(raw==null?'':raw).trim(), n=1, m=k.match(/^(.*?)\s*\((\d+)\)$/);
+    if(m && m[1]){ k=m[1].trim(); n=parseInt(m[2],10); }
+    if(!k) throw '기준 단어를 입력하세요';
+    if(n<1) throw '(번호)는 1 이상이어야 합니다';
+    return {k:k,n:n};
+  }
+  // 값을 공백 기준 단어로 나누고, 기준 단어가 들어 있는 n번째 단어의 위치를 찾음
+  function locate(args){
+    var s=String(args[0]==null?'':args[0]).trim();
+    if(!s) throw '값을 입력하세요';
+    var p=parseKey(args[1]), w=s.split(/\s+/), cnt=0, at=-1;
+    for(var i=0;i<w.length;i++){ if(w[i].indexOf(p.k)!==-1){ cnt++; if(cnt===p.n){at=i;break;} } }
+    if(at<0) throw p.n>1 ? ('"'+p.k+'"이(가) '+p.n+'번째로 나오지 않습니다 (총 '+cnt+'개)') : ('"'+p.k+'"을(를) 찾을 수 없습니다');
+    return {w:w,at:at};
+  }
+
+  var newFns=[
+    {
+      key:'특정단어이후제외추출',
+      label:'특정단어를 포함한 뒷부분 제외 후 추출',
+      example:'충남 부여군 부여읍 사비로 33 / 부여군 → 충남',
+      note:'기준 단어가 들어 있는 단어부터 오른쪽 끝까지를 모두 제외하고, 그 앞부분만 추출합니다. 예) 충남 부여군 부여읍 사비로 33 에서 기준 단어를 부여군으로 넣으면 충남만 나옵니다. 기준 단어 뒤에 (번호)를 붙이면 그 번호째로 나오는 단어부터 제외합니다. 예) 부여군(2) = 두 번째로 나오는 "부여군"부터 제외. 번호를 생략하면 첫 번째 기준입니다. 단어는 공백으로 구분하며, 기준 단어가 "들어 있는" 단어를 찾습니다(부여군청도 부여군으로 인식). 기준 단어를 찾지 못하거나 남는 내용이 없으면 오류가 표시됩니다.',
+      params:['값','기준 단어 (예: 부여군 또는 부여군(2))'],
+      fn:function(args){
+        var r=locate(args), out=r.w.slice(0,r.at);
+        if(!out.length) throw '"'+r.w[r.at]+'" 앞에 남는 내용이 없습니다';
+        return out.join(' ');
+      }
+    }
+  ];
+
+  var list=document.getElementById('fnList');
+  newFns.forEach(function(newFn){
+    var pos=-1;
+    for (var j=0;j<targetCat.functions.length;j++){ if(targetCat.functions[j].key==='왼쪽N글자'){pos=j;break;} }
+    targetCat.functions.splice(pos,0,newFn);
+    if(list){
+      var d=list.querySelectorAll('details')[targetIndex];
+      if(d){
+        var it=document.createElement('div'); it.className='fn-item';
+        it.innerHTML='<strong>'+newFn.label+'</strong><br>'+newFn.example+' <span class="fn-params">('+newFn.params.join(', ')+')</span>';
+        var ref=d.querySelectorAll('.fn-item')[pos];
+        if(ref) d.insertBefore(it,ref); else d.appendChild(it);
+      }
+    }
+  });
+})();
+</script>
