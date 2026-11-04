@@ -3373,3 +3373,40 @@
   });
 })();
 </script>
+<script>
+(function(){
+  var targetCat=null, targetIndex=-1;
+  for (var i=0;i<CATEGORIES.length;i++){
+    if (CATEGORIES[i].functions.some(function(f){return f.key==='왼쪽N글자';})){targetCat=CATEGORIES[i];targetIndex=i;break;}
+  }
+  if(!targetCat) return;
+  var newFn={
+    key:'우측특정글자단어제외',
+    label:'오른쪽 끝 특정글자 포함 단어 제외',
+    example:'부여읍 사비로 33 12통 / 통 → 부여읍 사비로 33',
+    note:'값을 공백 기준 단어로 나눈 뒤, 입력값2에 적은 글자가 들어 있는 단어 중 가장 오른쪽 1개를 제외하고 나머지를 돌려줍니다. 해당 글자가 든 단어가 없으면 원본을 그대로 돌려줍니다.',
+    params:['값','제외할 글자(예: 통)'],
+    fn:function(args){
+      var s=String(args[0]==null?'':args[0]).trim(), k=String(args[1]==null?'':args[1]).trim();
+      if(!s) throw '값을 입력하세요';
+      if(!k) throw '제외할 글자를 입력하세요';
+      var w=s.split(/\s+/);
+      for(var i=w.length-1;i>=0;i--){ if(w[i].indexOf(k)!==-1){ w.splice(i,1); break; } }
+      return w.join(' ');
+    }
+  };
+  var pos=-1;
+  for (var j=0;j<targetCat.functions.length;j++){ if(targetCat.functions[j].key==='왼쪽N글자'){pos=j;break;} }
+  targetCat.functions.splice(pos,0,newFn);
+  var list=document.getElementById('fnList');
+  if(list){
+    var d=list.querySelectorAll('details')[targetIndex];
+    if(d){
+      var it=document.createElement('div'); it.className='fn-item';
+      it.innerHTML='<strong>'+newFn.label+'</strong><br>'+newFn.example+' <span class="fn-params">('+newFn.params.join(', ')+')</span>';
+      var ref=d.querySelectorAll('.fn-item')[pos];
+      if(ref) d.insertBefore(it,ref); else d.appendChild(it);
+    }
+  }
+})();
+</script>
