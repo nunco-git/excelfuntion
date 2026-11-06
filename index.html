@@ -3667,7 +3667,7 @@ function buildVbaProject(opt){
   card.id = 'colClickCard';
   card.innerHTML =
     '<div class="lookup-header"><h2>👆 열 지정 셀 클릭 복사 (엑셀에 매크로 넣기)</h2></div>' +
-    '<p class="lookup-desc">엑셀 파일을 올리고 <strong>복사할 열</strong>을 지정하면, <strong>선택만 해도 복사되는 매크로</strong>를 파일에 넣어 <strong>.xlsm</strong>으로 내려받을 수 있습니다. 내려받은 파일을 엑셀에서 열면 지정한 열의 셀을 클릭(또는 방향키로 이동)하는 즉시 <strong>큰따옴표(" ")·줄바꿈·앞뒤 공백이 지워진 글자</strong>가 복사됩니다.</p>' +
+    '<p class="lookup-desc">엑셀 파일을 올리고 <strong>복사할 열</strong>을 지정하면, <strong>선택만 해도 복사되는 매크로</strong>를 파일에 넣어 <strong>.xlsm</strong>으로 내려받을 수 있습니다. 내려받은 파일을 엑셀에서 열면 지정한 열의 셀을 클릭(또는 방향키로 이동)하는 즉시 <strong>수식·셀 서식(숫자 서식·색·글꼴 등)과 큰따옴표(" ")·줄바꿈·앞뒤 공백을 뺀 값만</strong> 복사됩니다.</p>' +
     '<div class="lookup-actions">' +
     '<button class="btn primary" id="ccPick" type="button">📂 엑셀 파일 올리기</button>' +
     '<input type="file" id="ccFile" accept=".xlsx,.xlsm" style="display:none;">' +
@@ -3719,7 +3719,7 @@ function buildVbaProject(opt){
   }
 
   // ── VBA 코드 ──
-  var WB_CODE = "Option Explicit\n\nPrivate Sub Workbook_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)\n    Dim rng As Range, v As Variant, s As String\n    On Error GoTo done\n    If Target.Count <> 1 Then GoTo done\n    Set rng = ThisWorkbook.Names(\"CopyCol\").RefersToRange\n    If Not rng.Worksheet Is Sh Then GoTo done\n    If Intersect(Target, rng) Is Nothing Then GoTo done\n    v = Target.Value\n    If IsError(v) Then GoTo done\n    If VarType(v) = vbString Then\n        s = v\n    Else\n        s = Target.Text\n        If Left$(s, 1) = \"#\" Then s = CStr(v)\n    End If\n    s = CleanCopyText(s)\n    If Len(s) = 0 Then GoTo done\n    PutClipboard s\n    Application.StatusBar = ChrW(&HBCF5&) & ChrW(&HC0AC&) & ChrW(&HB428&) & \": \" & Left$(s, 40)\n    Exit Sub\ndone:\nEnd Sub\n\nPrivate Function CleanCopyText(ByVal s As String) As String\n    s = Replace(s, vbCr, \" \")\n    s = Replace(s, vbLf, \" \")\n    s = Replace(s, Chr(34), \"\")\n    s = Replace(s, ChrW(8220), \"\")\n    s = Replace(s, ChrW(8221), \"\")\n    s = Replace(s, ChrW(160), \" \")\n    s = Trim$(s)\n    Do While Left$(s, 1) = \"'\"\n        s = Trim$(Mid$(s, 2))\n    Loop\n    Do While InStr(s, \"  \") > 0\n        s = Replace(s, \"  \", \" \")\n    Loop\n    CleanCopyText = s\nEnd Function\n\nPrivate Sub PutClipboard(ByVal t As String)\n    Dim d As Object\n    Set d = CreateObject(\"new:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}\")\n    d.SetText t\n    d.PutInClipboard\nEnd Sub";
+  var WB_CODE = "Option Explicit\n\nPrivate Sub Workbook_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)\n    Dim rng As Range, v As Variant, s As String\n    On Error GoTo done\n    If Target.Count <> 1 Then GoTo done\n    Set rng = ThisWorkbook.Names(\"CopyCol\").RefersToRange\n    If Not rng.Worksheet Is Sh Then GoTo done\n    If Intersect(Target, rng) Is Nothing Then GoTo done\n    v = Target.Value\n    If IsError(v) Then GoTo done\n    If VarType(v) = vbString Then\n        s = v\n    ElseIf VarType(v) = vbDate Then\n        s = Target.Text\n        If Left$(s, 1) = \"#\" Then s = Format$(v, \"yyyy-mm-dd\")\n    ElseIf IsEmpty(v) Then\n        s = \"\"\n    Else\n        s = CStr(Target.Value2)\n    End If\n    s = CleanCopyText(s)\n    If Len(s) = 0 Then GoTo done\n    PutClipboard s\n    Application.StatusBar = ChrW(&HBCF5&) & ChrW(&HC0AC&) & ChrW(&HB428&) & \": \" & Left$(s, 40)\n    Exit Sub\ndone:\nEnd Sub\n\nPrivate Function CleanCopyText(ByVal s As String) As String\n    s = Replace(s, vbCr, \" \")\n    s = Replace(s, vbLf, \" \")\n    s = Replace(s, Chr(34), \"\")\n    s = Replace(s, ChrW(8220), \"\")\n    s = Replace(s, ChrW(8221), \"\")\n    s = Replace(s, ChrW(160), \" \")\n    s = Trim$(s)\n    Do While Left$(s, 1) = \"'\"\n        s = Trim$(Mid$(s, 2))\n    Loop\n    Do While InStr(s, \"  \") > 0\n        s = Replace(s, \"  \", \" \")\n    Loop\n    CleanCopyText = s\nEnd Function\n\nPrivate Sub PutClipboard(ByVal t As String)\n    Dim d As Object\n    Set d = CreateObject(\"new:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}\")\n    d.SetText t\n    d.PutInClipboard\nEnd Sub";
   function displayCode(sheetName, col){
     var lines = WB_CODE.split('\n'), out = [];
     for (var i = 0; i < lines.length; i++){
@@ -3882,6 +3882,7 @@ function buildVbaProject(opt){
   }
   refresh();
   refreshCode();
+
 
 })();
 </script>
