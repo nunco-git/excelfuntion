@@ -3470,6 +3470,158 @@
 </script>
 <script>
 (function(){
+// ── VBA 프로젝트(vbaProject.bin) 생성기: MS-OVBA 압축 + OLE(CFB) 컨테이너 ──
+function buildVbaProject(opt){
+  var ENC = function(s){ var a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) & 255; return a; };
+  var U16 = function(s){ var a = new Uint8Array(s.length * 2); for (var i = 0; i < s.length; i++){ a[2*i] = s.charCodeAt(i) & 255; a[2*i+1] = s.charCodeAt(i) >> 8; } return a; };
+  function cat(list){ var n = 0; list.forEach(function(x){ n += x.length; }); var o = new Uint8Array(n), p = 0; list.forEach(function(x){ o.set(x, p); p += x.length; }); return o; }
+  function le(n, w){ var a = []; for (var i = 0; i < w; i++) a.push((n >>> (8 * i)) & 255); return Uint8Array.from(a); }
+  function hex(h){ var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
+
+  // 1) 압축 (MS-OVBA 2.4.1)
+  function compress(src){
+    var out = [1];
+    for (var cs = 0; cs < src.length; cs += 4096){
+      var chunk = src.subarray(cs, Math.min(cs + 4096, src.length)), body = [], p = 0;
+      while (p < chunk.length){
+        var fi = body.length; body.push(0); var flag = 0;
+        for (var bit = 0; bit < 8 && p < chunk.length; bit++){
+          var bc = 4; while ((1 << bc) < p) bc++;
+          var maxLen = (0xFFFF >> bc) + 3, bestLen = 0, bestOff = 0;
+          for (var q = p - 1; q >= 0; q--){
+            var l = 0; while (p + l < chunk.length && l < maxLen && chunk[q + l] === chunk[p + l]) l++;
+            if (l > bestLen){ bestLen = l; bestOff = p - q; if (l === maxLen) break; }
+          }
+          if (bestLen >= 3){
+            flag |= (1 << bit);
+            var tok = ((bestOff - 1) << (16 - bc)) | (bestLen - 3);
+            body.push(tok & 255, tok >> 8); p += bestLen;
+          } else { body.push(chunk[p++]); }
+        }
+        body[fi] = flag;
+      }
+      if (body.length + 2 > 4098) throw new Error('압축 청크가 너무 큽니다');
+      var hd = 0xB000 | (body.length - 1);
+      out.push(hd & 255, hd >> 8); for (var i = 0; i < body.length; i++) out.push(body[i]);
+    }
+    return Uint8Array.from(out);
+  }
+
+  // 2) dir 스트림
+  function rec(id, b){ return cat([le(id, 2), le(b.length, 4), b]); }
+  var mods = [{ name: opt.workbookModule, base: '0{00020819-0000-0000-C000-000000000046}', code: opt.workbookCode }];
+  opt.sheetModules.forEach(function(n){ mods.push({ name: n, base: '0{00020820-0000-0000-C000-000000000046}', code: '' }); });
+  var REFS = hex('1600060000007374646f6c653e000c0000007300740064006f006c0065000d00680000005e0000002a5c477b30303032303433302d303030302d303030302d433030302d3030303030303030303034367d23322e30233023433a5c57494e444f57535c73797374656d33325c7374646f6c65322e746c62234f4c45204175746f6d6174696f6e0000000000001600060000004f66666963653e000c0000004f00660066006900630065000d009e000000940000002a5c477b32444638443034432d354246412d313031422d424445352d3030414130303434444535327d23322e30233023433a5c50726f6772616d2046696c65735c436f6d6d6f6e2046696c65735c4d6963726f736f6674205368617265645c4f464649434531325c4d534f2e444c4c234d6963726f736f6674204f66666963652031322e30204f626a656374204c696272617279000000000000');
+  var dir = [
+    rec(1, le(1, 4)), rec(2, le(0x409, 4)), rec(0x14, le(0x409, 4)), rec(3, le(1252, 2)), rec(4, ENC('VBAProject')),
+    rec(5, new Uint8Array(0)), rec(0x40, new Uint8Array(0)), rec(6, new Uint8Array(0)), rec(0x3d, new Uint8Array(0)),
+    rec(7, le(0, 4)), rec(8, le(0, 4)),
+    hex('090004000000511f675220' + '00'),
+    rec(0x0c, new Uint8Array(0)), rec(0x3c, new Uint8Array(0)),
+    REFS,
+    rec(0x0f, le(mods.length, 2)), rec(0x13, le(0xFFFF, 2))
+  ];
+  mods.forEach(function(m){
+    dir.push(rec(0x19, ENC(m.name)), rec(0x47, U16(m.name)), rec(0x1a, ENC(m.name)), rec(0x32, U16(m.name)),
+      rec(0x1c, new Uint8Array(0)), rec(0x48, new Uint8Array(0)), rec(0x31, le(0, 4)), rec(0x1e, le(0, 4)),
+      rec(0x2c, le(0xFFFF, 2)), rec(0x22, new Uint8Array(0)), rec(0x2b, new Uint8Array(0)));
+  });
+  dir.push(rec(0x10, new Uint8Array(0)));
+
+  // 3) 모듈 소스, PROJECT, PROJECTwm
+  function modSrc(m){
+    var t = 'Attribute VB_Name = "' + m.name + '"\r\nAttribute VB_Base = "' + m.base + '"\r\nAttribute VB_GlobalNameSpace = False\r\nAttribute VB_Creatable = False\r\nAttribute VB_PredeclaredId = True\r\nAttribute VB_Exposed = True\r\nAttribute VB_TemplateDerived = False\r\nAttribute VB_Customizable = True\r\n' + (m.code ? m.code.replace(/\r?\n/g, '\r\n') : '') + '\r\n';
+    return ENC(t);
+  }
+  function guid(){ var h = '0123456789ABCDEF', s = ''; for (var i = 0; i < 32; i++) s += h[Math.floor(Math.random() * 16)]; return '{' + s.slice(0,8) + '-' + s.slice(8,12) + '-' + s.slice(12,16) + '-' + s.slice(16,20) + '-' + s.slice(20) + '}'; }
+  var proj = 'ID="' + guid() + '"\r\n' + mods.map(function(m){ return 'Document=' + m.name + '/&H00000000\r\n'; }).join('') +
+    'Name="VBAProject"\r\nHelpContextID="0"\r\nVersionCompatible32="393222000"\r\nCMG="DBD966ECE4F0E4F0E4F0E4F0"\r\nDPB="5557E86E18E919E919E9"\r\nGC="CFCD72F0961011111111EE"\r\n\r\n' +
+    '[Host Extender Info]\r\n&H00000001={3832D640-CF90-11CF-8E43-00A0C911005A};VBE;&H00000000\r\n\r\n[Workspace]\r\n' +
+    mods.map(function(m){ return m.name + '=0, 0, 0, 0, C\r\n'; }).join('');
+  var wm = []; mods.forEach(function(m){ wm.push(ENC(m.name), le(0, 1), U16(m.name), le(0, 2)); }); wm.push(le(0, 2));
+
+  var vbaKids = [
+    { name: 'dir', data: compress(cat(dir)) },
+    { name: '_VBA_PROJECT', data: hex('cc61ffff000000') }
+  ];
+  mods.forEach(function(m){ vbaKids.push({ name: m.name, data: compress(modSrc(m)) }); });
+  var root = { name: 'Root Entry', children: [
+    { name: 'PROJECT', data: ENC(proj) },
+    { name: 'PROJECTwm', data: cat(wm) },
+    { name: 'VBA', children: vbaKids }
+  ] };
+  return buildCfb(root);
+
+  // 4) OLE 복합 문서(CFB v3) 작성
+  function buildCfb(root){
+    var FREE = 0xFFFFFFFF, END = 0xFFFFFFFE, FATS = 0xFFFFFFFD;
+    var nodes = [root]; root.id = 0;
+    function cmp(a, b){ if (a.name.length !== b.name.length) return a.name.length - b.name.length; var x = a.name.toUpperCase(), y = b.name.toUpperCase(); return x < y ? -1 : x > y ? 1 : 0; }
+    function layout(st){
+      st.children.sort(cmp);
+      st.children.forEach(function(c){ c.id = nodes.length; nodes.push(c); c.left = c.right = FREE; c.child = FREE; });
+      st.children.forEach(function(c){ if (c.children) layout(c); });
+      var maxD = 0;
+      function build(a, lo, hi, depth){
+        if (lo >= hi) return FREE;
+        var mid = (lo + hi) >> 1, n = a[mid]; n.depth = depth; if (depth > maxD) maxD = depth;
+        n.left = build(a, lo, mid, depth + 1); n.right = build(a, mid + 1, hi, depth + 1); return n.id;
+      }
+      st.child = build(st.children, 0, st.children.length, 0);
+      st.children.forEach(function(c){ c.color = (c.depth === maxD && st.children.length > 1) ? 0 : 1; });
+    }
+    root.left = root.right = FREE; root.color = 1; layout(root);
+    // 데이터 배치
+    var mini = [], miniLen = 0, bigs = [];
+    nodes.forEach(function(n){
+      if (n.children || n === root) return;
+      n.size = n.data.length;
+      if (n.size === 0){ n.start = END; return; }
+      if (n.size < 4096){ n.start = miniLen / 64; var pad = Math.ceil(n.size / 64) * 64; var b = new Uint8Array(pad); b.set(n.data); mini.push(b); miniLen += pad; }
+      else bigs.push(n);
+    });
+    var nMini = miniLen / 64, miniFatSec = Math.ceil(nMini / 128), miniStreamSec = Math.ceil(miniLen / 512);
+    var dirSec = Math.ceil(nodes.length / 4), bigSec = 0; bigs.forEach(function(n){ n.secs = Math.ceil(n.size / 512); bigSec += n.secs; });
+    var data = miniFatSec + miniStreamSec + dirSec + bigSec, nF = 1;
+    while (Math.ceil((data + nF) / 128) > nF) nF = Math.ceil((data + nF) / 128);
+    if (nF > 109) throw new Error('파일이 너무 큽니다');
+    var total = nF + data, fat = new Uint32Array(nF * 128).fill(FREE), sec = 0;
+    function chain(count){ var s = sec; for (var i = 0; i < count; i++){ fat[sec + i] = (i === count - 1) ? END : sec + i + 1; } sec += count; return s; }
+    for (var f = 0; f < nF; f++) fat[sec++] = FATS;
+    var dirStart = chain(dirSec);
+    var miniFatStart = miniFatSec ? chain(miniFatSec) : END;
+    var miniStart = miniStreamSec ? chain(miniStreamSec) : END;
+    bigs.forEach(function(n){ n.start = chain(n.secs); });
+    root.size = miniLen; root.start = miniStart;
+    var file = new Uint8Array(512 + total * 512), dv = new DataView(file.buffer);
+    file.set([0xD0,0xCF,0x11,0xE0,0xA1,0xB1,0x1A,0xE1], 0);
+    dv.setUint16(24, 0x3E, true); dv.setUint16(26, 3, true); dv.setUint16(28, 0xFFFE, true); dv.setUint16(30, 9, true); dv.setUint16(32, 6, true);
+    dv.setUint32(44, nF, true); dv.setUint32(48, dirStart, true); dv.setUint32(56, 4096, true);
+    dv.setUint32(60, miniFatStart, true); dv.setUint32(64, miniFatSec, true); dv.setUint32(68, END, true); dv.setUint32(72, 0, true);
+    for (var i = 0; i < 109; i++) dv.setUint32(76 + 4 * i, i < nF ? i : FREE, true);
+    function at(s){ return 512 + s * 512; }
+    for (var k = 0; k < nF * 128; k++) dv.setUint32(at(0) + 4 * k, fat[k], true);
+    // 디렉터리
+    for (var e = 0; e < dirSec * 4; e++){
+      var o = at(dirStart) + e * 128, n = nodes[e];
+      if (!n){ dv.setUint32(o + 68, FREE, true); dv.setUint32(o + 72, FREE, true); dv.setUint32(o + 76, FREE, true); continue; }
+      for (var c = 0; c < n.name.length; c++) dv.setUint16(o + 2 * c, n.name.charCodeAt(c), true);
+      dv.setUint16(o + 64, (n.name.length + 1) * 2, true);
+      file[o + 66] = n === root ? 5 : (n.children ? 1 : 2); file[o + 67] = n.color;
+      dv.setUint32(o + 68, n.left, true); dv.setUint32(o + 72, n.right, true);
+      dv.setUint32(o + 76, n.children ? n.child : FREE, true);
+      dv.setUint32(o + 116, n.children && n !== root ? 0 : n.start, true); dv.setUint32(o + 120, n.children && n !== root ? 0 : n.size, true);
+    }
+    // 미니 FAT / 미니 스트림 / 큰 스트림
+    var mf = new Uint32Array(miniFatSec * 128).fill(FREE);
+    nodes.forEach(function(n){ if (n.children || n === root || !n.size || n.size >= 4096) return; var cnt = Math.ceil(n.size / 64); for (var i = 0; i < cnt; i++) mf[n.start + i] = i === cnt - 1 ? END : n.start + i + 1; });
+    for (var m = 0; m < mf.length; m++) dv.setUint32(at(miniFatStart) + 4 * m, mf[m], true);
+    var mo = at(miniStart), pos = 0; mini.forEach(function(b){ file.set(b, mo + pos); pos += b.length; });
+    bigs.forEach(function(n){ file.set(n.data, at(n.start)); });
+    return file;
+  }
+}
+
   var FN_KEY = '매크로열셀클릭복사';
   var cat = null, catIdx = -1;
   for (var i = 0; i < CATEGORIES.length; i++){ if (CATEGORIES[i].name === '매크로 등 기타'){ cat = CATEGORIES[i]; catIdx = i; break; } }
@@ -3480,9 +3632,9 @@
 
   var fn = {
     key: FN_KEY,
-    label: '열 지정 셀 클릭 복사 (선택만 하면 복사)',
-    example: '엑셀 파일 올리기 → 복사할 열 지정 → 그 열의 칸을 클릭만 하면 따옴표(" ") 등을 지운 값이 복사, 열 전체 서식 지운 파일 다운로드도 가능',
-    note: '이 기능을 선택하면 아래에 전용 칸이 나타납니다. 엑셀 파일(.xlsx/.xlsm)을 올리고 복사할 열을 고른 뒤 그 열의 칸을 클릭하면 큰따옴표("")·작은따옴표·줄바꿈·앞뒤 공백을 지운 글자가 바로 복사됩니다. [서식 지워서 다운로드]를 누르면 그 열 전체를 같은 방식으로 정리한 새 파일을 저장합니다.',
+    label: '열 지정 셀 클릭 복사 (엑셀에 매크로 넣기)',
+    example: '엑셀 파일 올리기 + 복사할 열 지정(B 등) → 매크로가 들어간 .xlsm 다운로드 → 엑셀에서 그 열의 셀을 선택만 하면 따옴표(" ") 등 서식을 지운 값이 바로 복사',
+    note: '이 기능을 선택하면 아래에 전용 칸이 나타납니다. 엑셀 파일(.xlsx/.xlsm)을 올리고 시트와 복사할 열을 지정한 뒤 [매크로 넣어서 다운로드]를 누르면, 선택 이벤트 매크로가 들어간 .xlsm 파일이 저장됩니다. 그 파일을 엑셀(Windows)에서 열고 [콘텐츠 사용/매크로 사용]을 누르면, 지정한 열의 셀을 선택(클릭·방향키)하는 즉시 큰따옴표·줄바꿈·앞뒤 공백을 지운 글자가 클립보드에 복사됩니다.',
     usesLookupTable: false,
     isPivotMode: false,
     params: [],
@@ -3505,48 +3657,46 @@
   var st = document.createElement('style');
   st.textContent =
     '#colClickCard{display:none;}body.show-colclick-section #colClickCard{display:block;}' +
-    '#ccWrap{max-height:52vh;overflow:auto;border:1px solid var(--line,#d1d5db);border-radius:8px;margin:6px 0 10px;}' +
-    '#ccGrid{border-collapse:collapse;font-size:13px;width:max-content;min-width:100%;}' +
-    '#ccGrid th{position:sticky;top:0;background:#f1f5f9;border:1px solid #d1d5db;padding:4px 8px;cursor:pointer;z-index:1;}' +
-    '#ccGrid th.rn{left:0;z-index:2;cursor:default;}' +
-    '#ccGrid td{border:1px solid #e5e7eb;padding:3px 8px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
-    '#ccGrid td.rn{background:#f8fafc;color:#64748b;text-align:right;position:sticky;left:0;}' +
-    '#colClickCard select{padding:5px 8px;border:1px solid var(--line,#d1d5db);border-radius:6px;font-size:13px;}';
+    '#colClickCard select{padding:5px 8px;border:1px solid var(--line,#d1d5db);border-radius:6px;font-size:13px;}' +
+    '#ccCode{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow:auto;max-height:340px;white-space:pre;}' +
+    '#colClickCard details{margin-top:10px;}#colClickCard summary{cursor:pointer;font-weight:600;font-size:13px;}';
   document.head.appendChild(st);
-  var hl = document.createElement('style'); document.head.appendChild(hl);
 
   var card = document.createElement('div');
   card.className = 'card lookup-card';
   card.id = 'colClickCard';
   card.innerHTML =
-    '<div class="lookup-header"><h2>👆 열 지정 셀 클릭 복사</h2></div>' +
-    '<p class="lookup-desc">엑셀 파일을 올리고 <strong>복사할 열</strong>을 고르면, 그 열의 칸을 <strong>클릭(선택)하기만 해도</strong> 값이 복사됩니다. 큰따옴표(" ")·작은따옴표·줄바꿈·앞뒤 공백은 지운 순수 글자만 복사됩니다. 노란색 열이 복사 대상이며 열 머리글(A, B, C…)을 눌러도 선택할 수 있습니다.</p>' +
+    '<div class="lookup-header"><h2>👆 열 지정 셀 클릭 복사 (엑셀에 매크로 넣기)</h2></div>' +
+    '<p class="lookup-desc">엑셀 파일을 올리고 <strong>복사할 열</strong>을 지정하면, <strong>선택만 해도 복사되는 매크로</strong>를 파일에 넣어 <strong>.xlsm</strong>으로 내려받을 수 있습니다. 내려받은 파일을 엑셀에서 열면 지정한 열의 셀을 클릭(또는 방향키로 이동)하는 즉시 <strong>큰따옴표(" ")·줄바꿈·앞뒤 공백이 지워진 글자</strong>가 복사됩니다.</p>' +
     '<div class="lookup-actions">' +
     '<button class="btn primary" id="ccPick" type="button">📂 엑셀 파일 올리기</button>' +
     '<input type="file" id="ccFile" accept=".xlsx,.xlsm" style="display:none;">' +
     '<span class="lookup-status" id="ccInfo">선택된 파일 없음</span></div>' +
     '<div class="lookup-actions">' +
     '<span class="pivot-field-label">시트</span><select id="ccSheet"></select>' +
-    '<span class="pivot-field-label">복사할 열</span><select id="ccCol"></select>' +
-    '<button class="btn success" id="ccRun" type="button">✅ 서식 지워서 다운로드</button>' +
-    '<span class="lookup-status" id="ccStatus"></span></div>' +
-    '<div id="ccWrap"><table id="ccGrid"></table></div>' +
-    '<div class="lookup-status" style="font-size:12px;">※ 미리보기는 앞쪽 500행까지만 보여줍니다. 다운로드는 선택한 열의 전체 행에 적용되며, 숫자·수식 칸과 다른 열은 그대로 둡니다. 날짜 칸은 숫자로 보일 수 있습니다.</div>';
+    '<span class="pivot-field-label">복사할 열</span><input type="text" id="ccCols" class="text-join-input" style="width:110px;" placeholder="예) B  또는  B:D" maxlength="9">' +
+    '<button class="btn success" id="ccRun" type="button">🧩 매크로 넣어서 다운로드 (.xlsm)</button>' +
+    '</div>' +
+    '<div class="lookup-status" id="ccStatus" style="white-space:pre-line;"></div>' +
+    '<div class="lookup-status" style="font-size:12px;margin-top:8px;white-space:pre-line;">' +
+    '※ 사용 방법: 내려받은 .xlsm 파일을 열고 맨 위 노란 줄의 [콘텐츠 사용] 또는 [매크로 사용]을 누르세요.\n' +
+    '※ 인터넷에서 받은 파일은 엑셀이 매크로를 막을 수 있습니다. 이때는 파일을 우클릭 → 속성 → 맨 아래 [차단 해제] 체크 → 확인 후 다시 여세요.\n' +
+    '※ Windows용 엑셀 전용입니다(Mac·웹 엑셀·모바일에서는 매크로가 동작하지 않습니다). 매크로가 이미 들어 있는 파일은 기존 매크로를 지킬 수 없어 아래 코드를 직접 붙여넣는 방법만 지원합니다.</div>' +
+    '<details><summary>🔧 엑셀에서 직접 붙여넣으려면 (VBA 코드 보기)</summary>' +
+    '<p class="lookup-desc" style="margin-top:6px;">엑셀에서 Alt+F11 → 왼쪽 [ThisWorkbook] 더블클릭 → 아래 코드를 붙여넣고, 파일은 [Excel 매크로 사용 통합 문서(*.xlsm)]로 저장하세요. 위에서 지정한 시트·열이 코드에 반영됩니다.</p>' +
+    '<div class="lookup-actions"><button class="btn" id="ccCopyCode" type="button">📋 코드 복사</button><span class="lookup-status" id="ccCodeMsg"></span></div>' +
+    '<pre id="ccCode"></pre></details>';
   var anchor = document.getElementById('cellProtectCard') || document.getElementById('lookupCard');
   anchor.parentNode.insertBefore(card, anchor);
 
   var $ = function(id){ return document.getElementById(id); };
-  var zip = null, fileName = '', sheets = [], shared = [], data = null, maxC = 0, maxR = 0;
+  var zip = null, fileName = '', sheets = [];
   var NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 
   function parseXml(s){
-    var d = new DOMParser().parseFromString(s, 'application/xml');
-    if (d.getElementsByTagName('parsererror').length) throw new Error('엑셀 내부 XML을 읽지 못했습니다');
-    return d;
-  }
-  function serialize(doc){
-    var x = new XMLSerializer().serializeToString(doc).replace(/^\s*(<\?xml[^?]*\?>\s*)+/, '');
-    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + x;
+    var dd = new DOMParser().parseFromString(s, 'application/xml');
+    if (dd.getElementsByTagName('parsererror').length) throw new Error('엑셀 내부 XML을 읽지 못했습니다');
+    return dd;
   }
   function resolveTarget(t){
     if (t.charAt(0) === '/') return t.slice(1);
@@ -3554,75 +3704,49 @@
     ('xl/' + t).split('/').forEach(function(p){ if (p === '..') out.pop(); else if (p !== '.') out.push(p); });
     return out.join('/');
   }
-  function colNum(s){ var n = 0; for (var i = 0; i < s.length; i++) n = n * 26 + s.charCodeAt(i) - 64; return n; }
-  function colName(n){ var s = ''; while (n > 0){ var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
-  function cleanText(v){
-    var t = String(v == null ? '' : v).replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim();
-    var prev;
-    do { prev = t; t = t.replace(/^["“”‟„«»]+|["“”‟„«»]+$/g, '').replace(/^'+/, '').trim(); } while (t !== prev);
-    return t.replace(/["“”]/g, '').trim();
-  }
-  async function readShared(z){
-    var f = z.file('xl/sharedStrings.xml'); if (!f) return [];
-    var d = parseXml(await f.async('string')), out = [];
-    [].slice.call(d.documentElement.childNodes).forEach(function(si){
-      if (si.nodeType !== 1 || si.localName !== 'si') return;
-      var s = '';
-      [].slice.call(si.getElementsByTagName('t')).forEach(function(t){
-        for (var p = t.parentNode; p && p !== si; p = p.parentNode) if (p.localName === 'rPh') return;
-        s += t.textContent;
-      });
-      out.push(s);
-    });
-    return out;
-  }
-  function cellText(c){
-    var t = c.getAttribute('t'), v = c.getElementsByTagName('v')[0];
-    if (t === 's') return v ? (shared[parseInt(v.textContent, 10)] || '') : '';
-    if (t === 'inlineStr') return [].slice.call(c.getElementsByTagName('t')).map(function(x){ return x.textContent; }).join('');
-    return v ? v.textContent : '';
+  function xmlEsc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+  // 열 입력 해석: B 또는 B:D (한 덩어리의 열)
+  function parseCol(text){
+    var t = String(text || '').toUpperCase().replace(/[\s$]+/g, '');
+    var m = t.match(/^([A-Z]{1,3})(?::([A-Z]{1,3}))?$/);
+    if (!m) return null;
+    function num(s){ var n = 0; for (var i = 0; i < s.length; i++) n = n * 26 + s.charCodeAt(i) - 64; return n; }
+    var a = num(m[1]), b = m[2] ? num(m[2]) : a;
+    if (a > 16384 || b > 16384) return null;
+    if (a > b){ var x = m[1]; m[1] = m[2]; m[2] = x; }
+    return { a: m[1], b: m[2] || m[1] };
   }
 
-  async function loadSheet(idx){
-    var sf = zip.file(sheets[idx].path);
-    if (!sf) throw new Error('시트 파일을 찾지 못했습니다');
-    var doc = parseXml(await sf.async('string'));
-    data = {}; maxC = 0; maxR = 0;
-    var cells = doc.getElementsByTagName('c');
-    for (var i = 0; i < cells.length; i++){
-      var m = (cells[i].getAttribute('r') || '').match(/^([A-Z]+)(\d+)$/); if (!m) continue;
-      var txt = cellText(cells[i]); if (txt === '') continue;
-      var r = parseInt(m[2], 10), c = colNum(m[1]);
-      (data[r] = data[r] || {})[c] = txt;
-      if (r > maxR) maxR = r; if (c > maxC) maxC = c;
+  // ── VBA 코드 ──
+  var WB_CODE = "Option Explicit\n\nPrivate Sub Workbook_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)\n    Dim rng As Range, v As Variant, s As String\n    On Error GoTo done\n    If Target.Count <> 1 Then GoTo done\n    Set rng = ThisWorkbook.Names(\"CopyCol\").RefersToRange\n    If Not rng.Worksheet Is Sh Then GoTo done\n    If Intersect(Target, rng) Is Nothing Then GoTo done\n    v = Target.Value\n    If IsError(v) Then GoTo done\n    If VarType(v) = vbString Then\n        s = v\n    Else\n        s = Target.Text\n        If Left$(s, 1) = \"#\" Then s = CStr(v)\n    End If\n    s = CleanCopyText(s)\n    If Len(s) = 0 Then GoTo done\n    PutClipboard s\n    Application.StatusBar = ChrW(&HBCF5&) & ChrW(&HC0AC&) & ChrW(&HB428&) & \": \" & Left$(s, 40)\n    Exit Sub\ndone:\nEnd Sub\n\nPrivate Function CleanCopyText(ByVal s As String) As String\n    s = Replace(s, vbCr, \" \")\n    s = Replace(s, vbLf, \" \")\n    s = Replace(s, Chr(34), \"\")\n    s = Replace(s, ChrW(8220), \"\")\n    s = Replace(s, ChrW(8221), \"\")\n    s = Replace(s, ChrW(160), \" \")\n    s = Trim$(s)\n    Do While Left$(s, 1) = \"'\"\n        s = Trim$(Mid$(s, 2))\n    Loop\n    Do While InStr(s, \"  \") > 0\n        s = Replace(s, \"  \", \" \")\n    Loop\n    CleanCopyText = s\nEnd Function\n\nPrivate Sub PutClipboard(ByVal t As String)\n    Dim d As Object\n    Set d = CreateObject(\"new:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}\")\n    d.SetText t\n    d.PutInClipboard\nEnd Sub";
+  function displayCode(sheetName, col){
+    var lines = WB_CODE.split('\n'), out = [];
+    for (var i = 0; i < lines.length; i++){
+      if (lines[i].indexOf('ThisWorkbook.Names("CopyCol")') > -1){
+        out.push('    If Sh.Name <> "' + String(sheetName).replace(/"/g, '""') + '" Then GoTo done');
+        out.push('    Set rng = Sh.Range("' + col.a + ':' + col.b + '")');
+        i++; // 다음 줄(If Not rng.Worksheet Is Sh ...)은 위 시트 비교로 대체
+        continue;
+      }
+      out.push(lines[i]);
     }
-    if (maxC < 1) maxC = 1;
-    var cur = $('ccCol').value;
-    var html = '';
-    for (var k = 1; k <= maxC; k++) html += '<option value="' + k + '">' + colName(k) + '열</option>';
-    $('ccCol').innerHTML = html;
-    $('ccCol').value = (cur && +cur <= maxC) ? cur : '1';
-    renderGrid();
+    return out.join('\n');
   }
-  function esc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-  function renderGrid(){
-    var h = '<thead><tr><th class="rn"></th>';
-    for (var c = 1; c <= maxC; c++) h += '<th data-col="' + c + '">' + colName(c) + '</th>';
-    h += '</tr></thead><tbody>';
-    var lim = Math.min(maxR, 500);
-    for (var r = 1; r <= lim; r++){
-      var row = data[r] || {};
-      h += '<tr><td class="rn">' + r + '</td>';
-      for (var c2 = 1; c2 <= maxC; c2++) h += '<td data-col="' + c2 + '" data-row="' + r + '" title="' + esc(row[c2] || '') + '">' + esc(row[c2] || '') + '</td>';
-      h += '</tr>';
-    }
-    $('ccGrid').innerHTML = h + '</tbody>';
-    refreshHighlight();
+  function refreshCode(){
+    var col = parseCol($('ccCols').value), sh = sheets[+$('ccSheet').value];
+    $('ccCode').textContent = (col && sh) ? displayCode(sh.name, col) : '← 위에서 파일을 올리고 시트·열을 지정하면 여기에 코드가 만들어집니다.';
   }
-  function refreshHighlight(){
-    var n = $('ccCol').value;
-    hl.textContent = n ? '#ccGrid td[data-col="' + n + '"]{background:#fef9c3;cursor:copy;}#ccGrid th[data-col="' + n + '"]{background:#fde68a;}' : '';
-  }
+  $('ccCols').addEventListener('input', refreshCode);
+  $('ccSheet').addEventListener('change', refreshCode);
+  $('ccCopyCode').onclick = function(){
+    var col = parseCol($('ccCols').value), sh = sheets[+$('ccSheet').value];
+    if (!col || !sh){ $('ccCodeMsg').textContent = '먼저 파일을 올리고 시트·열을 지정하세요'; return; }
+    var txt = displayCode(sh.name, col);
+    if (typeof copyTextToClipboard === 'function') copyTextToClipboard(txt, 'VBA 코드를 복사했습니다');
+    else if (navigator.clipboard) navigator.clipboard.writeText(txt);
+    $('ccCodeMsg').textContent = '복사됨';
+  };
 
   $('ccPick').onclick = function(){ $('ccFile').click(); };
   $('ccFile').onchange = async function(e){
@@ -3643,78 +3767,101 @@
         if (t) list.push({ name: s.getAttribute('name'), path: resolveTarget(t) });
       });
       if (!list.length) throw new Error('시트를 찾지 못했습니다');
-      zip = z; fileName = f.name; sheets = list; shared = await readShared(z);
+      zip = z; fileName = f.name; sheets = list;
       $('ccSheet').innerHTML = list.map(function(s, i){ return '<option value="' + i + '"></option>'; }).join('');
       [].slice.call($('ccSheet').options).forEach(function(o, i){ o.textContent = list[i].name; });
       $('ccSheet').value = '0';
-      $('ccCol').innerHTML = '';
-      await loadSheet(0);
       $('ccInfo').textContent = '📄 ' + f.name + ' (시트 ' + list.length + '개)';
+      if (z.file('xl/vbaProject.bin')) $('ccStatus').textContent = '⚠ 이 파일에는 이미 매크로가 들어 있어 자동 삽입은 막아 두었습니다(기존 매크로가 사라질 수 있음). 아래 [VBA 코드 보기]를 직접 붙여넣어 주세요.';
+      refreshCode();
     } catch (err){
-      zip = null; data = null; $('ccGrid').innerHTML = ''; $('ccInfo').textContent = '선택된 파일 없음';
-      $('ccStatus').textContent = '⚠ ' + (err.message || err);
+      zip = null; sheets = []; $('ccInfo').textContent = '선택된 파일 없음';
+      $('ccStatus').textContent = '⚠ ' + (err.message || err); refreshCode();
     }
   };
-  $('ccSheet').onchange = function(){ loadSheet(+$('ccSheet').value).catch(function(e){ $('ccStatus').textContent = '⚠ ' + (e.message || e); }); };
-  $('ccCol').onchange = refreshHighlight;
-
-  $('ccGrid').addEventListener('click', function(e){
-    var th = e.target.closest && e.target.closest('th[data-col]');
-    if (th){ $('ccCol').value = th.getAttribute('data-col'); refreshHighlight(); return; }
-    var td = e.target.closest && e.target.closest('td[data-col]');
-    if (!td || td.getAttribute('data-col') !== $('ccCol').value) return;
-    var raw = (data[td.getAttribute('data-row')] || {})[td.getAttribute('data-col')] || '';
-    var text = cleanText(raw);
-    if (!text){ $('ccStatus').textContent = '빈 칸이라 복사하지 않았습니다'; return; }
-    var short = text.length > 30 ? text.slice(0, 30) + '…' : text;
-    $('ccStatus').textContent = '복사됨: ' + short;
-    if (typeof copyTextToClipboard === 'function') copyTextToClipboard(text, '복사됨: ' + short);
-    else if (navigator.clipboard) navigator.clipboard.writeText(text);
-  });
 
   $('ccRun').onclick = async function(){
     var res = $('ccStatus');
-    if (!zip){ res.textContent = '⚠ 먼저 엑셀 파일을 올려주세요'; return; }
-    res.textContent = '처리 중…';
     try {
-      var col = +$('ccCol').value, sh = sheets[+$('ccSheet').value];
-      var sf = zip.file(sh.path), doc = parseXml(await sf.async('string')), ns = doc.documentElement.namespaceURI;
-      var changed = 0, cells = doc.getElementsByTagName('c');
-      for (var i = 0; i < cells.length; i++){
-        var c = cells[i], m = (c.getAttribute('r') || '').match(/^([A-Z]+)(\d+)$/);
-        if (!m || colNum(m[1]) !== col) continue;
-        var t = c.getAttribute('t');
-        if (c.getElementsByTagName('f').length) continue;
-        if (t !== 's' && t !== 'inlineStr') continue;
-        var orig = cellText(c), cl = cleanText(orig);
-        if (cl === orig) continue;
-        while (c.firstChild) c.removeChild(c.firstChild);
-        if (cl === '') c.removeAttribute('t');
-        else {
-          c.setAttribute('t', 'inlineStr');
-          var isEl = doc.createElementNS(ns, 'is'), tEl = doc.createElementNS(ns, 't');
-          tEl.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
-          tEl.textContent = cl; isEl.appendChild(tEl); c.appendChild(isEl);
-        }
-        changed++;
+      if (!zip){ res.textContent = '⚠ 먼저 엑셀 파일을 올려주세요'; return; }
+      if (zip.file('xl/vbaProject.bin')){ res.textContent = '⚠ 이미 매크로가 들어 있는 파일입니다. 아래 [VBA 코드 보기]를 직접 붙여넣어 주세요.'; return; }
+      var col = parseCol($('ccCols').value);
+      if (!col){ res.textContent = '⚠ 복사할 열을 영문 열 이름으로 입력하세요 (예: B 또는 B:D)'; return; }
+      res.textContent = '처리 중…';
+      var sh = sheets[+$('ccSheet').value];
+
+      // 1) workbook.xml
+      var wbXml = await zip.file('xl/workbook.xml').async('string');
+      var wbCode = 'ThisWorkbook';
+      var mPr = wbXml.match(/<workbookPr\b([^>]*?)(\/?)>/);
+      if (mPr){
+        var cm = mPr[1].match(/\bcodeName="([^"]+)"/);
+        if (cm) wbCode = cm[1];
+        else wbXml = wbXml.replace(mPr[0], '<workbookPr codeName="ThisWorkbook"' + mPr[1] + mPr[2] + '>');
+      } else {
+        var ins = wbXml.match(/<fileSharing\b[^>]*\/>/) || wbXml.match(/<fileVersion\b[^>]*\/>/);
+        if (ins) wbXml = wbXml.replace(ins[0], ins[0] + '<workbookPr codeName="ThisWorkbook"/>');
+        else wbXml = wbXml.replace(/(<workbook\b[^>]*>)/, '$1<workbookPr codeName="ThisWorkbook"/>');
       }
-      if (!changed){ res.textContent = colName(col) + '열은 이미 깨끗해서 바꿀 칸이 없습니다'; return; }
-      var blob;
-      zip.file(sh.path, serialize(doc));
-      blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      var mm = fileName.match(/\.(xlsx|xlsm)$/i), ext = mm ? mm[1].toLowerCase() : 'xlsx', base = fileName.replace(/\.(xlsx|xlsm)$/i, '');
-      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = base + '_서식정리.' + ext;
+      wbXml = wbXml.replace(/<definedName\b[^>]*\bname="CopyCol"[^>]*>[\s\S]*?<\/definedName>/g, '');
+      var ref = "'" + sh.name.replace(/'/g, "''") + "'!$" + col.a + ':$' + col.b;
+      var dn = '<definedName name="CopyCol">' + xmlEsc(ref) + '</definedName>';
+      if (/<definedNames\b[^>]*>/.test(wbXml) && /<\/definedNames>/.test(wbXml)) wbXml = wbXml.replace('</definedNames>', dn + '</definedNames>');
+      else {
+        wbXml = wbXml.replace(/<definedNames\s*\/>/, '');
+        var cut = -1;
+        ['<calcPr', '<oleSize', '<customWorkbookViews', '<pivotCaches', '<smartTagPr', '<smartTagTypes', '<webPublishing', '<fileRecoveryPr', '<webPublishObjects', '<extLst'].forEach(function(tag){
+          var k = wbXml.indexOf(tag); if (k > -1 && (cut < 0 || k < cut)) cut = k;
+        });
+        if (cut < 0) cut = wbXml.lastIndexOf('</workbook>');
+        wbXml = wbXml.slice(0, cut) + '<definedNames>' + dn + '</definedNames>' + wbXml.slice(cut);
+      }
+      zip.file('xl/workbook.xml', wbXml);
+
+      // 2) 각 시트의 코드 이름(codeName)
+      var used = {}; used[wbCode] = true;
+      var sheetMods = [];
+      for (var i = 0; i < sheets.length; i++){
+        var sf = zip.file(sheets[i].path); if (!sf) continue;
+        var x = await sf.async('string');
+        var head = x.slice(0, 4000), nm = null;
+        var m1 = head.match(/<sheetPr\b([^>]*?)(\/?)>/);
+        if (m1){
+          var c1 = m1[1].match(/\bcodeName="([^"]+)"/);
+          if (c1) nm = c1[1];
+        }
+        if (!nm || used[nm]){
+          var k = i + 1; nm = 'Sheet' + k; while (used[nm]) { k++; nm = 'Sheet' + k; }
+          if (m1) x = x.replace(m1[0], '<sheetPr codeName="' + nm + '"' + m1[1].replace(/\s*\bcodeName="[^"]*"/, '') + m1[2] + '>');
+          else x = x.replace(/(<(?:worksheet|chartsheet|dialogsheet)\b[^>]*>)/, '$1<sheetPr codeName="' + nm + '"/>');
+          zip.file(sheets[i].path, x);
+        }
+        used[nm] = true; sheetMods.push(nm);
+      }
+
+      // 3) 관계·콘텐츠 형식
+      var relXml = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+      relXml = relXml.replace('</Relationships>', '<Relationship Id="rIdVbaProject1" Type="http://schemas.microsoft.com/office/2006/relationships/vbaProject" Target="vbaProject.bin"/></Relationships>');
+      zip.file('xl/_rels/workbook.xml.rels', relXml);
+      var ct = await zip.file('[Content_Types].xml').async('string');
+      ct = ct.replace('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml', 'application/vnd.ms-excel.sheet.macroEnabled.main+xml');
+      ct = ct.replace('</Types>', '<Override PartName="/xl/vbaProject.bin" ContentType="application/vnd.ms-office.vbaProject"/></Types>');
+      zip.file('[Content_Types].xml', ct);
+
+      // 4) VBA 프로젝트 생성
+      var bin = buildVbaProject({ workbookModule: wbCode, sheetModules: sheetMods, workbookCode: WB_CODE });
+      zip.file('xl/vbaProject.bin', bin);
+      var blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
+      var base = fileName.replace(/\.(xlsx|xlsm)$/i, '');
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = base + '_클릭복사매크로.xlsm';
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
-      res.textContent = '✅ ' + colName(col) + '열 ' + changed + '칸 정리 완료 — ' + base + '_서식정리.' + ext;
-      // 파일 내용이 바뀌었으니 화면 표와 내부 상태를 새로 읽는다
-      zip = await JSZip.loadAsync(await blob.arrayBuffer()); shared = await readShared(zip);
-      await loadSheet(+$('ccSheet').value);
+      res.textContent = '✅ ' + base + '_클릭복사매크로.xlsm 저장됨 — [' + sh.name + '] 시트의 ' + (col.a === col.b ? col.a : col.a + '~' + col.b) + '열 셀을 선택하면 복사됩니다.\n엑셀에서 열고 [콘텐츠 사용/매크로 사용]을 눌러야 동작합니다.';
+      zip = null; $('ccInfo').textContent = '다시 만들려면 파일을 다시 올려주세요';
     } catch (err){
       res.textContent = '⚠ ' + (err.message || err);
     }
   };
 
-  // ── 이 기능이 선택되었을 때만 전용 카드 표시 (조회 참조표는 열지 않음) ──
   function isActive(){
     var rows = (typeof rowsInGrid === 'function') ? rowsInGrid() : [];
     for (var i = 0; i < rows.length; i++){
@@ -3734,5 +3881,7 @@
     gridEl.addEventListener('change', schedule, true);
   }
   refresh();
+  refreshCode();
+
 })();
 </script>
