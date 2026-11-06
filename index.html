@@ -3468,3 +3468,332 @@
   });
 })();
 </script>
+<script>
+(function(){
+  var FN_KEY = '매크로열셀클릭복사';
+  var cat = null, catIdx = -1;
+  for (var i = 0; i < CATEGORIES.length; i++){ if (CATEGORIES[i].name === '매크로 등 기타'){ cat = CATEGORIES[i]; catIdx = i; break; } }
+  if (!cat) return;
+  var pos = -1;
+  for (var j = 0; j < cat.functions.length; j++){ if (cat.functions[j].key === '매크로셀보호'){ pos = j; break; } }
+  if (pos < 0) return;
+
+  var fn = {
+    key: FN_KEY,
+    label: '열 지정 셀 클릭 복사 (선택만 하면 복사)',
+    example: '참조표에서 복사할 열을 지정 → 그 열의 셀을 클릭만 하면 따옴표(" ") 등을 지운 값이 바로 클립보드에 복사',
+    note: '이 기능을 선택하면 아래 "조회 참조표"에 열 선택 칸이 나타납니다. 엑셀에서 복사한 자료를 참조표에 붙여넣고 복사할 열을 고른 뒤, 그 열의 칸을 클릭하기만 하면 값이 바로 복사됩니다. 겉의 큰따옴표("")·작은따옴표·줄바꿈·앞뒤 공백은 지우고 순수 글자만 복사합니다.',
+    usesLookupTable: true,
+    isPivotMode: true,
+    params: [],
+    fn: function(){ return '↓ 아래 참조표에서 열을 지정하고 칸을 클릭하세요'; }
+  };
+  cat.functions.splice(pos + 1, 0, fn);
+
+  var listEl = document.getElementById('fnList');
+  if (listEl){
+    var d = listEl.querySelectorAll('details')[catIdx];
+    if (d){
+      var items = d.querySelectorAll('.fn-item');
+      var it = document.createElement('div');
+      it.className = 'fn-item';
+      it.innerHTML = '<strong>' + fn.label + '</strong><br>' + fn.example;
+      if (items[pos]) items[pos].parentNode.insertBefore(it, items[pos].nextSibling); else d.appendChild(it);
+    }
+  }
+
+  // ── 스타일 ──
+  var st = document.createElement('style');
+  st.textContent = 'body.show-colclick-section #colClickSection{display:block;}' +
+    '#colClickSection h2{margin:0 0 8px;font-size:1rem;}' +
+    '#colClickSection select{padding:5px 8px;border:1px solid var(--line,#d1d5db);border-radius:6px;font-size:13px;}';
+  document.head.appendChild(st);
+  var hl = document.createElement('style'); hl.id = 'colClickHighlight'; document.head.appendChild(hl);
+
+  // ── 전용 영역(참조표 카드 안) ──
+  var card = document.getElementById('lookupCard');
+  if (!card) return;
+  var sec = document.createElement('div');
+  sec.className = 'pivot-section';
+  sec.id = 'colClickSection';
+  sec.innerHTML =
+    '<h2>👆 열 지정 셀 클릭 복사</h2>' +
+    '<p class="lookup-desc">복사할 <strong>열</strong>을 고르고 <strong>"클릭 복사" 켜기</strong>를 체크하면, 위 참조표에서 그 열의 칸을 <strong>클릭(선택)하기만 해도</strong> 값이 복사됩니다. 큰따옴표(" ")·작은따옴표·줄바꿈·앞뒤 공백 등은 지운 순수 글자만 복사됩니다. 노란색 열이 복사 대상입니다.</p>' +
+    '<div class="lookup-actions">' +
+    '<span class="pivot-field-label">복사할 열</span>' +
+    '<select id="colClickCol"></select>' +
+    '<label style="font-size:13px;white-space:nowrap;"><input type="checkbox" id="colClickOn" checked> 클릭 복사 켜기</label>' +
+    '<span class="lookup-status" id="colClickStatus"></span>' +
+    '</div>';
+  var pivot = document.getElementById('pivotSection');
+  if (pivot && pivot.parentNode) pivot.parentNode.insertBefore(sec, pivot); else card.appendChild(sec);
+
+  var colSel = document.getElementById('colClickCol');
+  var onChk = document.getElementById('colClickOn');
+  var statusEl = document.getElementById('colClickStatus');
+
+  function colLabel(n){
+    try { if (typeof pivotColumnLabel === 'function') return pivotColumnLabel(n + 1); } catch(e){}
+    return (n + 1) + '열';
+  }
+  function colCount(){
+    var head = document.getElementById('lookupGridHeadRow');
+    var n = 0;
+    try { if (typeof lookupCols === 'number') n = lookupCols; } catch(e){}
+    if (!n && head) n = Math.max(0, head.children.length - 1);
+    if (!n){ var r = document.querySelector('#lookupGridBody tr'); if (r) n = r.querySelectorAll('input.lookup-cell').length; }
+    return n;
+  }
+  function refreshCols(){
+    var n = colCount(), cur = colSel.value, html = '';
+    for (var c = 0; c < n; c++) html += '<option value="' + c + '">' + colLabel(c) + '</option>';
+    if (colSel.innerHTML !== html){ colSel.innerHTML = html; if (cur && +cur < n) colSel.value = cur; }
+    refreshHighlight();
+  }
+  function refreshHighlight(){
+    if (!isActive() || !onChk.checked || colSel.value === '') { hl.textContent = ''; return; }
+    var nth = +colSel.value + 1;
+    hl.textContent = '#lookupGridBody input.lookup-cell[data-col="' + (+colSel.value) + '"]{background:#fef9c3 !important;cursor:copy;}';
+  }
+
+  function cleanText(v){
+    var t = String(v == null ? '' : v).replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim();
+    var prev;
+    do {
+      prev = t;
+      t = t.replace(/^["“”‟„«»]+|["“”‟„«»]+$/g, '');
+      t = t.replace(/^'+/, '');
+      t = t.trim();
+    } while (t !== prev);
+    t = t.replace(/["“”]/g, '');
+    return t.trim();
+  }
+
+  function isActive(){
+    var rows = (typeof rowsInGrid === 'function') ? rowsInGrid() : [];
+    for (var i = 0; i < rows.length; i++){
+      var cs = rows[i].querySelector('.catSel'), fs = rows[i].querySelector('.fnSel');
+      if (!cs || !fs) continue;
+      var c = CATEGORIES[+cs.value];
+      if (c && c.functions[+fs.value] && c.functions[+fs.value].key === FN_KEY) return true;
+    }
+    return false;
+  }
+  function refreshVisibility(){
+    var act = isActive();
+    document.body.classList.toggle('show-colclick-section', act);
+    if (act){ card.style.display = ''; refreshCols(); } else { hl.textContent = ''; }
+  }
+
+  var busy = false;
+  function schedule(){ if (busy) return; busy = true; setTimeout(function(){ busy = false; refreshVisibility(); }, 30); }
+  var gridEl = document.getElementById('grid');
+  if (gridEl){
+    new MutationObserver(schedule).observe(gridEl, { childList: true, subtree: true });
+    gridEl.addEventListener('change', schedule, true);
+  }
+  new MutationObserver(function(){ if (isActive() && card.style.display === 'none') card.style.display = ''; })
+    .observe(card, { attributes: true, attributeFilter: ['style'] });
+  var body = document.getElementById('lookupGridBody');
+  if (body) new MutationObserver(function(){ if (isActive()) { clearTimeout(refreshCols._t); refreshCols._t = setTimeout(refreshCols, 60); } })
+    .observe(body, { childList: true });
+  var head = document.getElementById('lookupGridHeadRow');
+  if (head) new MutationObserver(function(){ if (isActive()) { clearTimeout(refreshCols._t); refreshCols._t = setTimeout(refreshCols, 60); } })
+    .observe(head, { childList: true });
+  colSel.addEventListener('change', refreshHighlight);
+  onChk.addEventListener('change', refreshHighlight);
+
+  // ── 칸 선택(클릭/포커스/탭 이동) 시 복사 ──
+  var lastKey = '';
+  function handle(e){
+    if (!isActive() || !onChk.checked) return;
+    var inp = e.target;
+    if (!inp || !inp.classList || !inp.classList.contains('lookup-cell')) return;
+    if (String(inp.getAttribute('data-col')) !== String(colSel.value)) return;
+    var text = cleanText(inp.value);
+    if (!text){ statusEl.textContent = '빈 칸이라 복사하지 않았습니다'; return; }
+    var key = inp.getAttribute('data-row') + ':' + inp.getAttribute('data-col') + ':' + e.type;
+    lastKey = key;
+    var short = text.length > 30 ? text.slice(0, 30) + '…' : text;
+    statusEl.textContent = '복사됨: ' + short;
+    try { inp.select(); } catch(err){}
+    if (typeof copyTextToClipboard === 'function') copyTextToClipboard(text, '복사됨: ' + short);
+    else if (navigator.clipboard) navigator.clipboard.writeText(text);
+  }
+  if (body){
+    body.addEventListener('click', handle);
+    body.addEventListener('focusin', function(e){
+      // 마우스 클릭은 click에서 처리하고, 키보드(탭/방향키) 이동만 focusin에서 처리
+      if (e.target && e.target.matches && e.target.matches(':focus-visible')) handle(e);
+    });
+  }
+  refreshVisibility();
+})();
+</script>
+<script>
+(function(){
+  var sec = document.getElementById('colClickSection');
+  if (!sec || typeof JSZip === 'undefined') return;
+
+  var box = document.createElement('div');
+  box.id = 'colFileBox';
+  box.style.cssText = 'margin-top:14px;padding-top:12px;border-top:1px dashed #c7d2fe;';
+  box.innerHTML =
+    '<h2 style="margin:0 0 6px;font-size:1rem;">📂 엑셀 파일의 열 서식 지우기 (올리기 → 열 지정 → 다운로드)</h2>' +
+    '<p class="lookup-desc">엑셀 파일을 올리고 <strong>정리할 열</strong>을 지정한 뒤 [적용해서 다운로드]를 누르면, 그 열 글자의 큰따옴표(" ")·작은따옴표·줄바꿈·앞뒤 공백이 지워진 새 파일이 저장됩니다. 지정하지 않은 열과 파일의 나머지 서식은 그대로 두며, 숫자·수식 칸은 건드리지 않습니다.</p>' +
+    '<div class="lookup-actions">' +
+    '<button class="btn primary" id="cfPick" type="button">📂 엑셀 파일 올리기</button>' +
+    '<input type="file" id="cfFile" accept=".xlsx,.xlsm" style="display:none;">' +
+    '<span class="lookup-status" id="cfInfo">선택된 파일 없음</span></div>' +
+    '<div class="lookup-actions">' +
+    '<span class="pivot-field-label">시트</span><select id="cfSheet" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;"></select>' +
+    '<span class="pivot-field-label">정리할 열</span><input type="text" id="cfCols" class="text-join-input" style="width:140px;" placeholder="예) B 또는 B,D,F:G">' +
+    '<span class="pivot-field-label">시작 행</span><input type="number" id="cfStart" value="1" min="1" style="width:70px;padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">' +
+    '</div>' +
+    '<div class="lookup-actions"><button class="btn success" id="cfRun" type="button">✅ 적용해서 다운로드</button>' +
+    '<span class="lookup-status" id="cfResult"></span></div>';
+  sec.appendChild(box);
+
+  var $ = function(id){ return document.getElementById(id); };
+  var zip = null, fileName = '', sheets = [];
+  var NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+  function parseXml(s){
+    var d = new DOMParser().parseFromString(s, 'application/xml');
+    if (d.getElementsByTagName('parsererror').length) throw new Error('엑셀 내부 XML을 읽지 못했습니다');
+    return d;
+  }
+  function serialize(doc){
+    var x = new XMLSerializer().serializeToString(doc).replace(/^\s*(<\?xml[^?]*\?>\s*)+/, '');
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + x;
+  }
+  function resolveTarget(t){
+    if (t.charAt(0) === '/') return t.slice(1);
+    var out = [];
+    ('xl/' + t).split('/').forEach(function(p){ if (p === '..') out.pop(); else if (p !== '.') out.push(p); });
+    return out.join('/');
+  }
+  function colNum(s){ var n = 0; for (var i = 0; i < s.length; i++) n = n * 26 + s.charCodeAt(i) - 64; return n; }
+  function cleanText(v){
+    var t = String(v == null ? '' : v).replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim();
+    var prev;
+    do { prev = t; t = t.replace(/^["“”‟„«»]+|["“”‟„«»]+$/g, '').replace(/^'+/, '').trim(); } while (t !== prev);
+    return t.replace(/["“”]/g, '').trim();
+  }
+  function parseCols(text){
+    var set = {}, bad = [];
+    String(text || '').toUpperCase().replace(/\s+/g, '').split(/[,;]+/).forEach(function(tok){
+      if (!tok) return;
+      var m = tok.match(/^([A-Z]{1,3})(?::([A-Z]{1,3}))?$/);
+      if (!m){ bad.push(tok); return; }
+      var a = colNum(m[1]), b = m[2] ? colNum(m[2]) : a;
+      if (a > b){ var t = a; a = b; b = t; }
+      if (b > 16384){ bad.push(tok); return; }
+      for (var c = a; c <= b; c++) set[c] = true;
+    });
+    return { set: set, bad: bad, empty: Object.keys(set).length === 0 };
+  }
+
+  $('cfPick').onclick = function(){ $('cfFile').click(); };
+  $('cfFile').onchange = async function(e){
+    var f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    $('cfResult').textContent = '';
+    try {
+      var z = await JSZip.loadAsync(await f.arrayBuffer());
+      var wbF = z.file('xl/workbook.xml'), relF = z.file('xl/_rels/workbook.xml.rels');
+      if (!wbF || !relF) throw new Error('엑셀(.xlsx/.xlsm) 형식이 아니거나 암호가 걸린 파일입니다');
+      var wb = parseXml(await wbF.async('string')), rel = parseXml(await relF.async('string'));
+      var map = {};
+      [].slice.call(rel.getElementsByTagName('Relationship')).forEach(function(r){ map[r.getAttribute('Id')] = r.getAttribute('Target'); });
+      var list = [];
+      [].slice.call(wb.getElementsByTagName('sheet')).forEach(function(s){
+        var t = map[s.getAttributeNS(NS_R, 'id')];
+        if (t) list.push({ name: s.getAttribute('name'), path: resolveTarget(t) });
+      });
+      if (!list.length) throw new Error('시트를 찾지 못했습니다');
+      zip = z; fileName = f.name; sheets = list;
+      $('cfSheet').innerHTML = '<option value="-1">모든 시트</option>' + list.map(function(s, i){ return '<option value="' + i + '"></option>'; }).join('');
+      [].slice.call($('cfSheet').options).forEach(function(o, i){ if (i > 0) o.textContent = list[i - 1].name; });
+      $('cfSheet').value = '0';
+      $('cfInfo').textContent = '📄 ' + f.name + ' (시트 ' + list.length + '개)';
+    } catch (err){
+      zip = null; $('cfInfo').textContent = '선택된 파일 없음';
+      $('cfResult').textContent = '⚠ ' + (err.message || err);
+    }
+  };
+
+  async function readShared(z){
+    var f = z.file('xl/sharedStrings.xml'); if (!f) return [];
+    var d = parseXml(await f.async('string')), out = [];
+    [].slice.call(d.documentElement.childNodes).forEach(function(si){
+      if (si.nodeType !== 1 || si.localName !== 'si') return;
+      var s = '';
+      [].slice.call(si.getElementsByTagName('t')).forEach(function(t){
+        // 발음기호(rPh) 안의 t는 제외
+        for (var p = t.parentNode; p && p !== si; p = p.parentNode) if (p.localName === 'rPh') return;
+        s += t.textContent;
+      });
+      out.push(s);
+    });
+    return out;
+  }
+
+  $('cfRun').onclick = async function(){
+    var res = $('cfResult');
+    if (!zip){ res.textContent = '⚠ 먼저 엑셀 파일을 올려주세요'; return; }
+    var pc = parseCols($('cfCols').value);
+    if (pc.empty || pc.bad.length){ res.textContent = '⚠ 정리할 열을 영문 열 이름으로 입력하세요 (예: B 또는 B,D,F:G)' + (pc.bad.length ? ' — 잘못된 입력: ' + pc.bad.join(', ') : ''); return; }
+    var start = Math.max(1, parseInt($('cfStart').value, 10) || 1);
+    var pick = parseInt($('cfSheet').value, 10);
+    res.textContent = '처리 중…';
+    try {
+      var shared = await readShared(zip), changed = 0, scanned = 0;
+      var targets = pick < 0 ? sheets : [sheets[pick]];
+      for (var k = 0; k < targets.length; k++){
+        var sf = zip.file(targets[k].path); if (!sf) continue;
+        var doc = parseXml(await sf.async('string')), ns = doc.documentElement.namespaceURI, dirty = false;
+        var cells = doc.getElementsByTagName('c');
+        for (var i = 0; i < cells.length; i++){
+          var c = cells[i], ref = c.getAttribute('r') || '';
+          var m = ref.match(/^([A-Z]+)(\d+)$/); if (!m) continue;
+          if (!pc.set[colNum(m[1])] || parseInt(m[2], 10) < start) continue;
+          var t = c.getAttribute('t'), hasF = c.getElementsByTagName('f').length > 0, orig = null;
+          if (hasF) continue;
+          if (t === 's'){
+            var v = c.getElementsByTagName('v')[0]; if (!v) continue;
+            orig = shared[parseInt(v.textContent, 10)];
+          } else if (t === 'inlineStr'){
+            var is = c.getElementsByTagName('is')[0]; if (!is) continue;
+            orig = [].slice.call(is.getElementsByTagName('t')).map(function(x){ return x.textContent; }).join('');
+          } else continue;
+          if (orig == null) continue;
+          scanned++;
+          var cl = cleanText(orig);
+          if (cl === orig) continue;
+          while (c.firstChild) c.removeChild(c.firstChild);
+          if (cl === ''){ c.removeAttribute('t'); }
+          else {
+            c.setAttribute('t', 'inlineStr');
+            var isEl = doc.createElementNS(ns, 'is'), tEl = doc.createElementNS(ns, 't');
+            tEl.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+            tEl.textContent = cl; isEl.appendChild(tEl); c.appendChild(isEl);
+          }
+          changed++; dirty = true;
+        }
+        if (dirty) zip.file(targets[k].path, serialize(doc));
+      }
+      if (!changed){ res.textContent = '변경할 칸이 없습니다 (지정한 열에서 서식을 지울 글자 ' + scanned + '칸을 확인했지만 이미 깨끗합니다)'; return; }
+      var blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var base = fileName.replace(/\.(xlsx|xlsm)$/i, ''), ext = (fileName.match(/\.(xlsx|xlsm)$/i) || [0, 'xlsx'])[1].toLowerCase();
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = base + '_서식정리.' + ext;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+      res.textContent = '✅ ' + changed + '칸 정리 완료 — ' + base + '_서식정리.' + ext + ' 다운로드';
+      // 다시 적용해도 원본 기준이 되도록 파일을 다시 읽지 않고, 현재 상태를 유지하려면 재업로드가 필요
+      zip = null; $('cfInfo').textContent = '다시 적용하려면 파일을 다시 올려주세요';
+    } catch (err){
+      res.textContent = '⚠ ' + (err.message || err);
+    }
+  };
+})();
+</script>
