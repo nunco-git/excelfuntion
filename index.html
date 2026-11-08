@@ -351,6 +351,60 @@
   .btn.run-btn.need:hover{background:#ea580c;}
   .btn.run-btn:disabled{opacity:.65;cursor:progress;animation:none;}
   @keyframes runPulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,.5);}50%{box-shadow:0 0 0 6px rgba(249,115,22,0);}}
+
+/*mobile-fontfix*/
+@media (max-width:640px){
+.split-mode-badge{font-size:14px !important}
+.title-security-badge{font-size:14px !important}
+.btn-reset{font-size:14px !important}
+.security-features li{font-size:15px !important}
+.security-features .feat-icon{font-size:14px !important}
+.security-features strong{font-size:15px !important}
+.btn{font-size:14px !important}
+#addRowCount{font-size:14px !important}
+.text-join-label{font-size:14px !important}
+.cs-colref-toggle{font-size:14px !important}
+.text-join-input{font-size:15px !important}
+thead th{font-size:15px !important}
+tbody td{font-size:15px !important}
+tbody td.idx{font-size:14px !important}
+select.cell, input.cell{font-size:14px !important}
+.param-label{font-size:14px !important}
+.side h2{font-size:15px !important}
+summary{font-size:14px !important}
+.fn-item{font-size:14px !important}
+.fn-ex{font-size:14px !important}
+.fn-params{font-size:14px !important}
+.side-note{font-size:14px !important}
+.fn-detail-empty{font-size:15px !important}
+.fn-detail-example{font-size:15px !important}
+.fn-detail-params li{font-size:15px !important}
+.fn-detail-note{font-size:14px !important}
+.btn-goto-lookup{font-size:14px !important}
+.btn-goto-top{font-size:14px !important}
+.lookup-desc{font-size:15px !important}
+.lookup-status{font-size:14px !important}
+.lookup-header-toggle{font-size:15px !important}
+.lookup-paste-hint{font-size:15px !important}
+table.lookup-grid{font-size:14px !important}
+input.lookup-cell{font-size:14px !important}
+#cpTabs button{font-size:14px !important}
+#cpGrid table{font-size:14px !important}
+#cpGrid td.cp-locked::before{font-size:14px !important}
+#cpGridNote{font-size:14px !important}
+#favBar .fav-title{font-size:15px !important}
+#favList .fav-empty{font-size:14px !important}
+.fav-chip{font-size:14px !important}
+.fav-chip .fav-x{font-size:15px !important}
+.pivot-field{font-size:15px !important}
+.pivot-field select{font-size:15px !important}
+table.pivot-result-table{font-size:14px !important}
+.toast{font-size:15px !important}
+.copy-modal p{font-size:16px !important}
+.copy-modal textarea{font-size:14px !important}
+/* ── 함수 실행 버튼 / 상태 표시 (입력값 100건 초과 시 수동 실행) ── */
+  .run-status{font-size:15px !important}
+}
 </style>
 </head>
 <body>
@@ -2212,6 +2266,18 @@
   updateFavBtns();
   renderBar(); decorate();
 })();
+</script>
+<script>/*mobile-fontfix-js*/
+(function(){try{if(!window.matchMedia||!matchMedia('(max-width:640px)').matches)return;var MIN=14;
+function fix(root){var list=[];if(root.nodeType!==1)return;list.push(root);var q=root.querySelectorAll('*');for(var i=0;i<q.length;i++)list.push(q[i]);
+for(var j=0;j<list.length;j++){var e=list[j];if(e.__mf||/^(SCRIPT|STYLE|SVG|CANVAS|PATH|G|LINE|RECT|CIRCLE|TEXT|TSPAN)$/i.test(e.tagName))continue;var has=false;for(var n=e.firstChild;n;n=n.nextSibling){if(n.nodeType===3&&n.nodeValue.trim()){has=true;break}}
+if(!has)continue;e.__mf=1;var f=parseFloat(getComputedStyle(e).fontSize);if(f>0&&f<MIN)e.style.setProperty('font-size',MIN+'px','important')}}
+function run(){fix(document.body)}
+var t=null;function later(){clearTimeout(t);t=setTimeout(run,300)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+window.addEventListener('load',run);
+new MutationObserver(later).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+}catch(e){}})();
 </script>
 </body>
 </html>
